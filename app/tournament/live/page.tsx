@@ -1,15 +1,26 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { initializeApp, getApps } from "firebase/app";
 import { getDatabase, ref, onValue } from "firebase/database";
+
+// 1. Define your Firebase config (Get these from your Firebase Console)
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+  databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
+  projectId: "YOUR_PROJECT_ID",
+};
+
+// 2. Initialize Firebase safely
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
 
 export default function TournamentView() {
   const [matches, setMatches] = useState({});
 
   useEffect(() => {
-    const db = getDatabase();
+    const db = getDatabase(app); // Pass the initialized app here
     const matchesRef = ref(db, 'tournaments/pickleball_may_2026/matches');
     
-    // This listener updates the UI instantly whenever Alexa changes Firebase
     onValue(matchesRef, (snapshot) => {
       setMatches(snapshot.val() || {});
     });
