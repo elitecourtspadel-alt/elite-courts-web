@@ -1,7 +1,7 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { initializeApp, getApps } from "firebase/app";
-import { getDatabase, ref, onValue, update, push } from "firebase/database";
+import { getDatabase, ref, onValue } from "firebase/database";
 
 const firebaseConfig = {
   apiKey: "AizasyD4bPvYwRjOAGfiwoVPbG_4hj6QEbgdc9A",
@@ -14,103 +14,51 @@ const firebaseConfig = {
 };
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
-const db = getDatabase(app);
 
-export default function TournamentAdmin() {
+export default function TournamentView() {
   const [tournamentData, setTournamentData] = useState<any>(null);
-  const [newTeamName, setNewTeamName] = useState('');
-  const [selectedGroup, setSelectedGroup] = useState('Group A');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const db = getDatabase(app);
     const tourneyRef = ref(db, 'tournaments/pickleball_may_2026');
+    
     const unsubscribe = onValue(tourneyRef, (snapshot) => {
       setTournamentData(snapshot.val());
-    });
+      setLoading(false);
+    }, () => setLoading(false));
+
     return () => unsubscribe();
   }, []);
 
-  // Function to easily add a team from a web form
-  const handleAddTeam = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newTeamName.trim()) return;
-
-    const groupTeamsRef = ref(db, `tournaments/pickleball_may_2026/groups/${selectedGroup}/teams`);
-    push(groupTeamsRef, newTeamName.trim());
-    setNewTeamName('');
-  };
-
-  // Function to set a match winner with one click
-  const handleSetWinner = (groupName: string, matchId: string, winnerName: string) => {
-    const matchRef = ref(db, `tournaments/pickleball_may_2026/groups/${groupName}/matches/${matchId}`);
-    update(matchRef, { winner: winnerName });
-  };
-
   return (
-    <div className="p-10 text-white bg-zinc-950 min-h-screen">
-      <h1 className="text-3xl font-bold mb-8 text-amber-400 text-center">Tournament Control Panel</h1>
-
-      {/* Quick Add Team Form */}
-      <form onSubmit={handleAddTeam} className="max-w-md mx-auto bg-zinc-900 p-6 rounded-lg border border-zinc-800 mb-10">
-        <h2 className="text-lg font-bold mb-4 text-zinc-200">Add New Team</h2>
-        <div className="flex flex-col gap-4">
-          <select 
-            value={selectedGroup} 
-            onChange={(e) => setSelectedGroup(e.target.value)}
-            className="bg-zinc-800 border border-zinc-700 p-2 rounded text-white"
-          >
-            <option value="Group A">Group A</option>
-            <option value="Group B">Group B</option>
-          </select>
-          <input 
-            type="text" 
-            placeholder="Team Name..." 
-            value={newTeamName}
-            onChange={(e) => setNewTeamName(e.target.value)}
-            className="bg-zinc-800 border border-zinc-700 p-2 rounded text-white"
-          />
-          <button type="submit" className="bg-emerald-600 hover:bg-emerald-500 font-bold p-2 rounded transition">
-            Save Team to Live Site
-          </button>
+    <div className="p-10 text-white bg-black min-h-screen">
+      <h1 className="text-4xl font-bold mb-8 text-emerald-400 text-center">Elite Courts Tournament</h1>
+      
+      {loading ? (
+        <p className="text-zinc-500 text-center animate-pulse">Loading brackets...</p>
+      ) : tournamentData && tournamentData.groups ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {Object.entries(tournamentData.groups).map(([groupName, groupData]: [string, any]) => (
+            <div key={groupName} className="bg-zinc-900 border border-emerald-500/30 p-6 rounded-lg">
+              <h2 className="text-xl font-bold mb-4 text-emerald-300">{groupName}</h2>
+              <ul className="space-y-2">
+                {groupData.teams ? (
+                  Object.entries(groupData.teams).map(([teamId, teamName]: [string, any]) => (
+                    <li key={teamId} className="bg-zinc-800 p-2 rounded text-sm text-white">
+                      {teamName}
+                    </li>
+                  ))
+                ) : (
+                  <p className="text-xs text-zinc-500">No teams registered yet.</p>
+                )}
+              </ul>
+            </div>
+          ))}
         </div>
-      </form>
-
-      {/* Live Match Scorer */}
-      <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
-        {tournamentData?.groups && Object.entries(tournamentData.groups).map(([groupName, groupData]: [string, any]) => (
-          <div key={groupName} className="bg-zinc-900 p-6 rounded-lg border border-zinc-800">
-            <h3 className="text-xl font-bold text-emerald-400 mb-4">{groupName} Matches</h3>
-            
-            {groupData.matches ? (
-              Object.entries(groupData.matches).map(([matchId, match]: [string, any]) => (
-                <div key={matchId} className="bg-zinc-800 p-4 rounded-md mb-3 border border-zinc-700">
-                  <div className="flex justify-between items-center mb-2">
-                    <button 
-                      onClick={() => handleSetWinner(groupName, matchId, match.team1)}
-                      className={`px-3 py-1.5 rounded font-medium text-sm transition ${match.winner === match.team1 ? 'bg-emerald-600 text-white font-bold' : 'bg-zinc-700 hover:bg-zinc-600'}`}
-                    >
-                      🏆 {match.team1} Won
-                    </button>
-                    <span className="text-xs text-zinc-500 font-bold">VS</span>
-                    <button 
-                      onClick={() => handleSetWinner(groupName, matchId, match.team2)}
-                      className={`px-3 py-1.5 rounded font-medium text-sm transition ${match.winner === match.team2 ? 'bg-emerald-600 text-white font-bold' : 'bg-zinc-700 hover:bg-zinc-600'}`}
-                    >
-                      🏆 {match.team2} Won
-                    </button>
-                  </div>
-                  {match.winner && (
-                    <p className="text-center text-xs text-emerald-400 mt-2 font-semibold">
-                      Current Winner: {match.winner}
-                    </p>
-                  )}
-                </div>
-              ))
-            ) : (
-              <p className="text-xs text-zinc-500 italic">No matches created yet for this group.</p>
-            )}
-          </div>
-        ))}
-      </div>
+      ) : (
+        <p className="text-center text-zinc-500">No data found.</p>
+      )}
     </div>
   );
 }
