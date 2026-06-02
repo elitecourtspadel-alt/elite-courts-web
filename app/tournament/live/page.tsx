@@ -24,6 +24,7 @@ export default function TournamentView() {
     const matchesRef = ref(db, 'tournaments/pickleball_may_2026/matches');
     
     onValue(matchesRef, (snapshot) => {
+      console.log("Data from Firebase:", snapshot.val());
       setMatches(snapshot.val() || {});
     });
   }, []);
