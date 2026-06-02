@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react';
 import { initializeApp, getApps } from "firebase/app";
 import { getDatabase, ref, onValue } from "firebase/database";
 
-// Your verified Firebase configuration
 const firebaseConfig = {
   apiKey: "AizasyD4bPvYwRjOAGfiwoVPbG_4hj6QEbgdc9A",
   authDomain: "elitecourtsapp.firebaseapp.com",
@@ -13,36 +12,42 @@ const firebaseConfig = {
   appId: "1:409782502952:web:64dbbd439a740a312c571d"
 };
 
-// Initialize Firebase safely for Next.js SSR
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
 
 export default function TournamentView() {
-  const [matches, setMatches] = useState<any>(null);
+  const [tournamentData, setTournamentData] = useState<any>(null);
 
   useEffect(() => {
     const db = getDatabase(app);
-    const matchesRef = ref(db, 'tournaments/pickleball_may_2026/matches');
+    // Pointing to a new structure you will create in Firebase
+    const tourneyRef = ref(db, 'tournaments/pickleball_may_2026');
     
-    // Listen for live data updates
-    const unsubscribe = onValue(matchesRef, (snapshot) => {
-      setMatches(snapshot.val());
+    const unsubscribe = onValue(tourneyRef, (snapshot) => {
+      setTournamentData(snapshot.val());
     });
-
     return () => unsubscribe();
   }, []);
 
   return (
-    <div className="p-10 text-white bg-black min-h-screen flex flex-col items-center justify-center">
-      <h1 className="text-4xl font-bold mb-6 text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.5)]">
-        Elite Courts Live Tournament
-      </h1>
-      <div className="bg-zinc-900 border border-emerald-500/30 rounded-lg p-6 w-full max-w-2xl font-mono text-sm shadow-[0_0_20px_rgba(0,0,0,0.8)]">
-        {matches ? (
-          <pre className="text-emerald-300 whitespace-pre-wrap">{JSON.stringify(matches, null, 2)}</pre>
-        ) : (
-          <p className="text-zinc-500 text-center animate-pulse">Waiting for Alexa to generate matches...</p>
-        )}
-      </div>
+    <div className="p-10 text-white bg-black min-h-screen">
+      <h1 className="text-4xl font-bold mb-8 text-emerald-400 text-center">Elite Courts Tournament</h1>
+      
+      {tournamentData ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {Object.entries(tournamentData.groups || {}).map(([groupName, teams]: any) => (
+            <div key={groupName} className="bg-zinc-900 border border-emerald-500/30 p-6 rounded-lg">
+              <h2 className="text-xl font-bold mb-4 text-emerald-300">{groupName}</h2>
+              <ul className="space-y-2">
+                {Object.values(teams).map((teamName: any, idx) => (
+                  <li key={idx} className="bg-zinc-800 p-2 rounded text-sm">{teamName}</li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-zinc-500 text-center">No tournament data found. Add teams to Firebase!</p>
+      )}
     </div>
   );
 }
