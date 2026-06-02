@@ -5,10 +5,12 @@ import { getDatabase, ref, onValue } from "firebase/database";
 
 // 1. Define your Firebase config (Get these from your Firebase Console)
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
-  projectId: "YOUR_PROJECT_ID",
+  apiKey: "AIzaSyD4BPvYwRjOAGfiwoVPbG_4hJ6QEBgdc9A",
+  authDomain: "elitecourtsapp.firebaseapp.com",
+  projectId: "elitecourtsapp",
+  storageBucket: "elitecourtsapp.firebasestorage.app",
+  messagingSenderId: "409782502952",
+  appId: "1:409782502952:web:64dbbd439a740a312c571d"
 };
 
 // 2. Initialize Firebase safely
