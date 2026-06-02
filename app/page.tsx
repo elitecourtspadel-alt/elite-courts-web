@@ -51,6 +51,19 @@ export default function HomePage() {
     <>
       <JsonLd data={schema} />
       <HeroSlider />
+      
+      {/* LIVE TOURNAMENT SECTION BANNER */}
+      <section className="bg-[color:var(--surface-soft)] py-6 border-b border-[color:var(--border)]">
+        <Container className="flex justify-center">
+          <Button asChild size="lg" className="bg-emerald-600 hover:bg-emerald-700 shadow-md text-white font-bold px-8 py-6 rounded-xl transition-all duration-200 hover:scale-105">
+            <Link href="/pickleball-tournament">
+              <Star className="mr-2 h-5 w-5 fill-white text-white animate-pulse" />
+              View Live Tournament Bracket 🏆
+            </Link>
+          </Button>
+        </Container>
+      </section>
+
       <NewPackagesSection />
 
       <section className="py-16 sm:py-20">
@@ -157,7 +170,6 @@ export default function HomePage() {
           </div>
         </Container>
       </section>
-
 
       {siteConfig.showCustomerReviews && <TestimonialsSection />}
 
