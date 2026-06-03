@@ -32,25 +32,32 @@ export default function TournamentView() {
   }, []);
 
   return (
-    <div className="p-10 text-white bg-black min-h-screen">
-      <h1 className="text-4xl font-bold mb-8 text-emerald-400 text-center">Elite Courts Tournament</h1>
+    <div className="p-6 sm:p-10 text-white bg-zinc-950 min-h-screen">
+      <h1 className="text-3xl sm:text-4xl font-bold mb-2 text-emerald-400 text-center tracking-tight">Elite Courts Tournament</h1>
+      <p className="text-center text-zinc-400 text-sm mb-8">14 Teams — 4 Groups Stages</p>
       
       {loading ? (
         <p className="text-zinc-500 text-center animate-pulse">Loading brackets...</p>
       ) : tournamentData && tournamentData.groups ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        // Changed grid layout to handle up to 4 columns nicely
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {Object.entries(tournamentData.groups).map(([groupName, groupData]: [string, any]) => (
-            <div key={groupName} className="bg-zinc-900 border border-emerald-500/30 p-6 rounded-lg">
-              <h2 className="text-xl font-bold mb-4 text-emerald-300">{groupName}</h2>
+            <div key={groupName} className="bg-zinc-900 border border-emerald-500/20 p-5 rounded-xl shadow-md">
+              <div className="flex justify-between items-center mb-4 border-b border-zinc-800 pb-2">
+                <h2 className="text-lg font-bold text-emerald-300">{groupName}</h2>
+                <span className="text-xs text-zinc-500 font-mono">
+                  {groupData.teams ? Object.keys(groupData.teams).length : 0} Teams
+                </span>
+              </div>
               <ul className="space-y-2">
                 {groupData.teams ? (
                   Object.entries(groupData.teams).map(([teamId, teamName]: [string, any]) => (
-                    <li key={teamId} className="bg-zinc-800 p-2 rounded text-sm text-white">
+                    <li key={teamId} className="bg-zinc-800/60 border border-zinc-700/30 p-3 rounded-lg text-sm text-zinc-100 font-medium transition-all hover:border-emerald-500/30">
                       {teamName}
                     </li>
                   ))
                 ) : (
-                  <p className="text-xs text-zinc-500">No teams registered yet.</p>
+                  <p className="text-xs text-zinc-500 py-2 italic text-center">No teams registered yet.</p>
                 )}
               </ul>
             </div>
