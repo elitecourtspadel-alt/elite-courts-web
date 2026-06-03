@@ -34,6 +34,7 @@ export default function TournamentView() {
     return () => unsubscribe();
   }, []);
 
+  // --- Strict World Cup Calculation Logic with Tie-Breakers ---
   const groupWinners: Record<string, string> = { 
     'Group A': 'Winner Group A', 
     'Group B': 'Winner Group B', 
@@ -51,18 +52,23 @@ export default function TournamentView() {
       const allMatchesFinished = hasMatches && matchesRaw.every(([_, mData]: any) => mData.winner && mData.winner.trim() !== "");
 
       if (allMatchesFinished) {
-        const standingsMap: Record<string, { name: string; pts: number }> = {};
-        teamsRaw.forEach((tName) => { standingsMap[tName] = { name: tName, pts: 0 }; });
+        const standingsMap: Record<string, { name: string; pts: number; diff: number }> = {};
+        teamsRaw.forEach((tName) => { standingsMap[tName] = { name: tName, pts: 0, diff: 0 }; });
 
         matchesRaw.forEach(([_, mData]: any) => {
           const t1 = mData.team1; const t2 = mData.team2; const win = mData.winner;
+          const s1 = Number(mData.score1 || 0); const s2 = Number(mData.score2 || 0);
+          
           if (standingsMap[t1] && standingsMap[t2] && win) {
+            standingsMap[t1].diff += (s1 - s2);
+            standingsMap[t2].diff += (s2 - s1);
             if (win === t1) standingsMap[t1].pts += 3;
             else if (win === t2) standingsMap[t2].pts += 3;
           }
         });
 
-        const sorted = Object.values(standingsMap).sort((a, b) => b.pts - a.pts);
+        // Primary: Points, Secondary: Point Differential
+        const sorted = Object.values(standingsMap).sort((a, b) => b.pts - a.pts || b.diff - a.diff);
         if (sorted.length > 0) {
           groupWinners[groupName] = sorted[0].name;
         }
@@ -70,12 +76,11 @@ export default function TournamentView() {
     });
   }
 
-  const semi1 = tournamentData?.knockouts?.semi1 || { winner: "" };
-  const semi2 = tournamentData?.knockouts?.semi2 || { winner: "" };
-  const finalMatch = tournamentData?.knockouts?.final || { winner: "" };
+  const semi1 = tournamentData?.knockouts?.semi1 || { winner: "", score1: "", score2: "" };
+  const semi2 = tournamentData?.knockouts?.semi2 || { winner: "", score1: "", score2: "" };
+  const finalMatch = tournamentData?.knockouts?.final || { winner: "", score1: "", score2: "" };
   const streamLink = tournamentData?.config?.streamLink || "";
 
-  // Dynamic status logic
   const isSemi1Ready = groupWinners['Group A'] !== 'Winner Group A' && groupWinners['Group C'] !== 'Winner Group C';
   const isSemi2Ready = groupWinners['Group B'] !== 'Winner Group B' && groupWinners['Group D'] !== 'Winner Group D';
   const isFinalReady = (semi1.winner !== "") && (semi2.winner !== "");
@@ -88,16 +93,9 @@ export default function TournamentView() {
           <p className="text-center text-zinc-400 text-sm">Live Group Standings & Fixtures Tracker</p>
         </div>
         
-        {/* YouTube Live Stream Button */}
         {streamLink && (
-          <a 
-            href={streamLink} 
-            target="_blank" 
-            rel="noopener noreferrer" 
-            className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-6 py-2.5 rounded-full font-bold text-sm transition-all shadow-lg shadow-red-600/20 animate-pulse"
-          >
-            <Youtube className="w-5 h-5" />
-            Watch Live Stream
+          <a href={streamLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-6 py-2.5 rounded-full font-bold text-sm transition-all shadow-lg shadow-red-600/20 animate-pulse">
+            <Youtube className="w-5 h-5" /> Watch Live Stream
           </a>
         )}
       </div>
@@ -113,19 +111,23 @@ export default function TournamentView() {
               const groupData = tournamentData?.groups?.[groupName];
               const teamsRaw = groupData?.teams ? Object.values(groupData.teams) as string[] : [];
               const matchesRaw = groupData?.matches ? Object.entries(groupData.matches) : [];
-              const standingsMap: Record<string, { name: string; p: number; w: number; l: number; pts: number }> = {};
+              const standingsMap: Record<string, { name: string; p: number; w: number; l: number; diff: number; pts: number }> = {};
               
-              teamsRaw.forEach((tName) => { standingsMap[tName] = { name: tName, p: 0, w: 0, l: 0, pts: 0 }; });
+              teamsRaw.forEach((tName) => { standingsMap[tName] = { name: tName, p: 0, w: 0, l: 0, diff: 0, pts: 0 }; });
               matchesRaw.forEach(([_, mData]: any) => {
                 const t1 = mData.team1; const t2 = mData.team2; const win = mData.winner;
+                const s1 = Number(mData.score1 || 0); const s2 = Number(mData.score2 || 0);
+
                 if (standingsMap[t1] && standingsMap[t2] && win && win.trim() !== "") {
                   standingsMap[t1].p += 1; standingsMap[t2].p += 1;
+                  standingsMap[t1].diff += (s1 - s2);
+                  standingsMap[t2].diff += (s2 - s1);
                   if (win === t1) { standingsMap[t1].w += 1; standingsMap[t1].pts += 3; standingsMap[t2].l += 1; }
                   else if (win === t2) { standingsMap[t2].w += 1; standingsMap[t2].pts += 3; standingsMap[t1].l += 1; }
                 }
               });
 
-              const sortedStandings = Object.values(standingsMap).sort((a, b) => b.pts - a.pts);
+              const sortedStandings = Object.values(standingsMap).sort((a, b) => b.pts - a.pts || b.diff - a.diff);
 
               return (
                 <div key={groupName} className="bg-zinc-900 border border-zinc-800/80 p-5 rounded-2xl space-y-6">
@@ -142,6 +144,7 @@ export default function TournamentView() {
                           <th className="py-2 text-center w-10">P</th>
                           <th className="py-2 text-center w-10 text-emerald-500">W</th>
                           <th className="py-2 text-center w-10 text-red-400">L</th>
+                          <th className="py-2 text-center w-12 text-teal-400">Diff</th>
                           <th className="py-2 text-right pr-2 w-14 text-amber-400">Pts</th>
                         </tr>
                       </thead>
@@ -155,6 +158,9 @@ export default function TournamentView() {
                             <td className="py-3 text-center text-zinc-400 font-mono">{row.p}</td>
                             <td className="py-3 text-center text-emerald-400 font-mono">{row.w}</td>
                             <td className="py-3 text-center text-zinc-500 font-mono">{row.l}</td>
+                            <td className={`py-3 text-center font-mono font-medium ${row.diff > 0 ? 'text-teal-400' : row.diff < 0 ? 'text-red-400' : 'text-zinc-500'}`}>
+                              {row.diff > 0 ? `+${row.diff}` : row.diff}
+                            </td>
                             <td className="py-3 text-right pr-2 text-amber-400 font-mono font-bold">{row.pts}</td>
                           </tr>
                         ))}
@@ -170,8 +176,14 @@ export default function TournamentView() {
                           {mData.winner ? <span className="text-emerald-400 font-bold">FINAL</span> : <span className="text-amber-500 animate-pulse">PENDING</span>}
                         </div>
                         <div className="space-y-1 text-xs">
-                          <div className={mData.winner === mData.team1 ? 'text-emerald-400 font-bold' : 'text-zinc-300'}>{mData.team1}</div>
-                          <div className={mData.winner === mData.team2 ? 'text-emerald-400 font-bold' : 'text-zinc-300'}>{mData.team2}</div>
+                          <div className="flex justify-between items-center">
+                            <span className={mData.winner === mData.team1 ? 'text-emerald-400 font-bold' : 'text-zinc-300'}>{mData.team1}</span>
+                            {mData.winner && <span className="font-mono text-zinc-400 font-bold bg-zinc-900 px-1.5 py-0.5 rounded text-[10px]">{mData.score1}</span>}
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className={mData.winner === mData.team2 ? 'text-emerald-400 font-bold' : 'text-zinc-300'}>{mData.team2}</span>
+                            {mData.winner && <span className="font-mono text-zinc-400 font-bold bg-zinc-900 px-1.5 py-0.5 rounded text-[10px]">{mData.score2}</span>}
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -197,22 +209,22 @@ export default function TournamentView() {
                 <div className="bg-zinc-950 border border-zinc-800 p-4 rounded-2xl space-y-3 shadow-md">
                   <div className="flex justify-between font-mono text-[9px] text-zinc-500 border-b border-zinc-900 pb-1">
                     <span>SEMIFINAL 1</span>
-                    {semi1.winner ? (
-                      <span className="text-emerald-400 font-bold">FINAL</span>
-                    ) : isSemi1Ready ? (
-                      <span className="text-red-500 font-bold animate-pulse">LIVE 🔴</span>
-                    ) : (
-                      <span className="text-amber-500/50">PENDING</span>
-                    )}
+                    {semi1.winner ? <span className="text-emerald-400 font-bold">FINAL</span> : isSemi1Ready ? <span className="text-red-500 font-bold animate-pulse">LIVE 🔴</span> : <span className="text-amber-500/50">PENDING</span>}
                   </div>
                   <div className="space-y-2 text-xs">
-                    <div className={`flex justify-between items-center ${semi1.winner && semi1.winner === groupWinners['Group A'] ? 'text-emerald-400 font-bold' : 'text-zinc-300'}`}>
-                      <span>{groupWinners['Group A']}</span>
-                      <span className="text-[10px] text-zinc-600 font-mono">(A1)</span>
+                    <div className="flex justify-between items-center">
+                      <span className={semi1.winner === groupWinners['Group A'] ? 'text-emerald-400 font-bold' : 'text-zinc-300'}>{groupWinners['Group A']}</span>
+                      <div className="flex items-center gap-1.5 font-mono">
+                        {semi1.winner && <span className="bg-zinc-900 text-zinc-400 px-1 rounded text-[10px]">{semi1.score1}</span>}
+                        <span className="text-[10px] text-zinc-600">(A1)</span>
+                      </div>
                     </div>
-                    <div className={`flex justify-between items-center ${semi1.winner && semi1.winner === groupWinners['Group C'] ? 'text-emerald-400 font-bold' : 'text-zinc-300'}`}>
-                      <span>{groupWinners['Group C']}</span>
-                      <span className="text-[10px] text-zinc-600 font-mono">(C1)</span>
+                    <div className="flex justify-between items-center">
+                      <span className={semi1.winner === groupWinners['Group C'] ? 'text-emerald-400 font-bold' : 'text-zinc-300'}>{groupWinners['Group C']}</span>
+                      <div className="flex items-center gap-1.5 font-mono">
+                        {semi1.winner && <span className="bg-zinc-900 text-zinc-400 px-1 rounded text-[10px]">{semi1.score2}</span>}
+                        <span className="text-[10px] text-zinc-600">(C1)</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -221,22 +233,22 @@ export default function TournamentView() {
                 <div className="bg-zinc-950 border border-zinc-800 p-4 rounded-2xl space-y-3 shadow-md">
                   <div className="flex justify-between font-mono text-[9px] text-zinc-500 border-b border-zinc-900 pb-1">
                     <span>SEMIFINAL 2</span>
-                    {semi2.winner ? (
-                      <span className="text-emerald-400 font-bold">FINAL</span>
-                    ) : isSemi2Ready ? (
-                      <span className="text-red-500 font-bold animate-pulse">LIVE 🔴</span>
-                    ) : (
-                      <span className="text-amber-500/50">PENDING</span>
-                    )}
+                    {semi2.winner ? <span className="text-emerald-400 font-bold">FINAL</span> : isSemi2Ready ? <span className="text-red-500 font-bold animate-pulse">LIVE 🔴</span> : <span className="text-amber-500/50">PENDING</span>}
                   </div>
                   <div className="space-y-2 text-xs">
-                    <div className={`flex justify-between items-center ${semi2.winner && semi2.winner === groupWinners['Group B'] ? 'text-emerald-400 font-bold' : 'text-zinc-300'}`}>
-                      <span>{groupWinners['Group B']}</span>
-                      <span className="text-[10px] text-zinc-600 font-mono">(B1)</span>
+                    <div className="flex justify-between items-center">
+                      <span className={semi2.winner === groupWinners['Group B'] ? 'text-emerald-400 font-bold' : 'text-zinc-300'}>{groupWinners['Group B']}</span>
+                      <div className="flex items-center gap-1.5 font-mono">
+                        {semi2.winner && <span className="bg-zinc-900 text-zinc-400 px-1 rounded text-[10px]">{semi2.score1}</span>}
+                        <span className="text-[10px] text-zinc-600">(B1)</span>
+                      </div>
                     </div>
-                    <div className={`flex justify-between items-center ${semi2.winner && semi2.winner === groupWinners['Group D'] ? 'text-emerald-400 font-bold' : 'text-zinc-300'}`}>
-                      <span>{groupWinners['Group D']}</span>
-                      <span className="text-[10px] text-zinc-600 font-mono">(D1)</span>
+                    <div className="flex justify-between items-center">
+                      <span className={semi2.winner === groupWinners['Group D'] ? 'text-emerald-400 font-bold' : 'text-zinc-300'}>{groupWinners['Group D']}</span>
+                      <div className="flex items-center gap-1.5 font-mono">
+                        {semi2.winner && <span className="bg-zinc-900 text-zinc-400 px-1 rounded text-[10px]">{semi2.score2}</span>}
+                        <span className="text-[10px] text-zinc-600">(D1)</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -248,20 +260,16 @@ export default function TournamentView() {
                 <div className="bg-zinc-900 border-2 border-amber-500/30 p-5 rounded-2xl space-y-4 bg-gradient-to-b from-zinc-900 to-amber-950/10 shadow-xl">
                   <div className="flex justify-between font-mono text-[9px] text-amber-400 font-bold border-b border-zinc-800 pb-1">
                     <span>CHAMPIONSHIP MATCH</span>
-                    {finalMatch.winner ? (
-                      <span className="text-emerald-400">FINAL</span>
-                    ) : isFinalReady ? (
-                      <span className="text-red-500 animate-pulse">LIVE 🔴</span>
-                    ) : (
-                      <span className="text-amber-500/50 font-normal">PENDING</span>
-                    )}
+                    {finalMatch.winner ? <span className="text-emerald-400">FINAL</span> : isFinalReady ? <span className="text-red-500 animate-pulse">LIVE 🔴</span> : <span className="text-amber-500/50 font-normal">PENDING</span>}
                   </div>
                   <div className="space-y-2.5 text-sm">
-                    <div className={`flex justify-between ${finalMatch.winner && finalMatch.winner === semi1.winner ? 'text-amber-400 font-bold' : 'text-zinc-400'}`}>
-                      <span>{semi1.winner || "Winner Semifinal 1"}</span>
+                    <div className="flex justify-between items-center">
+                      <span className={finalMatch.winner && finalMatch.winner === semi1.winner ? 'text-amber-400 font-bold' : 'text-zinc-400'}>{semi1.winner || "Winner Semifinal 1"}</span>
+                      {finalMatch.winner && <span className="font-mono text-zinc-400 text-xs font-bold bg-zinc-950 px-1.5 py-0.5 rounded">{finalMatch.score1}</span>}
                     </div>
-                    <div className={`flex justify-between ${finalMatch.winner && finalMatch.winner === semi2.winner ? 'text-amber-400 font-bold' : 'text-zinc-400'}`}>
-                      <span>{semi2.winner || "Winner Semifinal 2"}</span>
+                    <div className="flex justify-between items-center">
+                      <span className={finalMatch.winner && finalMatch.winner === semi2.winner ? 'text-amber-400 font-bold' : 'text-zinc-400'}>{semi2.winner || "Winner Semifinal 2"}</span>
+                      {finalMatch.winner && <span className="font-mono text-zinc-400 text-xs font-bold bg-zinc-950 px-1.5 py-0.5 rounded">{finalMatch.score2}</span>}
                     </div>
                   </div>
                 </div>
