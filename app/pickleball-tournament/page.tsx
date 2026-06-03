@@ -34,8 +34,13 @@ export default function TournamentView() {
     return () => unsubscribe();
   }, []);
 
-  // --- World Cup Calculation Logic Matrix ---
-  const groupWinners: Record<string, string> = { 'Group A': 'Winner Group A', 'Group B': 'Winner Group B', 'Group C': 'Winner Group C', 'Group D': 'Winner Group D' };
+  // --- Strict World Cup Calculation Logic Matrix ---
+  const groupWinners: Record<string, string> = { 
+    'Group A': 'Winner Group A', 
+    'Group B': 'Winner Group B', 
+    'Group C': 'Winner Group C', 
+    'Group D': 'Winner Group D' 
+  };
 
   if (tournamentData?.groups) {
     requiredGroups.forEach((groupName) => {
@@ -43,20 +48,27 @@ export default function TournamentView() {
       const teamsRaw = groupData?.teams ? Object.values(groupData.teams) as string[] : [];
       const matchesRaw = groupData?.matches ? Object.entries(groupData.matches) : [];
 
-      const standingsMap: Record<string, { name: string; pts: number }> = {};
-      teamsRaw.forEach((tName) => { standingsMap[tName] = { name: tName, pts: 0 }; });
+      // Check if there are matches, and see if ANY match is still missing a winner
+      const hasMatches = matchesRaw.length > 0;
+      const allMatchesFinished = hasMatches && matchesRaw.every(([_, mData]: any) => mData.winner && mData.winner.trim() !== "");
 
-      matchesRaw.forEach(([_, mData]: any) => {
-        const t1 = mData.team1; const t2 = mData.team2; const win = mData.winner;
-        if (standingsMap[t1] && standingsMap[t2] && win) {
-          if (win === t1) standingsMap[t1].pts += 3;
-          else if (win === t2) standingsMap[t2].pts += 3;
+      // Only pass the real team name forward if the group matches are 100% final
+      if (allMatchesFinished) {
+        const standingsMap: Record<string, { name: string; pts: number }> = {};
+        teamsRaw.forEach((tName) => { standingsMap[tName] = { name: tName, pts: 0 }; });
+
+        matchesRaw.forEach(([_, mData]: any) => {
+          const t1 = mData.team1; const t2 = mData.team2; const win = mData.winner;
+          if (standingsMap[t1] && standingsMap[t2] && win) {
+            if (win === t1) standingsMap[t1].pts += 3;
+            else if (win === t2) standingsMap[t2].pts += 3;
+          }
+        });
+
+        const sorted = Object.values(standingsMap).sort((a, b) => b.pts - a.pts);
+        if (sorted.length > 0) {
+          groupWinners[groupName] = sorted[0].name;
         }
-      });
-
-      const sorted = Object.values(standingsMap).sort((a, b) => b.pts - a.pts);
-      if (sorted.length > 0 && teamsRaw.length > 0) {
-        groupWinners[groupName] = sorted[0].name;
       }
     });
   }
@@ -120,7 +132,7 @@ export default function TournamentView() {
                           <tr key={row.name} className="hover:bg-zinc-800/30">
                             <td className="py-3 font-medium text-zinc-200 pl-2 flex items-center gap-2">
                               <span className="font-mono text-zinc-600 font-bold w-4">{idx + 1}</span>
-                              {row.name} {idx === 0 && <span className="text-[10px] text-amber-400 bg-amber-950/40 px-1 rounded border border-amber-500/20">Q</span>}
+                              {row.name}
                             </td>
                             <td className="py-3 text-center text-zinc-400 font-mono">{row.p}</td>
                             <td className="py-3 text-center text-emerald-400 font-mono">{row.w}</td>
@@ -151,7 +163,7 @@ export default function TournamentView() {
             })}
           </div>
 
-          {/* --- Knockout Bracket Display --- */}
+          {/* Knockout Bracket Display */}
           <div className="bg-zinc-900/40 border border-zinc-800 p-6 sm:p-8 rounded-3xl space-y-8 shadow-2xl">
             <h2 className="text-2xl font-bold text-amber-400 text-center flex items-center justify-center gap-2 tracking-tight">
               <GitFork className="h-6 w-6 text-amber-400 rotate-180" /> Knockout Finals Stage
@@ -170,11 +182,11 @@ export default function TournamentView() {
                     {semi1.winner ? <span className="text-emerald-400 font-bold">FINAL</span> : <span className="text-amber-500">LIVE</span>}
                   </div>
                   <div className="space-y-2 text-xs">
-                    <div className={`flex justify-between items-center ${semi1.winner === groupWinners['Group A'] ? 'text-emerald-400 font-bold' : 'text-zinc-300'}`}>
+                    <div className={`flex justify-between items-center ${semi1.winner && semi1.winner === groupWinners['Group A'] ? 'text-emerald-400 font-bold' : 'text-zinc-300'}`}>
                       <span>{groupWinners['Group A']}</span>
                       <span className="text-[10px] text-zinc-600 font-mono">(A1)</span>
                     </div>
-                    <div className={`flex justify-between items-center ${semi1.winner === groupWinners['Group C'] ? 'text-emerald-400 font-bold' : 'text-zinc-300'}`}>
+                    <div className={`flex justify-between items-center ${semi1.winner && semi1.winner === groupWinners['Group C'] ? 'text-emerald-400 font-bold' : 'text-zinc-300'}`}>
                       <span>{groupWinners['Group C']}</span>
                       <span className="text-[10px] text-zinc-600 font-mono">(C1)</span>
                     </div>
@@ -188,11 +200,11 @@ export default function TournamentView() {
                     {semi2.winner ? <span className="text-emerald-400 font-bold">FINAL</span> : <span className="text-amber-500">LIVE</span>}
                   </div>
                   <div className="space-y-2 text-xs">
-                    <div className={`flex justify-between items-center ${semi2.winner === groupWinners['Group B'] ? 'text-emerald-400 font-bold' : 'text-zinc-300'}`}>
+                    <div className={`flex justify-between items-center ${semi2.winner && semi2.winner === groupWinners['Group B'] ? 'text-emerald-400 font-bold' : 'text-zinc-300'}`}>
                       <span>{groupWinners['Group B']}</span>
                       <span className="text-[10px] text-zinc-600 font-mono">(B1)</span>
                     </div>
-                    <div className={`flex justify-between items-center ${semi2.winner === groupWinners['Group D'] ? 'text-emerald-400 font-bold' : 'text-zinc-300'}`}>
+                    <div className={`flex justify-between items-center ${semi2.winner && semi2.winner === groupWinners['Group D'] ? 'text-emerald-400 font-bold' : 'text-zinc-300'}`}>
                       <span>{groupWinners['Group D']}</span>
                       <span className="text-[10px] text-zinc-600 font-mono">(D1)</span>
                     </div>
@@ -221,7 +233,7 @@ export default function TournamentView() {
 
               {/* Column 3: Absolute Winner Podium */}
               <div className="lg:col-span-1 flex flex-col items-center justify-center p-6 bg-zinc-950 border border-zinc-800 rounded-3xl text-center space-y-3 shadow-lg">
-                <div className="bg-amber-500/10 p-4 rounded-full border border-amber-500/30 animate-bounce">
+                <div className="bg-amber-500/10 p-4 rounded-full border border-amber-500/30">
                   <Trophy className="h-10 w-10 text-amber-400" />
                 </div>
                 <div>
