@@ -34,7 +34,6 @@ export default function TournamentView() {
     return () => unsubscribe();
   }, []);
 
-  // --- Strict World Cup Calculation Logic with Tie-Breakers ---
   const groupWinners: Record<string, string> = { 
     'Group A': 'Winner Group A', 
     'Group B': 'Winner Group B', 
@@ -45,17 +44,21 @@ export default function TournamentView() {
   if (tournamentData?.groups) {
     requiredGroups.forEach((groupName) => {
       const groupData = tournamentData.groups[groupName];
-      const teamsRaw = groupData?.teams ? Object.values(groupData.teams) as string[] : [];
+      const teamsRaw = groupData?.teams ? (Object.values(groupData.teams) as string[]) : [];
       const matchesRaw = groupData?.matches ? Object.entries(groupData.matches) : [];
 
       const hasMatches = matchesRaw.length > 0;
-      const allMatchesFinished = hasMatches && matchesRaw.every(([_, mData]: any) => mData.winner && mData.winner.trim() !== "");
+      const allMatchesFinished = hasMatches && matchesRaw.every((match: any) => {
+        const mData = match[1];
+        return mData && mData.winner && mData.winner.trim() !== "";
+      });
 
       if (allMatchesFinished) {
         const standingsMap: Record<string, { name: string; pts: number; diff: number }> = {};
         teamsRaw.forEach((tName) => { standingsMap[tName] = { name: tName, pts: 0, diff: 0 }; });
 
-        matchesRaw.forEach(([_, mData]: any) => {
+        matchesRaw.forEach((match: any) => {
+          const mData = match[1];
           const t1 = mData.team1; const t2 = mData.team2; const win = mData.winner;
           const s1 = Number(mData.score1 || 0); const s2 = Number(mData.score2 || 0);
           
@@ -67,7 +70,6 @@ export default function TournamentView() {
           }
         });
 
-        // Primary: Points, Secondary: Point Differential
         const sorted = Object.values(standingsMap).sort((a, b) => b.pts - a.pts || b.diff - a.diff);
         if (sorted.length > 0) {
           groupWinners[groupName] = sorted[0].name;
@@ -105,16 +107,16 @@ export default function TournamentView() {
       ) : (
         <div className="max-w-7xl mx-auto space-y-16">
           
-          {/* Group Stages Layout Grid */}
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
             {requiredGroups.map((groupName) => {
               const groupData = tournamentData?.groups?.[groupName];
-              const teamsRaw = groupData?.teams ? Object.values(groupData.teams) as string[] : [];
+              const teamsRaw = groupData?.teams ? (Object.values(groupData.teams) as string[]) : [];
               const matchesRaw = groupData?.matches ? Object.entries(groupData.matches) : [];
               const standingsMap: Record<string, { name: string; p: number; w: number; l: number; diff: number; pts: number }> = {};
               
               teamsRaw.forEach((tName) => { standingsMap[tName] = { name: tName, p: 0, w: 0, l: 0, diff: 0, pts: 0 }; });
-              matchesRaw.forEach(([_, mData]: any) => {
+              matchesRaw.forEach((match: any) => {
+                const mData = match[1];
                 const t1 = mData.team1; const t2 = mData.team2; const win = mData.winner;
                 const s1 = Number(mData.score1 || 0); const s2 = Number(mData.score2 || 0);
 
@@ -169,31 +171,34 @@ export default function TournamentView() {
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                    {matchesRaw.map(([matchId, mData]: any) => (
-                      <div key={matchId} className="bg-zinc-950 border border-zinc-800/80 p-3 rounded-xl flex flex-col justify-between space-y-2">
-                        <div className="flex items-center justify-between text-[10px] text-zinc-500 font-mono border-b border-zinc-900 pb-1">
-                          <span>{matchId.toUpperCase()}</span>
-                          {mData.winner ? <span className="text-emerald-400 font-bold">FINAL</span> : <span className="text-amber-500 animate-pulse">PENDING</span>}
-                        </div>
-                        <div className="space-y-1 text-xs">
-                          <div className="flex justify-between items-center">
-                            <span className={mData.winner === mData.team1 ? 'text-emerald-400 font-bold' : 'text-zinc-300'}>{mData.team1}</span>
-                            {mData.winner && <span className="font-mono text-zinc-400 font-bold bg-zinc-900 px-1.5 py-0.5 rounded text-[10px]">{mData.score1}</span>}
+                    {matchesRaw.map((match: any) => {
+                      const matchId = match[0];
+                      const mData = match[1];
+                      return (
+                        <div key={matchId} className="bg-zinc-950 border border-zinc-800/80 p-3 rounded-xl flex flex-col justify-between space-y-2">
+                          <div className="flex items-center justify-between text-[10px] text-zinc-500 font-mono border-b border-zinc-900 pb-1">
+                            <span>{matchId.toUpperCase()}</span>
+                            {mData.winner ? <span className="text-emerald-400 font-bold">FINAL</span> : <span className="text-amber-500 animate-pulse">PENDING</span>}
                           </div>
-                          <div className="flex justify-between items-center">
-                            <span className={mData.winner === mData.team2 ? 'text-emerald-400 font-bold' : 'text-zinc-300'}>{mData.team2}</span>
-                            {mData.winner && <span className="font-mono text-zinc-400 font-bold bg-zinc-900 px-1.5 py-0.5 rounded text-[10px]">{mData.score2}</span>}
+                          <div className="space-y-1 text-xs">
+                            <div className="flex justify-between items-center">
+                              <span className={mData.winner === mData.team1 ? 'text-emerald-400 font-bold' : 'text-zinc-300'}>{mData.team1}</span>
+                              {mData.winner && <span className="font-mono text-zinc-400 font-bold bg-zinc-900 px-1.5 py-0.5 rounded text-[10px]">{mData.score1}</span>}
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className={mData.winner === mData.team2 ? 'text-emerald-400 font-bold' : 'text-zinc-300'}>{mData.team2}</span>
+                              {mData.winner && <span className="font-mono text-zinc-400 font-bold bg-zinc-900 px-1.5 py-0.5 rounded text-[10px]">{mData.score2}</span>}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               );
             })}
           </div>
 
-          {/* Knockout Bracket Display */}
           <div className="bg-zinc-900/40 border border-zinc-800 p-6 sm:p-8 rounded-3xl space-y-8 shadow-2xl">
             <h2 className="text-2xl font-bold text-amber-400 text-center flex items-center justify-center gap-2 tracking-tight">
               <GitFork className="h-6 w-6 text-amber-400 rotate-180" /> Knockout Finals Stage
@@ -201,11 +206,9 @@ export default function TournamentView() {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-center max-w-5xl mx-auto pt-4 relative">
               
-              {/* Column 1: Semifinals */}
               <div className="space-y-8 lg:col-span-1">
                 <div className="text-center font-bold text-[10px] tracking-widest text-zinc-500 uppercase mb-2">Semifinals</div>
                 
-                {/* Semi 1: A vs C */}
                 <div className="bg-zinc-950 border border-zinc-800 p-4 rounded-2xl space-y-3 shadow-md">
                   <div className="flex justify-between font-mono text-[9px] text-zinc-500 border-b border-zinc-900 pb-1">
                     <span>SEMIFINAL 1</span>
@@ -229,7 +232,6 @@ export default function TournamentView() {
                   </div>
                 </div>
 
-                {/* Semi 2: B vs D */}
                 <div className="bg-zinc-950 border border-zinc-800 p-4 rounded-2xl space-y-3 shadow-md">
                   <div className="flex justify-between font-mono text-[9px] text-zinc-500 border-b border-zinc-900 pb-1">
                     <span>SEMIFINAL 2</span>
@@ -254,7 +256,6 @@ export default function TournamentView() {
                 </div>
               </div>
 
-              {/* Column 2: Grand Finals Slot */}
               <div className="lg:col-span-1 flex flex-col justify-center space-y-3">
                 <div className="text-center font-bold text-[10px] tracking-widest text-zinc-500 uppercase mb-2">Grand Championship</div>
                 <div className="bg-zinc-900 border-2 border-amber-500/30 p-5 rounded-2xl space-y-4 bg-gradient-to-b from-zinc-900 to-amber-950/10 shadow-xl">
@@ -275,7 +276,6 @@ export default function TournamentView() {
                 </div>
               </div>
 
-              {/* Column 3: Absolute Winner Podium */}
               <div className="lg:col-span-1 flex flex-col items-center justify-center p-6 bg-zinc-950 border border-zinc-800 rounded-3xl text-center space-y-3 shadow-lg">
                 <div className="bg-amber-500/10 p-4 rounded-full border border-amber-500/30">
                   <Trophy className="h-10 w-10 text-amber-400" />
