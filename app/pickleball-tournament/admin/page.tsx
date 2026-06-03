@@ -20,19 +20,26 @@ export default function TournamentAdmin() {
   const [selectedGroup, setSelectedGroup] = useState('Group A');
   const [tournamentData, setTournamentData] = useState<any>(null);
   const [statusMessage, setStatusMessage] = useState('');
-
-  // Match Form States
+  
+  // Match & Config States
   const [matchGroup, setMatchGroup] = useState('Group A');
   const [team1, setTeam1] = useState('');
   const [team2, setTeam2] = useState('');
   const [matchCustomId, setMatchCustomId] = useState('match1');
+  const [youtubeLink, setYoutubeLink] = useState('');
 
   const availableGroups = ['Group A', 'Group B', 'Group C', 'Group D'];
 
   useEffect(() => {
     const db = getDatabase(app);
     const tourneyRef = ref(db, 'tournaments/pickleball_may_2026');
-    onValue(tourneyRef, (snapshot) => { setTournamentData(snapshot.val()); });
+    onValue(tourneyRef, (snapshot) => { 
+      const data = snapshot.val();
+      setTournamentData(data);
+      if (data?.config?.streamLink !== undefined) {
+        setYoutubeLink(data.config.streamLink);
+      }
+    });
   }, []);
 
   useEffect(() => {
@@ -42,7 +49,6 @@ export default function TournamentAdmin() {
     setTeam1(currentGroupTeams[0] || ''); setTeam2(currentGroupTeams[1] || '');
   }, [matchGroup, tournamentData]);
 
-  // Handle calculating group 1st places dynamically to display context
   const getGroupWinner = (groupName: string): string => {
     const groupData = tournamentData?.groups?.[groupName];
     const teamsRaw = groupData?.teams ? Object.values(groupData.teams) as string[] : [];
@@ -85,7 +91,6 @@ export default function TournamentAdmin() {
     } catch { showStatus('Error.'); }
   };
 
-  // --- Knockout Scoring Handlers ---
   const handleSetKnockoutWinner = async (matchKey: string, winnerName: string) => {
     try {
       const db = getDatabase(app);
@@ -95,6 +100,15 @@ export default function TournamentAdmin() {
       });
       showStatus(`Knockout bracket updated!`);
     } catch { showStatus('Error updating knockout.'); }
+  };
+
+  const handleSaveYoutube = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const db = getDatabase(app);
+      await set(ref(db, `tournaments/pickleball_may_2026/config/streamLink`), youtubeLink.trim());
+      showStatus('Live stream link updated!');
+    } catch { showStatus('Error saving stream link.'); }
   };
 
   const showStatus = (msg: string) => { setStatusMessage(msg); setTimeout(() => setStatusMessage(''), 3000); };
@@ -107,31 +121,51 @@ export default function TournamentAdmin() {
       <h1 className="text-3xl font-bold text-amber-400 text-center">Tournament Control Panel</h1>
       {statusMessage && <div className="max-w-md mx-auto text-xs text-center font-bold text-emerald-400 bg-emerald-950/40 py-2 px-4 rounded-xl border border-emerald-500/20">{statusMessage}</div>}
 
-      {/* Entry Forms */}
-      <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="max-w-5xl mx-auto space-y-8">
+        
+        {/* Stream Link Config */}
         <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-2xl">
-          <h2 className="text-xs font-bold mb-3 uppercase tracking-wide text-zinc-300">🔹 Add Team</h2>
-          <form onSubmit={handleAddTeam} className="space-y-3">
-            <select value={selectedGroup} onChange={(e) => setSelectedGroup(e.target.value)} className="w-full p-2 bg-zinc-800 border border-zinc-700 rounded text-xs">{availableGroups.map(g => <option key={g} value={g}>{g}</option>)}</select>
-            <input type="text" placeholder="Team name..." value={teamName} onChange={(e) => setTeamName(e.target.value)} className="w-full p-2 bg-zinc-800 border border-zinc-700 rounded text-xs" />
-            <button type="submit" className="w-full py-2 bg-emerald-600 font-bold rounded text-xs">Save Team</button>
+          <h2 className="text-xs font-bold mb-3 uppercase tracking-wide text-zinc-300">📺 Live Stream Link</h2>
+          <form onSubmit={handleSaveYoutube} className="flex gap-3">
+            <input 
+              type="url" 
+              placeholder="https://youtube.com/live/..." 
+              value={youtubeLink} 
+              onChange={(e) => setYoutubeLink(e.target.value)} 
+              className="flex-1 p-2 bg-zinc-800 border border-zinc-700 rounded text-xs text-white" 
+            />
+            <button type="submit" className="py-2 px-6 bg-red-600 hover:bg-red-700 font-bold rounded text-xs transition-colors">Save Link</button>
           </form>
+          <p className="text-[10px] text-zinc-500 mt-2">Paste a URL here to display the red "Watch Live Stream" button on the public board. Leave blank and save to hide the button.</p>
         </div>
 
-        <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-2xl">
-          <h2 className="text-xs font-bold mb-3 uppercase tracking-wide text-zinc-300">⚔️ Set Group Fixture</h2>
-          <form onSubmit={handleCreateMatch} className="space-y-2">
-            <div className="grid grid-cols-2 gap-2">
-              <select value={matchGroup} onChange={(e) => setMatchGroup(e.target.value)} className="p-2 bg-zinc-800 border border-zinc-700 rounded text-xs">{availableGroups.map(g => <option key={g} value={g}>{g}</option>)}</select>
-              <input type="text" value={matchCustomId} onChange={(e) => setMatchCustomId(e.target.value)} className="p-2 bg-zinc-800 border border-zinc-700 rounded text-xs" />
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <select value={team1} onChange={(e) => setTeam1(e.target.value)} className="p-2 bg-zinc-800 border border-zinc-700 rounded text-xs"><option value="">-- Team 1 --</option>{tournamentData?.groups?.[matchGroup]?.teams && Object.values(tournamentData.groups[matchGroup].teams).map((n: any) => <option key={n} value={n}>{n}</option>)}</select>
-              <select value={team2} onChange={(e) => setTeam2(e.target.value)} className="p-2 bg-zinc-800 border border-zinc-700 rounded text-xs"><option value="">-- Team 2 --</option>{tournamentData?.groups?.[matchGroup]?.teams && Object.values(tournamentData.groups[matchGroup].teams).map((n: any) => <option key={n} value={n}>{n}</option>)}</select>
-            </div>
-            <button type="submit" className="w-full py-2 bg-amber-500 font-bold text-zinc-950 rounded text-xs mt-1">Publish Match</button>
-          </form>
+        {/* Entry Forms */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-2xl">
+            <h2 className="text-xs font-bold mb-3 uppercase tracking-wide text-zinc-300">🔹 Add Team</h2>
+            <form onSubmit={handleAddTeam} className="space-y-3">
+              <select value={selectedGroup} onChange={(e) => setSelectedGroup(e.target.value)} className="w-full p-2 bg-zinc-800 border border-zinc-700 rounded text-xs">{availableGroups.map(g => <option key={g} value={g}>{g}</option>)}</select>
+              <input type="text" placeholder="Team name..." value={teamName} onChange={(e) => setTeamName(e.target.value)} className="w-full p-2 bg-zinc-800 border border-zinc-700 rounded text-xs" />
+              <button type="submit" className="w-full py-2 bg-emerald-600 font-bold rounded text-xs">Save Team</button>
+            </form>
+          </div>
+
+          <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-2xl">
+            <h2 className="text-xs font-bold mb-3 uppercase tracking-wide text-zinc-300">⚔️ Set Group Fixture</h2>
+            <form onSubmit={handleCreateMatch} className="space-y-2">
+              <div className="grid grid-cols-2 gap-2">
+                <select value={matchGroup} onChange={(e) => setMatchGroup(e.target.value)} className="p-2 bg-zinc-800 border border-zinc-700 rounded text-xs">{availableGroups.map(g => <option key={g} value={g}>{g}</option>)}</select>
+                <input type="text" value={matchCustomId} onChange={(e) => setMatchCustomId(e.target.value)} className="p-2 bg-zinc-800 border border-zinc-700 rounded text-xs" />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <select value={team1} onChange={(e) => setTeam1(e.target.value)} className="p-2 bg-zinc-800 border border-zinc-700 rounded text-xs"><option value="">-- Team 1 --</option>{tournamentData?.groups?.[matchGroup]?.teams && Object.values(tournamentData.groups[matchGroup].teams).map((n: any) => <option key={n} value={n}>{n}</option>)}</select>
+                <select value={team2} onChange={(e) => setTeam2(e.target.value)} className="p-2 bg-zinc-800 border border-zinc-700 rounded text-xs"><option value="">-- Team 2 --</option>{tournamentData?.groups?.[matchGroup]?.teams && Object.values(tournamentData.groups[matchGroup].teams).map((n: any) => <option key={n} value={n}>{n}</option>)}</select>
+              </div>
+              <button type="submit" className="w-full py-2 bg-amber-500 font-bold text-zinc-950 rounded text-xs mt-1">Publish Match</button>
+            </form>
+          </div>
         </div>
+
       </div>
 
       {/* Group Scoring Feeds */}
@@ -154,12 +188,11 @@ export default function TournamentAdmin() {
         })}
       </div>
 
-      {/* --- Knockout Admin Scorecard Controls --- */}
+      {/* Knockout Admin Scorecard Controls */}
       <div className="max-w-4xl mx-auto bg-zinc-900 border border-zinc-800 p-6 rounded-2xl shadow-xl space-y-4">
         <h2 className="text-sm font-bold uppercase tracking-wider text-amber-400">🏆 Score Knockout Bracket Matches</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           
-          {/* Semi 1 Controls */}
           <div className="bg-zinc-950 p-3 rounded-xl border border-zinc-800 space-y-2">
             <span className="text-[9px] font-mono text-zinc-500 block uppercase">Semifinal 1 (A1 vs C1)</span>
             <button onClick={() => handleSetKnockoutWinner('semi1', getGroupWinner('Group A'))} className={`w-full text-left p-2 rounded text-xs border truncate ${s1Winner === getGroupWinner('Group A') ? 'bg-amber-950 text-amber-400 border-amber-500/40 font-bold' : 'bg-zinc-900 border-transparent text-zinc-400'}`}>
@@ -170,7 +203,6 @@ export default function TournamentAdmin() {
             </button>
           </div>
 
-          {/* Semi 2 Controls */}
           <div className="bg-zinc-950 p-3 rounded-xl border border-zinc-800 space-y-2">
             <span className="text-[9px] font-mono text-zinc-500 block uppercase">Semifinal 2 (B1 vs D1)</span>
             <button onClick={() => handleSetKnockoutWinner('semi2', getGroupWinner('Group B'))} className={`w-full text-left p-2 rounded text-xs border truncate ${s2Winner === getGroupWinner('Group B') ? 'bg-amber-950 text-amber-400 border-amber-500/40 font-bold' : 'bg-zinc-900 border-transparent text-zinc-400'}`}>
@@ -181,7 +213,6 @@ export default function TournamentAdmin() {
             </button>
           </div>
 
-          {/* Championship Controls */}
           <div className="bg-zinc-950 p-3 rounded-xl border border-amber-500/20 space-y-2">
             <span className="text-[9px] font-mono text-amber-400 block uppercase font-bold">Grand Championship Final</span>
             <button disabled={!s1Winner} onClick={() => handleSetKnockoutWinner('final', s1Winner)} className={`w-full text-left p-2 rounded text-xs border truncate disabled:opacity-30 ${tournamentData?.knockouts?.final?.winner === s1Winner ? 'bg-emerald-950 text-emerald-400 border-emerald-500/40 font-bold' : 'bg-zinc-900 border-transparent text-zinc-400'}`}>
