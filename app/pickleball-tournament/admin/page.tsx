@@ -82,14 +82,33 @@ export default function TournamentAdmin() {
     }
   };
 
-  const handleSetWinner = async (groupName: string, matchId: string, winnerName: string) => {
+  // Upgraded handler: Toggles winner selection or clears it completely
+  const handleSetWinner = async (groupName: string, matchId: string, winnerName: string, currentWinner: string) => {
     try {
       const db = getDatabase(app);
       const winnerRef = ref(db, `tournaments/pickleball_may_2026/groups/${groupName}/matches/${matchId}/winner`);
-      await set(winnerRef, winnerName);
-      showStatus(`Winner updated to ${winnerName}! Live rankings updated.`);
+      
+      // If clicking the team that already won, unselect them (reset match)
+      if (currentWinner === winnerName) {
+        await set(winnerRef, "");
+        showStatus(`Match reset to Pending!`);
+      } else {
+        await set(winnerRef, winnerName);
+        showStatus(`Winner updated to ${winnerName}!`);
+      }
     } catch (err) {
       showStatus('Error updating winner.');
+    }
+  };
+
+  const handleClearMatch = async (groupName: string, matchId: string) => {
+    try {
+      const db = getDatabase(app);
+      const winnerRef = ref(db, `tournaments/pickleball_may_2026/groups/${groupName}/matches/${matchId}/winner`);
+      await set(winnerRef, "");
+      showStatus(`Match ${matchId.toUpperCase()} completely reset.`);
+    } catch (err) {
+      showStatus('Error clearing match.');
     }
   };
 
@@ -193,19 +212,28 @@ export default function TournamentAdmin() {
                 <span className="text-[10px] uppercase font-bold text-zinc-600 block">Record Results</span>
                 {matches.map(([id, data]: any) => (
                   <div key={id} className="text-xs bg-zinc-950 p-2.5 rounded-xl text-zinc-400 border border-zinc-800/60 space-y-2">
-                    <div className="flex justify-between font-mono text-[10px] text-zinc-500 border-b border-zinc-900 pb-1">
+                    <div className="flex justify-between font-mono text-[10px] text-zinc-500 border-b border-zinc-900 pb-1 items-center">
                       <span>{id.toUpperCase()}</span>
-                      {data.winner ? <span className="text-emerald-400 font-bold">SET</span> : <span className="text-zinc-600">OPEN</span>}
+                      {data.winner ? (
+                        <button 
+                          onClick={() => handleClearMatch(groupName, id)}
+                          className="text-[9px] font-bold text-red-400 hover:text-red-300 bg-red-950/40 px-1.5 py-0.5 rounded border border-red-500/20 transition"
+                        >
+                          RESET 🔄
+                        </button>
+                      ) : (
+                        <span className="text-zinc-600">OPEN</span>
+                      )}
                     </div>
                     <div className="flex flex-col gap-1">
                       <button 
-                        onClick={() => handleSetWinner(groupName, id, data.team1)}
+                        onClick={() => handleSetWinner(groupName, id, data.team1, data.winner)}
                         className={`text-left p-1 rounded text-[11px] border transition ${data.winner === data.team1 ? 'bg-emerald-950/30 text-emerald-400 border-emerald-500/30 font-bold' : 'bg-zinc-900 border-transparent text-zinc-300 hover:border-zinc-700'}`}
                       >
                         🥇 {data.team1}
                       </button>
                       <button 
-                        onClick={() => handleSetWinner(groupName, id, data.team2)}
+                        onClick={() => handleSetWinner(groupName, id, data.team2, data.winner)}
                         className={`text-left p-1 rounded text-[11px] border transition ${data.winner === data.team2 ? 'bg-emerald-950/30 text-emerald-400 border-emerald-500/30 font-bold' : 'bg-zinc-900 border-transparent text-zinc-300 hover:border-zinc-700'}`}
                       >
                         🥇 {data.team2}
