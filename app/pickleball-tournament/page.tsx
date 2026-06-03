@@ -223,10 +223,10 @@ export default function TournamentView() {
                       </div>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className={semi1.winner === groupWinners['Group C'] ? 'text-emerald-400 font-bold' : 'text-zinc-300'}>{groupWinners['Group C']}</span>
+                      <span className={semi1.winner === groupWinners['Group D'] ? 'text-emerald-400 font-bold' : 'text-zinc-300'}>{groupWinners['Group D']}</span>
                       <div className="flex items-center gap-1.5 font-mono">
                         {semi1.winner && <span className="bg-zinc-900 text-zinc-400 px-1 rounded text-[10px]">{semi1.score2}</span>}
-                        <span className="text-[10px] text-zinc-600">(C1)</span>
+                        <span className="text-[10px] text-zinc-600">(D1)</span>
                       </div>
                     </div>
                   </div>
@@ -246,10 +246,10 @@ export default function TournamentView() {
                       </div>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className={semi2.winner === groupWinners['Group D'] ? 'text-emerald-400 font-bold' : 'text-zinc-300'}>{groupWinners['Group D']}</span>
+                      <span className={semi2.winner === groupWinners['Group C'] ? 'text-emerald-400 font-bold' : 'text-zinc-300'}>{groupWinners['Group C']}</span>
                       <div className="flex items-center gap-1.5 font-mono">
                         {semi2.winner && <span className="bg-zinc-900 text-zinc-400 px-1 rounded text-[10px]">{semi2.score2}</span>}
-                        <span className="text-[10px] text-zinc-600">(D1)</span>
+                        <span className="text-[10px] text-zinc-600">(C1)</span>
                       </div>
                     </div>
                   </div>
