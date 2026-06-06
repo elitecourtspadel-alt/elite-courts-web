@@ -4,9 +4,9 @@ import { initializeApp, getApps } from "firebase/app";
 import { getDatabase, ref, onValue } from "firebase/database";
 import { Trophy, GitFork, Youtube, Sparkles } from "lucide-react";
 
-// 📸 ADD YOUR IMAGE LINKS HERE (Drop in your public folder or use external links)
-const WINNER_IMAGE_URL = "https://images.unsplash.com/photo-1517649763962-0c623066013b?q=80&w=1200"; 
-const CEREMONY_IMAGE_URL = "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?q=80&w=1200";
+// 📸 FALLBACK IMAGES: Used only if your database doesn't have uploaded links yet
+const DEFAULT_WINNER_IMAGE = "https://images.unsplash.com/photo-1517649763962-0c623066013b?q=80&w=1200"; 
+const DEFAULT_CEREMONY_IMAGE = "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?q=80&w=1200";
 
 const firebaseConfig = {
   apiKey: "AizasyD4bPvYwRjOAGfiwoVPbG_4hj6QEbgdc9A",
@@ -87,6 +87,10 @@ export default function TournamentView() {
   const finalMatch = tournamentData?.knockouts?.final || { winner: "", score1: "", score2: "" };
   const streamLink = tournamentData?.config?.streamLink || "";
 
+  // 🔗 Dynamic Asset Routing: Checks the exact paths where your Admin Panel updates live configurations
+  const winnerImageUrl = tournamentData?.config?.championPhotoUrl || tournamentData?.config?.winnerImageUrl || tournamentData?.championPhotoUrl || DEFAULT_WINNER_IMAGE;
+  const ceremonyImageUrl = tournamentData?.config?.closingPhotoUrl || tournamentData?.config?.ceremonyImageUrl || tournamentData?.closingPhotoUrl || DEFAULT_CEREMONY_IMAGE;
+
   const isSemi1Ready = groupWinners['Group A'] !== 'Winner Group A' && groupWinners['Group C'] !== 'Winner Group C';
   const isSemi2Ready = groupWinners['Group B'] !== 'Winner Group B' && groupWinners['Group D'] !== 'Winner Group D';
 
@@ -131,7 +135,7 @@ export default function TournamentView() {
                 <div className="space-y-2">
                   <div className="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950 aspect-[16/10] shadow-lg relative group">
                     <img 
-                      src={WINNER_IMAGE_URL} 
+                      src={winnerImageUrl} 
                       alt="Winning Team" 
                       className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
                     />
@@ -142,7 +146,7 @@ export default function TournamentView() {
                 <div className="space-y-2">
                   <div className="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950 aspect-[16/10] shadow-lg relative group">
                     <img 
-                      src={CEREMONY_IMAGE_URL} 
+                      src={ceremonyImageUrl} 
                       alt="Closing Ceremony" 
                       className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
                     />
