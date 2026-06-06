@@ -2,7 +2,11 @@
 import { useEffect, useState } from 'react';
 import { initializeApp, getApps } from "firebase/app";
 import { getDatabase, ref, onValue } from "firebase/database";
-import { Trophy, GitFork, Youtube } from "lucide-react";
+import { Trophy, GitFork, Youtube, Sparkles } from "lucide-react";
+
+// 📸 ADD YOUR IMAGE LINKS HERE (Drop in your public folder or use external links)
+const WINNER_IMAGE_URL = "https://images.unsplash.com/photo-1517649763962-0c623066013b?q=80&w=1200"; 
+const CEREMONY_IMAGE_URL = "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?q=80&w=1200";
 
 const firebaseConfig = {
   apiKey: "AizasyD4bPvYwRjOAGfiwoVPbG_4hj6QEbgdc9A",
@@ -85,28 +89,71 @@ export default function TournamentView() {
 
   const isSemi1Ready = groupWinners['Group A'] !== 'Winner Group A' && groupWinners['Group C'] !== 'Winner Group C';
   const isSemi2Ready = groupWinners['Group B'] !== 'Winner Group B' && groupWinners['Group D'] !== 'Winner Group D';
-  const isFinalReady = (semi1.winner !== "") && (semi2.winner !== "");
 
   return (
-    <div className="p-4 sm:p-10 text-white bg-zinc-950 min-h-screen space-y-12">
+    <div className="p-4 sm:p-10 text-white bg-zinc-950 min-h-screen space-y-10">
+      
+      {/* 📣 Header Board */}
       <div className="flex flex-col items-center justify-center space-y-4">
         <div>
-          <h1 className="text-3xl sm:text-4xl font-bold mb-2 text-emerald-400 text-center tracking-tight">Elite Courts Tournament</h1>
-          <p className="text-center text-zinc-400 text-sm">Live Group Standings & Fixtures Tracker</p>
+          <h1 className="text-3xl sm:text-4xl font-bold mb-2 text-emerald-400 text-center tracking-tight flex items-center justify-center gap-2">
+            Elite Courts Tournament
+          </h1>
+          <p className="text-center text-zinc-400 text-sm">Official Wrap-up & Final Standings</p>
         </div>
         
         {streamLink && (
-          <a href={streamLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-6 py-2.5 rounded-full font-bold text-sm transition-all shadow-lg shadow-red-600/20 animate-pulse">
-            <Youtube className="w-5 h-5" /> Watch Live Stream
+          <a href={streamLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 px-5 py-2 rounded-full text-xs transition-all border border-zinc-800">
+            <Youtube className="w-4 h-4 text-red-500" /> Watch Event Playbacks
           </a>
         )}
       </div>
       
       {loading ? (
-        <p className="text-zinc-500 text-center animate-pulse">Loading tournament board...</p>
+        <p className="text-zinc-500 text-center animate-pulse">Loading tournament archives...</p>
       ) : (
-        <div className="max-w-7xl mx-auto space-y-16">
+        <div className="max-w-7xl mx-auto space-y-12">
+
+          {/* 🏆 HERO SECTION: Champions Wall & Ceremony Pictures */}
+          {finalMatch.winner && (
+            <div className="bg-gradient-to-b from-amber-950/20 to-zinc-900/40 border border-amber-500/20 p-6 sm:p-8 rounded-3xl text-center space-y-6 shadow-2xl backdrop-blur-sm animate-fade-in">
+              <div className="inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 text-amber-400 px-4 py-1.5 rounded-full text-xs font-mono font-bold uppercase tracking-widest">
+                <Sparkles className="w-4 h-4 text-amber-400" /> Champions Spotlight <Sparkles className="w-4 h-4 text-amber-400" />
+              </div>
+              <div>
+                <h2 className="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-yellow-200 to-amber-500 tracking-tight">
+                  {finalMatch.winner}
+                </h2>
+                <p className="text-xs text-zinc-400 mt-1 uppercase tracking-wider font-mono">Grand Finale Winners</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 max-w-5xl mx-auto">
+                <div className="space-y-2">
+                  <div className="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950 aspect-[16/10] shadow-lg relative group">
+                    <img 
+                      src={WINNER_IMAGE_URL} 
+                      alt="Winning Team" 
+                      className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
+                    />
+                  </div>
+                  <span className="text-xs font-mono tracking-wider font-bold text-amber-400 bg-amber-500/5 px-3 py-1 rounded-full border border-amber-500/10 inline-block">The Champions</span>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950 aspect-[16/10] shadow-lg relative group">
+                    <img 
+                      src={CEREMONY_IMAGE_URL} 
+                      alt="Closing Ceremony" 
+                      className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
+                    />
+                  </div>
+                  <span className="text-xs font-mono tracking-wider font-bold text-zinc-400 bg-zinc-800/40 px-3 py-1 rounded-full border border-zinc-800 inline-block">Closing Ceremony</span>
+                </div>
+              </div>
+            </div>
+          )}
           
+          {/* 📊 Group Brackets Section */}
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
             {requiredGroups.map((groupName) => {
               const groupData = tournamentData?.groups?.[groupName];
@@ -199,6 +246,7 @@ export default function TournamentView() {
             })}
           </div>
 
+          {/* 🏁 Knockout Tree Stage */}
           <div className="bg-zinc-900/40 border border-zinc-800 p-6 sm:p-8 rounded-3xl space-y-8 shadow-2xl">
             <h2 className="text-2xl font-bold text-amber-400 text-center flex items-center justify-center gap-2 tracking-tight">
               <GitFork className="h-6 w-6 text-amber-400 rotate-180" /> Knockout Finals Stage
@@ -223,10 +271,10 @@ export default function TournamentView() {
                       </div>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className={semi1.winner === groupWinners['Group D'] ? 'text-emerald-400 font-bold' : 'text-zinc-300'}>{groupWinners['Group D']}</span>
+                      <span className={semi1.winner === groupWinners['Group C'] ? 'text-emerald-400 font-bold' : 'text-zinc-300'}>{groupWinners['Group C']}</span>
                       <div className="flex items-center gap-1.5 font-mono">
                         {semi1.winner && <span className="bg-zinc-900 text-zinc-400 px-1 rounded text-[10px]">{semi1.score2}</span>}
-                        <span className="text-[10px] text-zinc-600">(D1)</span>
+                        <span className="text-[10px] text-zinc-600">(C1)</span>
                       </div>
                     </div>
                   </div>
@@ -246,10 +294,10 @@ export default function TournamentView() {
                       </div>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className={semi2.winner === groupWinners['Group C'] ? 'text-emerald-400 font-bold' : 'text-zinc-300'}>{groupWinners['Group C']}</span>
+                      <span className={semi2.winner === groupWinners['Group D'] ? 'text-emerald-400 font-bold' : 'text-zinc-300'}>{groupWinners['Group D']}</span>
                       <div className="flex items-center gap-1.5 font-mono">
                         {semi2.winner && <span className="bg-zinc-900 text-zinc-400 px-1 rounded text-[10px]">{semi2.score2}</span>}
-                        <span className="text-[10px] text-zinc-600">(C1)</span>
+                        <span className="text-[10px] text-zinc-600">(D1)</span>
                       </div>
                     </div>
                   </div>
@@ -261,7 +309,7 @@ export default function TournamentView() {
                 <div className="bg-zinc-900 border-2 border-amber-500/30 p-5 rounded-2xl space-y-4 bg-gradient-to-b from-zinc-900 to-amber-950/10 shadow-xl">
                   <div className="flex justify-between font-mono text-[9px] text-amber-400 font-bold border-b border-zinc-800 pb-1">
                     <span>CHAMPIONSHIP MATCH</span>
-                    {finalMatch.winner ? <span className="text-emerald-400">FINAL</span> : isFinalReady ? <span className="text-red-500 animate-pulse">LIVE 🔴</span> : <span className="text-amber-500/50 font-normal">PENDING</span>}
+                    {finalMatch.winner ? <span className="text-emerald-400">FINAL</span> : (semi1.winner && semi2.winner) ? <span className="text-red-500 animate-pulse">LIVE 🔴</span> : <span className="text-amber-500/50 font-normal">PENDING</span>}
                   </div>
                   <div className="space-y-2.5 text-sm">
                     <div className="flex justify-between items-center">
