@@ -242,37 +242,37 @@ export default function TournamentAdmin() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           
           <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800 space-y-3">
-            <span className="text-[9px] font-mono text-zinc-500 block uppercase">Semifinal 1 (A1 vs C1)</span>
+            <span className="text-[9px] font-mono text-zinc-500 block uppercase">Semifinal 1 (A1 vs D1)</span>
             <div className="space-y-2 text-xs">
               <div className="flex justify-between items-center gap-2">
                 <span className="truncate flex-1">{getGroupWinner('Group A')}</span>
                 <input type="number" placeholder="Score" value={inputScores['ko-semi1-1'] ?? (tournamentData?.knockouts?.semi1?.winner ? tournamentData.knockouts.semi1.score1 : "")} onChange={(e) => setInputScores({...inputScores, 'ko-semi1-1': e.target.value})} className="w-12 p-1 bg-zinc-900 border border-zinc-700 rounded text-center" />
               </div>
               <div className="flex justify-between items-center gap-2">
-                <span className="truncate flex-1">{getGroupWinner('Group C')}</span>
+                <span className="truncate flex-1">{getGroupWinner('Group D')}</span>
                 <input type="number" placeholder="Score" value={inputScores['ko-semi1-2'] ?? (tournamentData?.knockouts?.semi1?.winner ? tournamentData.knockouts.semi1.score2 : "")} onChange={(e) => setInputScores({...inputScores, 'ko-semi1-2': e.target.value})} className="w-12 p-1 bg-zinc-900 border border-zinc-700 rounded text-center" />
               </div>
             </div>
             <div className="flex gap-2 pt-1">
-              <button onClick={() => handleSaveKnockoutScore('semi1', getGroupWinner('Group A'), getGroupWinner('Group C'))} className="flex-1 py-1 bg-amber-500 text-zinc-950 font-bold text-[10px] rounded">Lock</button>
+              <button onClick={() => handleSaveKnockoutScore('semi1', getGroupWinner('Group A'), getGroupWinner('Group D'))} className="flex-1 py-1 bg-amber-500 text-zinc-950 font-bold text-[10px] rounded">Lock</button>
               <button onClick={() => handleResetKnockout('semi1')} className="px-2 py-1 bg-zinc-800 text-zinc-400 text-[10px] rounded">Reset</button>
             </div>
           </div>
 
           <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800 space-y-3">
-            <span className="text-[9px] font-mono text-zinc-500 block uppercase">Semifinal 2 (B1 vs D1)</span>
+            <span className="text-[9px] font-mono text-zinc-500 block uppercase">Semifinal 2 (B1 vs C1)</span>
             <div className="space-y-2 text-xs">
               <div className="flex justify-between items-center gap-2">
                 <span className="truncate flex-1">{getGroupWinner('Group B')}</span>
                 <input type="number" placeholder="Score" value={inputScores['ko-semi2-1'] ?? (tournamentData?.knockouts?.semi2?.winner ? tournamentData.knockouts.semi2.score1 : "")} onChange={(e) => setInputScores({...inputScores, 'ko-semi2-1': e.target.value})} className="w-12 p-1 bg-zinc-900 border border-zinc-700 rounded text-center" />
               </div>
               <div className="flex justify-between items-center gap-2">
-                <span className="truncate flex-1">{getGroupWinner('Group D')}</span>
+                <span className="truncate flex-1">{getGroupWinner('Group C')}</span>
                 <input type="number" placeholder="Score" value={inputScores['ko-semi2-2'] ?? (tournamentData?.knockouts?.semi2?.winner ? tournamentData.knockouts.semi2.score2 : "")} onChange={(e) => setInputScores({...inputScores, 'ko-semi2-2': e.target.value})} className="w-12 p-1 bg-zinc-900 border border-zinc-700 rounded text-center" />
               </div>
             </div>
             <div className="flex gap-2 pt-1">
-              <button onClick={() => handleSaveKnockoutScore('semi2', getGroupWinner('Group B'), getGroupWinner('Group D'))} className="flex-1 py-1 bg-amber-500 text-zinc-950 font-bold text-[10px] rounded">Lock</button>
+              <button onClick={() => handleSaveKnockoutScore('semi2', getGroupWinner('Group C'), getGroupWinner('Group D'))} className="flex-1 py-1 bg-amber-500 text-zinc-950 font-bold text-[10px] rounded">Lock</button>
               <button onClick={() => handleResetKnockout('semi2')} className="px-2 py-1 bg-zinc-800 text-zinc-400 text-[10px] rounded">Reset</button>
             </div>
           </div>
