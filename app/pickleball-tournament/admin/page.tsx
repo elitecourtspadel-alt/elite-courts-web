@@ -25,7 +25,11 @@ export default function TournamentAdmin() {
   const [team1, setTeam1] = useState('');
   const [team2, setTeam2] = useState('');
   const [matchCustomId, setMatchCustomId] = useState('match1');
+  
+  // Media configuration states
   const [youtubeLink, setYoutubeLink] = useState('');
+  const [winnerImageUrl, setWinnerImageUrl] = useState('');
+  const [ceremonyImageUrl, setCeremonyImageUrl] = useState('');
 
   const [inputScores, setInputScores] = useState<Record<string, string>>({});
 
@@ -38,6 +42,8 @@ export default function TournamentAdmin() {
       const data = snapshot.val();
       setTournamentData(data);
       if (data?.config?.streamLink !== undefined) setYoutubeLink(data.config.streamLink);
+      if (data?.config?.winnerImageUrl !== undefined) setWinnerImageUrl(data.config.winnerImageUrl);
+      if (data?.config?.ceremonyImageUrl !== undefined) setCeremonyImageUrl(data.config.ceremonyImageUrl);
     });
   }, []);
 
@@ -142,9 +148,19 @@ export default function TournamentAdmin() {
     } catch { showStatus("Error resetting."); }
   };
 
-  const handleSaveYoutube = async (e: React.FormEvent) => {
+  const handleSaveGlobalConfig = async (e: React.FormEvent) => {
     e.preventDefault();
-    try { await set(ref(getDatabase(app), `tournaments/pickleball_may_2026/config/streamLink`), youtubeLink.trim()); showStatus('Live stream link updated!'); } catch { showStatus('Error.'); }
+    try {
+      const db = getDatabase(app);
+      await set(ref(db, `tournaments/pickleball_may_2026/config`), {
+        streamLink: youtubeLink.trim(),
+        winnerImageUrl: winnerImageUrl.trim(),
+        ceremonyImageUrl: ceremonyImageUrl.trim()
+      });
+      showStatus('Media assets and live links updated successfully!');
+    } catch {
+      showStatus('Error updating configuration parameters.');
+    }
   };
 
   const showStatus = (msg: string) => { setStatusMessage(msg); setTimeout(() => setStatusMessage(''), 3000); };
@@ -158,11 +174,30 @@ export default function TournamentAdmin() {
       {statusMessage && <div className="max-w-md mx-auto text-xs text-center font-bold text-emerald-400 bg-emerald-950/40 py-2 px-4 rounded-xl border border-emerald-500/20">{statusMessage}</div>}
 
       <div className="max-w-5xl mx-auto space-y-8">
-        <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-2xl">
-          <h2 className="text-xs font-bold mb-3 uppercase tracking-wide text-zinc-300">📺 Live Stream Link</h2>
-          <form onSubmit={handleSaveYoutube} className="flex gap-3">
-            <input type="url" placeholder="https://youtube.com/live/..." value={youtubeLink} onChange={(e) => setYoutubeLink(e.target.value)} className="flex-1 p-2 bg-zinc-800 border border-zinc-700 rounded text-xs text-white" />
-            <button type="submit" className="py-2 px-6 bg-red-600 hover:bg-red-700 font-bold rounded text-xs transition-colors">Save Link</button>
+        
+        {/* ⚙️ Configuration Board: Streams & Ceremonial Images */}
+        <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl">
+          <h2 className="text-xs font-bold mb-4 uppercase tracking-wide text-amber-400">⚙️ Event Setup & Media Gallery</h2>
+          <form onSubmit={handleSaveGlobalConfig} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-mono text-zinc-500">📺 Live Stream or Playback Link</label>
+                <input type="url" placeholder="https://youtube.com/live/..." value={youtubeLink} onChange={(e) => setYoutubeLink(e.target.value)} className="w-full p-2 bg-zinc-800 border border-zinc-700 rounded text-xs text-white" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-mono text-zinc-500">📸 Champion Team Photo URL</label>
+                <input type="url" placeholder="https://image-hosting.com/winners.jpg" value={winnerImageUrl} onChange={(e) => setWinnerImageUrl(e.target.value)} className="w-full p-2 bg-zinc-800 border border-zinc-700 rounded text-xs text-white" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-mono text-zinc-500">📸 Closing Ceremony Photo URL</label>
+                <input type="url" placeholder="https://image-hosting.com/ceremony.jpg" value={ceremonyImageUrl} onChange={(e) => setCeremonyImageUrl(e.target.value)} className="w-full p-2 bg-zinc-800 border border-zinc-700 rounded text-xs text-white" />
+              </div>
+            </div>
+            <div className="flex justify-end pt-2">
+              <button type="submit" className="py-2 px-8 bg-emerald-600 hover:bg-emerald-700 font-bold rounded text-xs transition-colors shadow-md">
+                Save Asset Links
+              </button>
+            </div>
           </form>
         </div>
 
@@ -272,7 +307,8 @@ export default function TournamentAdmin() {
               </div>
             </div>
             <div className="flex gap-2 pt-1">
-              <button onClick={() => handleSaveKnockoutScore('semi2', getGroupWinner('Group C'), getGroupWinner('Group D'))} className="flex-1 py-1 bg-amber-500 text-zinc-950 font-bold text-[10px] rounded">Lock</button>
+              {/* Fix: Changed parameters from Group C and D to pass Group B and C to accurately align with the match layout */}
+              <button onClick={() => handleSaveKnockoutScore('semi2', getGroupWinner('Group B'), getGroupWinner('Group C'))} className="flex-1 py-1 bg-amber-500 text-zinc-950 font-bold text-[10px] rounded">Lock</button>
               <button onClick={() => handleResetKnockout('semi2')} className="px-2 py-1 bg-zinc-800 text-zinc-400 text-[10px] rounded">Reset</button>
             </div>
           </div>
