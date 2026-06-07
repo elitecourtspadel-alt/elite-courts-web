@@ -1,174 +1,138 @@
 'use client';
-import { useEffect, useState } from 'react';
-import { initializeApp, getApps } from "firebase/app";
-import { getDatabase, ref, onValue } from "firebase/database";
+import { useState, useEffect } from 'react';
 
-const firebaseConfig = {
-  apiKey: "AizasyD4bPvYwRjOAGfiwoVPbG_4hj6QEbgdc9A",
-  authDomain: "elitecourtsapp.firebaseapp.com",
-  projectId: "elitecourtsapp",
-  storageBucket: "elitecourtsapp.appspot.com",
-  messagingSenderId: "409782502952",
-  appId: "1:409782502952:web:64dbbd439a740a312c571d",
-  databaseURL: "https://elitecourtsapp-default-rtdb.asia-southeast1.firebasedatabase.app"
-};
-
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
-
-// Sub-Component for Interactive Product Cards
-function ProductCard({ p, onZoom }: { p: any; onZoom: (url: string) => void }) {
-  // Safe extraction fallbacks to seamlessly process both old and new data entries
-  const imageList = Array.isArray(p.images) 
-    ? p.images.map((url: string) => url.trim()).filter((url: string) => url !== "")
-    : (p.image ? [p.image.trim()] : ['/placeholder.jpg']);
-    
-  const [activeImage, setActiveImage] = useState(imageList[0] || '/placeholder.jpg');
-
-  useEffect(() => {
-    if (imageList.length > 0) {
-      setActiveImage(imageList[0]);
-    }
-  }, [p.images, p.image]);
-
-  return (
-    <div className="bg-zinc-900 rounded-2xl border border-zinc-800 overflow-hidden flex flex-col shadow-xl hover:border-zinc-700 transition-all duration-300">
-      
-      {/* Clickable Large Image Window (Triggers Zoom) */}
-      <div 
-        onClick={() => onZoom(activeImage)}
-        className="w-full h-64 bg-zinc-950 overflow-hidden relative border-b border-zinc-800 flex items-center justify-center p-4 cursor-zoom-in group"
-      >
-        <img 
-          src={activeImage} 
-          className="max-h-full max-w-full object-contain group-hover:scale-102 transition-transform duration-300" 
-          alt={p.name} 
-        />
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
-          <span className="bg-black/60 backdrop-blur-md text-white text-xs px-3 py-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity font-medium">
-            Click to Zoom 🔍
-          </span>
-        </div>
-        <span className="absolute top-3 right-3 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
-          Offer
-        </span>
-      </div>
-
-      {/* Thumbnails Gallery Strip */}
-      {imageList.length > 1 && (
-        <div className="flex gap-2 px-5 pt-4 overflow-x-auto scrollbar-none">
-          {imageList.map((imgUrl: string, idx: number) => (
-            <button
-              key={idx}
-              type="button"
-              onClick={() => setActiveImage(imgUrl)}
-              className={`w-12 h-12 rounded-lg overflow-hidden border-2 bg-zinc-950 flex-shrink-0 p-0.5 transition-all ${
-                activeImage === imgUrl ? 'border-emerald-500 scale-95' : 'border-zinc-800 opacity-60 hover:opacity-100'
-              }`}
-            >
-              <img 
-                src={imgUrl} 
-                className="w-full h-full object-contain" 
-                alt="" 
-                onError={(e) => {
-                  // Fallback for broken images to avoid displaying broken frames
-                  (e.target as HTMLImageElement).src = '/placeholder.jpg';
-                }}
-              />
-            </button>
-          ))}
-        </div>
-      )}
-      
-      {/* Details Box Layout */}
-      <div className="p-5 flex flex-col flex-grow justify-between">
-        <div className="mb-4">
-          <h3 className="text-lg font-bold text-zinc-100 mb-2 tracking-tight line-clamp-2">{p.name}</h3>
-          
-          <div className="flex items-baseline gap-2.5">
-            <span className="text-zinc-500 line-through text-sm font-medium">
-              {p.marketPrice}
-            </span>
-            <span className="text-emerald-400 font-extrabold text-2xl tracking-tight">
-              {p.elitePrice}
-            </span>
-          </div>
-        </div>
-
-        <button 
-          onClick={() => window.open(`https://wa.me/923084708858?text=Salam!%20I%20am%20interested%20in%20buying%20the%20${encodeURIComponent(p.name)}.%20Is%20it%20available?`, '_blank')} 
-          className="w-full bg-emerald-500 py-3 rounded-xl font-bold text-black hover:bg-emerald-400 active:scale-[0.98] transition-all"
-        >
-          Order on WhatsApp
-        </button>
-      </div>
-    </div>
-  );
+interface ProductProps {
+  product: {
+    name: string;
+    marketPrice: string;
+    elitePrice: string;
+    images: string[];
+    description?: string;
+    specs?: { [key: string]: string };
+  };
+  onBack: () => void;
 }
 
-export default function StorePage() {
-  const [products, setProducts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [zoomImg, setZoomImg] = useState<string | null>(null);
+export default function ProductDetailView({ product, onBack }: ProductProps) {
+  const imageList = Array.isArray(product.images) ? product.images : [];
+  const [activeImg, setActiveImg] = useState(imageList[0] || '/placeholder.jpg');
 
   useEffect(() => {
-    const db = getDatabase(app);
-    const productsRef = ref(db, 'store/products');
-    
-    const unsubscribe = onValue(productsRef, (snapshot) => {
-      const data = snapshot.val();
-      setProducts(data ? Object.values(data) : []);
-      setLoading(false);
-    });
+    if (imageList.length > 0) setActiveImg(imageList[0]);
+  }, [product.images]);
 
-    return () => unsubscribe();
-  }, []);
+  // Default premium specifications if none are provided by database fields yet
+  const productSpecs = product.specs || {
+    "Frame Material": "3K Carbon Fiber",
+    "Core": "EVA Pro High Density",
+    "Balance": "Medium-High",
+    "Weight": "360g - 375g",
+    "Game Level": "Advanced / Professional"
+  };
 
   return (
-    <div className="p-6 md:p-10 bg-zinc-950 min-h-screen text-white relative">
+    <div className="min-h-screen bg-zinc-950 text-white p-4 md:p-10">
       <div className="max-w-6xl mx-auto">
-        <header className="mb-10 border-b border-zinc-900 pb-6">
-          <h1 className="text-4xl font-bold text-emerald-400 mb-2 tracking-tight">Elite Store</h1>
-          <p className="text-zinc-400 text-sm">Premium racket sports gear delivered straight to your court.</p>
-        </header>
-
-        {loading ? (
-          <div className="flex justify-center items-center h-48">
-            <p className="text-zinc-500 animate-pulse font-medium">Loading premium gear...</p>
-          </div>
-        ) : products.length === 0 ? (
-          <div className="text-center p-12 bg-zinc-900/50 rounded-2xl border border-zinc-900">
-            <p className="text-zinc-500 italic">New premium stock arriving soon!</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
-            {products.map((p, i) => (
-              <ProductCard key={i} p={p} onZoom={(url) => setZoomImg(url)} />
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* FULL-SCREEN ZOOM MODAL OVERLAY */}
-      {zoomImg && (
-        <div 
-          onClick={() => setZoomImg(null)}
-          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 md:p-10 cursor-zoom-out animate-fadeIn"
+        {/* Back Button */}
+        <button 
+          onClick={onBack}
+          className="mb-8 flex items-center gap-2 text-zinc-400 hover:text-emerald-400 font-medium transition-colors text-sm"
         >
-          <button 
-            onClick={() => setZoomImg(null)}
-            className="absolute top-6 right-6 text-zinc-400 hover:text-white text-2xl font-bold p-2 focus:outline-none"
-          >
-            ✕
-          </button>
-          <div className="max-w-4xl max-h-[85vh] flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
-            <img 
-              src={zoomImg} 
-              className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl select-none" 
-              alt="Zoomed product view" 
-            />
+          ❮ Back to Elite Store
+        </button>
+
+        {/* Main Product Two-Column Split Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 md:gap-12 items-start">
+          
+          {/* LEFT COLUMN: Gallery Container (Spans 5 Columns on large screens) */}
+          <div className="lg:col-span-5 space-y-4">
+            {/* Display Window */}
+            <div className="w-full h-[350px] md:h-[450px] bg-zinc-900 border border-zinc-800 rounded-2xl flex items-center justify-center p-6 shadow-2xl relative overflow-hidden">
+              <img 
+                src={activeImg} 
+                className="max-h-full max-w-full object-contain transition-all duration-300 transform hover:scale-105" 
+                alt={product.name} 
+              />
+              <span className="absolute top-4 right-4 bg-emerald-500 text-black text-xs font-bold px-3 py-1 rounded-md uppercase tracking-wider">
+                Sale
+              </span>
+            </div>
+
+            {/* Thumbnail Navigation Strip */}
+            {imageList.length > 1 && (
+              <div className="flex gap-2.5 overflow-x-auto pb-2 scrollbar-none">
+                {imageList.map((imgUrl, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setActiveImg(imgUrl)}
+                    className={`w-20 h-20 rounded-xl overflow-hidden bg-zinc-900 border-2 flex-shrink-0 p-1 transition-all ${
+                      activeImg === imgUrl ? 'border-emerald-500 scale-95 shadow-md shadow-emerald-500/10' : 'border-zinc-800 opacity-60 hover:opacity-100'
+                    }`}
+                  >
+                    <img src={imgUrl} className="w-full h-full object-contain" alt="" />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* RIGHT COLUMN: Buying Details (Spans 7 Columns on large screens) */}
+          <div className="lg:col-span-7 space-y-6">
+            <div>
+              <span className="text-xs uppercase font-bold tracking-widest text-emerald-400">Premium Equipment</span>
+              <h1 className="text-2xl md:text-4xl font-extrabold text-zinc-100 tracking-tight mt-1 mb-3">{product.name}</h1>
+              
+              {/* Review Star Stand-In Row */}
+              <div className="flex items-center gap-1 text-amber-400 text-sm">
+                ★★★★★ <span className="text-zinc-500 text-xs ml-2">(Verified Elite Gear)</span>
+              </div>
+            </div>
+
+            {/* Anchored Pricing Presentation */}
+            <div className="bg-zinc-900/50 border border-zinc-900 p-5 rounded-2xl flex items-center gap-4">
+              <div>
+                <p className="text-xs text-zinc-500 font-medium mb-1">Regular Market Price</p>
+                <span className="text-zinc-500 line-through text-lg font-semibold">{product.marketPrice}</span>
+              </div>
+              <div className="border-l border-zinc-800 h-10 mx-2" />
+              <div>
+                <p className="text-xs text-emerald-400/70 font-medium mb-1">Our Elite Price</p>
+                <span className="text-emerald-400 font-black text-3xl md:text-4xl tracking-tight">{product.elitePrice}</span>
+              </div>
+            </div>
+
+            {/* Description Paragraph Container */}
+            <div className="space-y-2 text-zinc-400 text-sm md:text-base leading-relaxed">
+              <h3 className="font-bold text-zinc-200 text-base">Product Overview</h3>
+              <p>
+                {product.description || "Engineered for high-performance competitors. This racket balances exceptional structural integrity with precision engineering to give you absolute control over every baseline drive and quick volley at the net."}
+              </p>
+            </div>
+
+            {/* Action Direct Whatsapp Order Button */}
+            <button 
+              onClick={() => window.open(`https://wa.me/923084708858?text=Salam!%20I%20want%20to%20order%20the%20${encodeURIComponent(product.name)}.%20Please%20confirm%20availability.`, '_blank')} 
+              className="w-full md:w-auto md:px-12 bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold py-4 rounded-xl transition-all shadow-lg shadow-emerald-500/10 hover:shadow-emerald-500/20 text-center block"
+            >
+              Order via WhatsApp
+            </button>
+
+            {/* Technical Specifications Sheet Matrix */}
+            <div className="border-t border-zinc-900 pt-6 mt-8">
+              <h3 className="font-bold text-zinc-200 text-base mb-4">Technical Specifications</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {Object.entries(productSpecs).map(([key, val]) => (
+                  <div key={key} className="flex justify-between items-center bg-zinc-900/30 border border-zinc-900/60 p-3 rounded-xl text-sm">
+                    <span className="text-zinc-500 font-medium">{key}</span>
+                    <span className="text-zinc-200 font-semibold">{val}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
