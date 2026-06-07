@@ -18,7 +18,11 @@ const firebaseConfig = {
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
 
 export default function AdminPage() {
-  const [newProduct, setNewProduct] = useState({ name: "", price: "", image: "" });
+  const [newProduct, setNewProduct] = useState({ name: "", marketPrice: "", elitePrice: "", image: "" });
+
+// Update your input fields to match:
+<input placeholder="Original Market Price" onChange={(e) => setNewProduct({...newProduct, marketPrice: e.target.value})} />
+<input placeholder="Your Elite Discounted Price" onChange={(e) => setNewProduct({...newProduct, elitePrice: e.target.value})} />
 
   const addProduct = () => {
     const db = getDatabase(app);
