@@ -1,7 +1,7 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { initializeApp, getApps } from "firebase/app";
-import { getDatabase, ref, push, set } from "firebase/database";
+import { getDatabase, ref, push, set, onValue } from "firebase/database";
 
 const firebaseConfig = {
   apiKey: "AizasyD4bPvYwRjOAGfiwoVPbG_4hj6QEbgdc9A",
@@ -45,12 +45,66 @@ const SUBCATEGORIES: Record<string, string[]> = {
 
 export default function AdminPage() {
   const [isDeploying, setIsDeploying] = useState<boolean>(false);
+  const [dbProducts, setDbProducts] = useState<Record<string, any>>({});
+  const [selectedProductKey, setSelectedProductKey] = useState<string>("NEW_ASSET");
+  
   const [newProduct, setNewProduct] = useState<ProductForm>({ 
     name: "", marketPrice: "", elitePrice: "", imagesInput: "",
     category: "Padel", subcategory: "Rackets", description: "",
     specShape: "", specFace: "", specFrame: "", specCore: "",
     specWeight: "", specBalance: "", specBracket: "", specControl: "", specPower: ""
   });
+
+  // Fetch live products list so you can choose which one to edit
+  useEffect(() => {
+    const db = getDatabase(app);
+    const productsRef = ref(db, 'store/products');
+    const unsubscribe = onValue(productsRef, (snapshot) => {
+      const data = snapshot.val();
+      setDbProducts(data || {});
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Handle loading existing product data into the form fields
+  const handleProductSelection = (key: string) => {
+    setSelectedProductKey(key);
+    if (key === "NEW_ASSET") {
+      // Reset to pristine state for fresh creation
+      setNewProduct({ 
+        name: "", marketPrice: "", elitePrice: "", imagesInput: "",
+        category: "Padel", subcategory: "Rackets", description: "",
+        specShape: "", specFace: "", specFrame: "", specCore: "",
+        specWeight: "", specBalance: "", specBracket: "", specControl: "", specPower: ""
+      });
+      return;
+    }
+
+    const target = dbProducts[key];
+    const specSource = target.specs || {};
+    
+    // Deconstruct array back to comma separated string for easy swapping
+    const imgsStr = Array.isArray(target.images) ? target.images.join(', ') : (target.image || "");
+
+    setNewProduct({
+      name: target.name || "",
+      marketPrice: target.marketPrice || "",
+      elitePrice: target.elitePrice || "",
+      imagesInput: imgsStr,
+      category: target.category || "Padel",
+      subcategory: target.subcategory || "Rackets",
+      description: target.description || "",
+      specShape: specSource["Shape"] || "",
+      specFace: specSource["Face Material"] || "",
+      specFrame: specSource["Frame Composition"] || "",
+      specCore: specSource["Core Density"] || "",
+      specWeight: specSource["Weight Parameters"] || "",
+      specBalance: specSource["Balance Profile"] || "",
+      specBracket: specSource["Player Bracket"] || "",
+      specControl: specSource["Control Rating"] || "",
+      specPower: specSource["Power Rating"] || ""
+    });
+  };
 
   const handleCategoryChange = (cat: string) => {
     setNewProduct({
@@ -60,9 +114,9 @@ export default function AdminPage() {
     });
   };
 
-  const addProduct = async () => {
+  const saveProduct = async () => {
     if (!newProduct.name || !newProduct.marketPrice || !newProduct.elitePrice || !newProduct.imagesInput) {
-      alert("Missing Required Fields! Please verify you filled out the Product Name, Prices, and Image URLs at the top of the form.");
+      alert("Missing Required Fields! Please verify you filled out the Product Name, Prices, and Image URLs.");
       return;
     }
 
@@ -75,9 +129,12 @@ export default function AdminPage() {
         .filter((url: string) => url.length > 0);
 
       const db = getDatabase(app);
-      const productRef = push(ref(db, 'store/products'));
       
-      // CLEAN STRINGS FOR FIREBASE COMPLIANCE (No forward slashes allowed)
+      // Dynamic Path Routing: Updates existing node key if editing, generates a new one if creating
+      const productRef = selectedProductKey === "NEW_ASSET" 
+        ? push(ref(db, 'store/products'))
+        : ref(db, `store/products/${selectedProductKey}`);
+      
       const specsObject: Record<string, string> = {};
       if (newProduct.specShape) specsObject["Shape"] = newProduct.specShape;
       if (newProduct.specFace) specsObject["Face Material"] = newProduct.specFace;
@@ -102,8 +159,13 @@ export default function AdminPage() {
 
       await set(productRef, payload);
       
-      alert("Success! Premium matrix configurations deployed smoothly to Realtime Database.");
+      alert(selectedProductKey === "NEW_ASSET" 
+        ? "Success! New equipment profile deployed to inventory database." 
+        : "Success! Target matrix updated smoothly without altering other keys."
+      );
       
+      // Clear configuration view back to pristine mode
+      setSelectedProductKey("NEW_ASSET");
       setNewProduct({ 
         name: "", marketPrice: "", elitePrice: "", imagesInput: "",
         category: "Padel", subcategory: "Rackets", description: "",
@@ -112,8 +174,8 @@ export default function AdminPage() {
       });
 
     } catch (error: any) {
-      console.error("Database Write Rejection Details:", error);
-      alert(`Deployment Failed! Critical Error: ${error.message || "Unknown write error occurred. Check Firebase rules."}`);
+      console.error("Database Transaction Error:", error);
+      alert(`Operation Failed! Reason: ${error.message}`);
     } finally {
       setIsDeploying(false);
     }
@@ -127,6 +189,22 @@ export default function AdminPage() {
         </header>
         
         <div className="bg-zinc-900 p-6 md:p-8 rounded-2xl space-y-5 border border-zinc-800">
+          
+          {/* NEW: LIVE ASSET CONTROLLER SELECTOR BLOCK */}
+          <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800">
+            <label className="text-xs uppercase font-black tracking-widest text-emerald-400 block mb-1.5">Console Execution Target</label>
+            <select 
+              value={selectedProductKey} 
+              onChange={(e) => handleProductSelection(e.target.value)}
+              className="w-full p-3 bg-zinc-900 rounded-lg border border-zinc-800 text-xs font-semibold text-zinc-100 focus:border-emerald-500"
+            >
+              <option value="NEW_ASSET">✚ Create & Deploy Fresh Product Profile</option>
+              {Object.keys(dbProducts).map((key) => (
+                <option key={key} value={key}>📝 Modify: {dbProducts[key].name || `Unnamed Asset (${key})`}</option>
+              ))}
+            </select>
+          </div>
+
           <div>
             <label className="text-xs uppercase font-bold tracking-wider text-zinc-400 block mb-1">Product Name / Model Label</label>
             <input placeholder="e.g., Drop Shot Delta 2.0 3K" value={newProduct.name} onChange={(e) => setNewProduct({...newProduct, name: e.target.value})} className="w-full p-3 bg-zinc-950 rounded-xl border border-zinc-800 text-sm focus:border-emerald-500 text-white" />
@@ -189,13 +267,13 @@ export default function AdminPage() {
           </div>
 
           <button 
-            onClick={addProduct} 
+            onClick={saveProduct} 
             disabled={isDeploying}
             className={`w-full py-3 text-black text-xs font-black uppercase tracking-widest rounded-xl transition-all ${
               isDeploying ? 'bg-zinc-600 cursor-wait animate-pulse' : 'bg-emerald-500 hover:bg-emerald-400'
             }`}
           >
-            {isDeploying ? "Processing Deployment..." : "Deploy Catalog Assets"}
+            {isDeploying ? "Processing Database Synchronization..." : selectedProductKey === "NEW_ASSET" ? "Deploy Catalog Assets" : "Update Catalog Assets"}
           </button>
         </div>
       </div>
