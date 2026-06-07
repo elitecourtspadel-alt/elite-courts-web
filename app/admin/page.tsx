@@ -29,11 +29,13 @@ interface ProductForm {
   specLevel: string;
 }
 
-const CATEGORIES: string[] = ["Padel", "Pickleball", "Table Tennis"];
+const CATEGORIES: string[] = ["Padel", "Pickleball", "Table Tennis", "Cricket", "Badminton"];
 const SUBCATEGORIES: Record<string, string[]> = {
   "Padel": ["Rackets", "Balls", "Padel Grips", "Bags", "Accessories"],
   "Pickleball": ["Paddles", "Balls", "Grips", "Bags", "Accessories"],
-  "Table Tennis": ["Bats", "Balls", "Rubbers", "Accessories"]
+  "Table Tennis": ["Bats", "Balls", "Rubbers", "Accessories"],
+  "Cricket": ["Bats", "Balls", "Protective Gear", "Bags", "Accessories"],
+  "Badminton": ["Rackets", "Shuttlecocks", "Grips", "Bags", "Accessories"]
 };
 
 export default function AdminPage() {
@@ -74,7 +76,7 @@ export default function AdminPage() {
     const productRef = push(ref(db, 'store/products'));
     
     const specsObject = {
-      "Material / Composition": newProduct.specMaterial || "Premium Carbon Fiber Blend",
+      "Material / Composition": newProduct.specMaterial || "Premium Grade Composition",
       "Average Weight": newProduct.specWeight || "Standard Weight Configuration",
       "Balance Allocation": newProduct.specBalance || "Balanced Optimization",
       "Intended Skill Level": newProduct.specLevel || "Intermediate / Professional"
@@ -92,7 +94,7 @@ export default function AdminPage() {
     };
 
     update(productRef, payload);
-    alert("Premium stock profile written to Firebase ledger successfully!");
+    alert("Stock profile successfully synchronized with database!");
     
     setNewProduct({ 
       name: "", 
@@ -123,7 +125,7 @@ export default function AdminPage() {
           <div>
             <label className="text-xs uppercase font-bold tracking-wider text-zinc-400 block mb-1.5">Product Name / Model Label</label>
             <input 
-              placeholder="e.g., Drop Shot Delta 2.0 Padel Racket 3K" 
+              placeholder="e.g., CA Plus 15000 Player Edition Cricket Bat" 
               value={newProduct.name}
               onChange={(e) => setNewProduct({...newProduct, name: e.target.value})} 
               className="w-full p-3 bg-zinc-950 rounded-xl border border-zinc-800 text-sm focus:outline-none focus:border-emerald-500 transition-colors"
@@ -160,7 +162,7 @@ export default function AdminPage() {
             <div>
               <label className="text-xs uppercase font-bold tracking-wider text-zinc-400 block mb-1.5">Standard Market Value Strike</label>
               <input 
-                placeholder="e.g., Rs 45,500" 
+                placeholder="e.g., Rs 65,000" 
                 value={newProduct.marketPrice}
                 onChange={(e) => setNewProduct({...newProduct, marketPrice: e.target.value})} 
                 className="w-full p-3 bg-zinc-950 rounded-xl border border-zinc-800 text-sm focus:outline-none focus:border-emerald-500 transition-colors"
@@ -169,7 +171,7 @@ export default function AdminPage() {
             <div>
               <label className="text-xs uppercase font-bold tracking-wider text-zinc-400 block mb-1.5">Elite Store Member Offer Price</label>
               <input 
-                placeholder="e.g., Rs 39,900" 
+                placeholder="e.g., Rs 58,500" 
                 value={newProduct.elitePrice}
                 onChange={(e) => setNewProduct({...newProduct, elitePrice: e.target.value})} 
                 className="w-full p-3 bg-zinc-950 rounded-xl border border-zinc-800 text-sm focus:outline-none focus:border-emerald-500 transition-colors"
@@ -180,7 +182,7 @@ export default function AdminPage() {
           <div>
             <label className="text-xs uppercase font-bold tracking-wider text-zinc-400 block mb-1.5">Asset Links (Comma-Separated Grid List)</label>
             <textarea 
-              placeholder="https://i.ibb.co/pic1.jpg, https://i.ibb.co/pic2.jpg" 
+              placeholder="https://i.ibb.co/image1.jpg, https://i.ibb.co/image2.jpg" 
               value={newProduct.imagesInput}
               onChange={(e) => setNewProduct({...newProduct, imagesInput: e.target.value})} 
               rows={3}
@@ -191,7 +193,7 @@ export default function AdminPage() {
           <div>
             <label className="text-xs uppercase font-bold tracking-wider text-zinc-400 block mb-1.5">E-Commerce Product Overview Narrative</label>
             <textarea 
-              placeholder="Provide a compelling overview detailing structural integrity, power control balance ratios..." 
+              placeholder="Describe balance profiles, willow grades, string tensions, structural responses..." 
               value={newProduct.description}
               onChange={(e) => setNewProduct({...newProduct, description: e.target.value})} 
               rows={4}
@@ -203,18 +205,18 @@ export default function AdminPage() {
             <h3 className="text-sm font-bold uppercase tracking-wider text-emerald-400">Technical Attribute Matrix (Optional)</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="text-[11px] uppercase font-bold tracking-wider text-zinc-500 block mb-1">Face/Frame Material</label>
+                <label className="text-[11px] uppercase font-bold tracking-wider text-zinc-500 block mb-1">Material Composition / Willow Grade</label>
                 <input 
-                  placeholder="e.g., 3K Carbon Fiber Face" 
+                  placeholder="e.g., Grade 1 English Willow / High-Modulus Carbon" 
                   value={newProduct.specMaterial}
                   onChange={(e) => setNewProduct({...newProduct, specMaterial: e.target.value})}
                   className="w-full p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 text-xs focus:outline-none focus:border-emerald-500"
                 />
               </div>
               <div>
-                <label className="text-[11px] uppercase font-bold tracking-wider text-zinc-500 block mb-1">Weight Parameters</label>
+                <label className="text-[11px] uppercase font-bold tracking-wider text-zinc-500 block mb-1">Weight / Tension Parameters</label>
                 <input 
-                  placeholder="e.g., 360g - 375g" 
+                  placeholder="e.g., 2.8 lbs / 26 lbs string tension" 
                   value={newProduct.specWeight}
                   onChange={(e) => setNewProduct({...newProduct, specWeight: e.target.value})}
                   className="w-full p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 text-xs focus:outline-none focus:border-emerald-500"
