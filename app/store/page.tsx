@@ -37,7 +37,7 @@ const SUB_CATEGORIES: Record<string, string[]> = {
 };
 
 // ==========================================
-// PRODUCT DETAIL VIEW WITH MATRIX SPECIFICATIONS
+// PRODUCT DETAIL VIEW COMPONENT
 // ==========================================
 function ProductDetailView({ product, onBack }: { product: Product; onBack: () => void }) {
   const imageList: string[] = Array.isArray(product.images) 
@@ -147,16 +147,16 @@ function ProductDetailView({ product, onBack }: { product: Product; onBack: () =
                   <td className="py-3.5 font-bold text-zinc-200">Product Model</td>
                   <td className="py-3.5">{product.name}</td>
                 </tr>
-                {specs["Shape / Configuration"] && (
+                {specs["Shape"] && (
                   <tr>
                     <td className="py-3.5 font-bold text-zinc-200">Equipment Shape / Profile</td>
-                    <td className="py-3.5">{specs["Shape / Configuration"]}</td>
+                    <td className="py-3.5">{specs["Shape"]}</td>
                   </tr>
                 )}
-                {specs["Face / Surface Material"] && (
+                {specs["Face Material"] && (
                   <tr>
                     <td className="py-3.5 font-bold text-zinc-200">Face / Blade Material</td>
-                    <td className="py-3.5">{specs["Face / Surface Material"]}</td>
+                    <td className="py-3.5">{specs["Face Material"]}</td>
                   </tr>
                 )}
                 {specs["Frame Composition"] && (
@@ -165,10 +165,10 @@ function ProductDetailView({ product, onBack }: { product: Product; onBack: () =
                     <td className="py-3.5">{specs["Frame Composition"]}</td>
                   </tr>
                 )}
-                {specs["Core Core / Density"] && (
+                {specs["Core Density"] && (
                   <tr>
                     <td className="py-3.5 font-bold text-zinc-200">Core Engine / Rubber Density</td>
-                    <td className="py-3.5">{specs["Core Core / Density"]}</td>
+                    <td className="py-3.5">{specs["Core Density"]}</td>
                   </tr>
                 )}
                 {specs["Weight Parameters"] && (
@@ -189,7 +189,7 @@ function ProductDetailView({ product, onBack }: { product: Product; onBack: () =
         </div>
 
         {/* IDEAL PLAYER PROFILE MATRIX BLOCK */}
-        {((specs["Player Bracket"] || specs["Control Rating"] || specs["Power Rating"])) && (
+        {(specs["Player Bracket"] || specs["Control Rating"] || specs["Power Rating"]) && (
           <div className="mb-10">
             <h2 className="text-xl md:text-2xl font-bold text-zinc-100 tracking-tight mb-4">Ideal Player Profile</h2>
             <div className="overflow-x-auto">
@@ -224,7 +224,7 @@ function ProductDetailView({ product, onBack }: { product: Product; onBack: () =
 }
 
 // ==========================================
-// MAIN HUB HUB ROUTER
+// MAIN HOUSING ROUTER
 // ==========================================
 export default function StorePage() {
   const [products, setProducts] = useState<Product[]>([]);
