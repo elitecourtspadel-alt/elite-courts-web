@@ -55,22 +55,20 @@ export default function AdminPage() {
     specWeight: "", specBalance: "", specBracket: "", specControl: "", specPower: ""
   });
 
-  // Fetch live products list so you can choose which one to edit
   useEffect(() => {
     const db = getDatabase(app);
     const productsRef = ref(db, 'store/products');
     const unsubscribe = onValue(productsRef, (snapshot) => {
-      const data = snapshot.val();
-      setDbProducts(data || {});
+      setDbProducts(snapshot.val() || {});
     });
     return () => unsubscribe();
   }, []);
 
-  // Handle loading existing product data into the form fields
+  const isHardware = (sub: string) => ["Rackets", "Paddles", "Bats"].includes(sub);
+
   const handleProductSelection = (key: string) => {
     setSelectedProductKey(key);
     if (key === "NEW_ASSET") {
-      // Reset to pristine state for fresh creation
       setNewProduct({ 
         name: "", marketPrice: "", elitePrice: "", imagesInput: "",
         category: "Padel", subcategory: "Rackets", description: "",
@@ -82,9 +80,8 @@ export default function AdminPage() {
 
     const target = dbProducts[key];
     const specSource = target.specs || {};
-    
-    // Deconstruct array back to comma separated string for easy swapping
     const imgsStr = Array.isArray(target.images) ? target.images.join(', ') : (target.image || "");
+    const isHW = isHardware(target.subcategory || "Rackets");
 
     setNewProduct({
       name: target.name || "",
@@ -94,15 +91,15 @@ export default function AdminPage() {
       category: target.category || "Padel",
       subcategory: target.subcategory || "Rackets",
       description: target.description || "",
-      specShape: specSource["Shape"] || "",
-      specFace: specSource["Face Material"] || "",
-      specFrame: specSource["Frame Composition"] || "",
-      specCore: specSource["Core Density"] || "",
-      specWeight: specSource["Weight Parameters"] || "",
-      specBalance: specSource["Balance Profile"] || "",
-      specBracket: specSource["Player Bracket"] || "",
-      specControl: specSource["Control Rating"] || "",
-      specPower: specSource["Power Rating"] || ""
+      specShape: isHW ? (specSource["Shape"] || "") : (specSource["Material"] || ""),
+      specFace: isHW ? (specSource["Face Material"] || "") : (specSource["Dimensions"] || ""),
+      specFrame: isHW ? (specSource["Frame Composition"] || "") : (specSource["Color"] || ""),
+      specCore: isHW ? (specSource["Core Density"] || "") : (specSource["Compatibility"] || ""),
+      specWeight: isHW ? (specSource["Weight Parameters"] || "") : (specSource["Thickness"] || ""),
+      specBalance: isHW ? (specSource["Balance Profile"] || "") : (specSource["Pack Size"] || ""),
+      specBracket: isHW ? (specSource["Player Bracket"] || "") : (specSource["Feature Note"] || ""),
+      specControl: isHW ? (specSource["Control Rating"] || "") : (specSource["Durability"] || ""),
+      specPower: isHW ? (specSource["Power Rating"] || "") : (specSource["Adhesion Level"] || "")
     });
   };
 
@@ -116,37 +113,42 @@ export default function AdminPage() {
 
   const saveProduct = async () => {
     if (!newProduct.name || !newProduct.marketPrice || !newProduct.elitePrice || !newProduct.imagesInput) {
-      alert("Missing Required Fields! Please verify you filled out the Product Name, Prices, and Image URLs.");
+      alert("Missing Required Fields!");
       return;
     }
 
     try {
       setIsDeploying(true);
-
-      const imagesArray = newProduct.imagesInput
-        .split(',')
-        .map((url: string) => url.trim())
-        .filter((url: string) => url.length > 0);
-
+      const imagesArray = newProduct.imagesInput.split(',').map((url: string) => url.trim()).filter((url: string) => url.length > 0);
       const db = getDatabase(app);
-      
-      // Dynamic Path Routing: Updates existing node key if editing, generates a new one if creating
-      const productRef = selectedProductKey === "NEW_ASSET" 
-        ? push(ref(db, 'store/products'))
-        : ref(db, `store/products/${selectedProductKey}`);
+      const productRef = selectedProductKey === "NEW_ASSET" ? push(ref(db, 'store/products')) : ref(db, `store/products/${selectedProductKey}`);
       
       const specsObject: Record<string, string> = {};
-      if (newProduct.specShape) specsObject["Shape"] = newProduct.specShape;
-      if (newProduct.specFace) specsObject["Face Material"] = newProduct.specFace;
-      if (newProduct.specFrame) specsObject["Frame Composition"] = newProduct.specFrame;
-      if (newProduct.specCore) specsObject["Core Density"] = newProduct.specCore;
-      if (newProduct.specWeight) specsObject["Weight Parameters"] = newProduct.specWeight;
-      if (newProduct.specBalance) specsObject["Balance Profile"] = newProduct.specBalance;
-      if (newProduct.specBracket) specsObject["Player Bracket"] = newProduct.specBracket;
-      if (newProduct.specControl) specsObject["Control Rating"] = newProduct.specControl;
-      if (newProduct.specPower) specsObject["Power Rating"] = newProduct.specPower;
+      const isHW = isHardware(newProduct.subcategory);
 
-      const payload = {
+      if (isHW) {
+        if (newProduct.specShape) specsObject["Shape"] = newProduct.specShape;
+        if (newProduct.specFace) specsObject["Face Material"] = newProduct.specFace;
+        if (newProduct.specFrame) specsObject["Frame Composition"] = newProduct.specFrame;
+        if (newProduct.specCore) specsObject["Core Density"] = newProduct.specCore;
+        if (newProduct.specWeight) specsObject["Weight Parameters"] = newProduct.specWeight;
+        if (newProduct.specBalance) specsObject["Balance Profile"] = newProduct.specBalance;
+        if (newProduct.specBracket) specsObject["Player Bracket"] = newProduct.specBracket;
+        if (newProduct.specControl) specsObject["Control Rating"] = newProduct.specControl;
+        if (newProduct.specPower) specsObject["Power Rating"] = newProduct.specPower;
+      } else {
+        if (newProduct.specShape) specsObject["Material"] = newProduct.specShape;
+        if (newProduct.specFace) specsObject["Dimensions"] = newProduct.specFace;
+        if (newProduct.specFrame) specsObject["Color"] = newProduct.specFrame;
+        if (newProduct.specCore) specsObject["Compatibility"] = newProduct.specCore;
+        if (newProduct.specWeight) specsObject["Thickness"] = newProduct.specWeight;
+        if (newProduct.specBalance) specsObject["Pack Size"] = newProduct.specBalance;
+        if (newProduct.specBracket) specsObject["Feature Note"] = newProduct.specBracket;
+        if (newProduct.specControl) specsObject["Durability"] = newProduct.specControl;
+        if (newProduct.specPower) specsObject["Adhesion Level"] = newProduct.specPower;
+      }
+
+      await set(productRef, {
         name: newProduct.name,
         marketPrice: newProduct.marketPrice,
         elitePrice: newProduct.elitePrice,
@@ -155,16 +157,9 @@ export default function AdminPage() {
         subcategory: newProduct.subcategory,
         description: newProduct.description,
         specs: specsObject
-      };
-
-      await set(productRef, payload);
+      });
       
-      alert(selectedProductKey === "NEW_ASSET" 
-        ? "Success! New equipment profile deployed to inventory database." 
-        : "Success! Target matrix updated smoothly without altering other keys."
-      );
-      
-      // Clear configuration view back to pristine mode
+      alert("Success! Configuration synchronized safely.");
       setSelectedProductKey("NEW_ASSET");
       setNewProduct({ 
         name: "", marketPrice: "", elitePrice: "", imagesInput: "",
@@ -172,14 +167,14 @@ export default function AdminPage() {
         specShape: "", specFace: "", specFrame: "", specCore: "",
         specWeight: "", specBalance: "", specBracket: "", specControl: "", specPower: ""
       });
-
     } catch (error: any) {
-      console.error("Database Transaction Error:", error);
-      alert(`Operation Failed! Reason: ${error.message}`);
+      alert(`Operation Failed: ${error.message}`);
     } finally {
       setIsDeploying(false);
     }
   };
+
+  const isHWMode = isHardware(newProduct.subcategory);
 
   return (
     <div className="p-6 md:p-12 bg-zinc-950 min-h-screen text-white flex flex-col items-center">
@@ -189,15 +184,9 @@ export default function AdminPage() {
         </header>
         
         <div className="bg-zinc-900 p-6 md:p-8 rounded-2xl space-y-5 border border-zinc-800">
-          
-          {/* NEW: LIVE ASSET CONTROLLER SELECTOR BLOCK */}
           <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800">
             <label className="text-xs uppercase font-black tracking-widest text-emerald-400 block mb-1.5">Console Execution Target</label>
-            <select 
-              value={selectedProductKey} 
-              onChange={(e) => handleProductSelection(e.target.value)}
-              className="w-full p-3 bg-zinc-900 rounded-lg border border-zinc-800 text-xs font-semibold text-zinc-100 focus:border-emerald-500"
-            >
+            <select value={selectedProductKey} onChange={(e) => handleProductSelection(e.target.value)} className="w-full p-3 bg-zinc-900 rounded-lg border border-zinc-800 text-xs font-semibold text-zinc-100 focus:border-emerald-500">
               <option value="NEW_ASSET">✚ Create & Deploy Fresh Product Profile</option>
               {Object.keys(dbProducts).map((key) => (
                 <option key={key} value={key}>📝 Modify: {dbProducts[key].name || `Unnamed Asset (${key})`}</option>
@@ -207,7 +196,7 @@ export default function AdminPage() {
 
           <div>
             <label className="text-xs uppercase font-bold tracking-wider text-zinc-400 block mb-1">Product Name / Model Label</label>
-            <input placeholder="e.g., Drop Shot Delta 2.0 3K" value={newProduct.name} onChange={(e) => setNewProduct({...newProduct, name: e.target.value})} className="w-full p-3 bg-zinc-950 rounded-xl border border-zinc-800 text-sm focus:border-emerald-500 text-white" />
+            <input placeholder="e.g., Drop Shot Protective Tape Black" value={newProduct.name} onChange={(e) => setNewProduct({...newProduct, name: e.target.value})} className="w-full p-3 bg-zinc-950 rounded-xl border border-zinc-800 text-sm focus:border-emerald-500 text-white" />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -228,16 +217,16 @@ export default function AdminPage() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-xs uppercase font-bold tracking-wider text-zinc-400 block mb-1">Market Price</label>
-              <input placeholder="Rs 21,000" value={newProduct.marketPrice} onChange={(e) => setNewProduct({...newProduct, marketPrice: e.target.value})} className="w-full p-3 bg-zinc-950 rounded-xl border border-zinc-800 text-sm" />
+              <input placeholder="Rs 2,500" value={newProduct.marketPrice} onChange={(e) => setNewProduct({...newProduct, marketPrice: e.target.value})} className="w-full p-3 bg-zinc-950 rounded-xl border border-zinc-800 text-sm" />
             </div>
             <div>
               <label className="text-xs uppercase font-bold tracking-wider text-zinc-400 block mb-1">Elite Store Price</label>
-              <input placeholder="Rs 15,000" value={newProduct.elitePrice} onChange={(e) => setNewProduct({...newProduct, elitePrice: e.target.value})} className="w-full p-3 bg-zinc-950 rounded-xl border border-zinc-800 text-sm" />
+              <input placeholder="Rs 1,800" value={newProduct.elitePrice} onChange={(e) => setNewProduct({...newProduct, elitePrice: e.target.value})} className="w-full p-3 bg-zinc-950 rounded-xl border border-zinc-800 text-sm" />
             </div>
           </div>
 
           <div>
-            <label className="text-xs uppercase font-bold tracking-wider text-zinc-400 block mb-1">Image URLs (Comma separated ImgBB Links)</label>
+            <label className="text-xs uppercase font-bold tracking-wider text-zinc-400 block mb-1">Image URLs (Comma separated links)</label>
             <input placeholder="https://i.ibb.co/abc/image.jpg" value={newProduct.imagesInput} onChange={(e) => setNewProduct({...newProduct, imagesInput: e.target.value})} className="w-full p-3 bg-zinc-950 rounded-xl border border-zinc-800 text-sm" />
           </div>
 
@@ -247,32 +236,30 @@ export default function AdminPage() {
           </div>
 
           <div className="border-t border-zinc-800 pt-4 space-y-4">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-400">Advanced Specifications Matrix Fields</h3>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-400">
+              {isHWMode ? "Advanced Specifications Matrix Fields" : "Accessory Specification Fields"}
+            </h3>
             
             <div className="grid grid-cols-2 gap-4">
-              <input placeholder="Racket Shape (Teardrop / Oversized Diamond)" value={newProduct.specShape} onChange={(e) => setNewProduct({...newProduct, specShape: e.target.value})} className="p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 text-xs text-white" />
-              <input placeholder="Face Material (3K Carbon Fiber Face)" value={newProduct.specFace} onChange={(e) => setNewProduct({...newProduct, specFace: e.target.value})} className="p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 text-xs text-white" />
-              <input placeholder="Frame Material (Twin Tubular Carbon)" value={newProduct.specFrame} onChange={(e) => setNewProduct({...newProduct, specFrame: e.target.value})} className="p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 text-xs text-white" />
-              <input placeholder="Core Core / Density (EVA Pro Medium)" value={newProduct.specCore} onChange={(e) => setNewProduct({...newProduct, specCore: e.target.value})} className="p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 text-xs text-white" />
-              <input placeholder="Weight Parameters (360g - 375g)" value={newProduct.specWeight} onChange={(e) => setNewProduct({...newProduct, specWeight: e.target.value})} className="p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 text-xs text-white" />
-              <input placeholder="Balance Profile (Mid-High Allocation)" value={newProduct.specBalance} onChange={(e) => setNewProduct({...newProduct, specBalance: e.target.value})} className="p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 text-xs text-white" />
+              <input placeholder={isHWMode ? "Racket Shape (e.g. Teardrop)" : "Material (e.g. High-Resistance TPU)"} value={newProduct.specShape} onChange={(e) => setNewProduct({...newProduct, specShape: e.target.value})} className="p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 text-xs text-white" />
+              <input placeholder={isHWMode ? "Face Material (e.g. 3K Carbon)" : "Dimensions (e.g. 3.8cm x 40cm)"} value={newProduct.specFace} onChange={(e) => setNewProduct({...newProduct, specFace: e.target.value})} className="p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 text-xs text-white" />
+              <input placeholder={isHWMode ? "Frame Material (e.g. Carbon)" : "Color/Design (e.g. Clear Transparent)"} value={newProduct.specFrame} onChange={(e) => setNewProduct({...newProduct, specFrame: e.target.value})} className="p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 text-xs text-white" />
+              <input placeholder={isHWMode ? "Core Density (e.g. EVA Pro)" : "Compatibility (e.g. Universal Padel Frames)"} value={newProduct.specCore} onChange={(e) => setNewProduct({...newProduct, specCore: e.target.value})} className="p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 text-xs text-white" />
+              <input placeholder={isHWMode ? "Weight Parameters (e.g. 360g)" : "Thickness (e.g. 0.5mm)"} value={newProduct.specWeight} onChange={(e) => setNewProduct({...newProduct, specWeight: e.target.value})} className="p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 text-xs text-white" />
+              <input placeholder={isHWMode ? "Balance Profile (e.g. Mid Balance)" : "Pack Size / Qty (e.g. 1 Unit)"} value={newProduct.specBalance} onChange={(e) => setNewProduct({...newProduct, specBalance: e.target.value})} className="p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 text-xs text-white" />
             </div>
 
-            <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-400 pt-2">Performance & Player Bracket Ratings</h3>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-400 pt-2">
+              {isHWMode ? "Performance & Player Bracket Ratings" : "Accessory Performance Traits"}
+            </h3>
             <div className="grid grid-cols-3 gap-3">
-              <input placeholder="Bracket (Advanced / Intensive)" value={newProduct.specBracket} onChange={(e) => setNewProduct({...newProduct, specBracket: e.target.value})} className="p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 text-xs text-white col-span-1" />
-              <input placeholder="Control (e.g. 8.5 / 10)" value={newProduct.specControl} onChange={(e) => setNewProduct({...newProduct, specControl: e.target.value})} className="p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 text-xs text-white" />
-              <input placeholder="Power (e.g. 9.5 / 10)" value={newProduct.specPower} onChange={(e) => setNewProduct({...newProduct, specPower: e.target.value})} className="p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 text-xs text-white" />
+              <input placeholder={isHWMode ? "Bracket (Advanced)" : "Key Feature (e.g. Abrasion Shield)"} value={newProduct.specBracket} onChange={(e) => setNewProduct({...newProduct, specBracket: e.target.value})} className="p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 text-xs text-white col-span-1" />
+              <input placeholder={isHWMode ? "Control (8.5 / 10)" : "Durability Rating (e.g. 9.5 / 10)"} value={newProduct.specControl} onChange={(e) => setNewProduct({...newProduct, specControl: e.target.value})} className="p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 text-xs text-white" />
+              <input placeholder={isHWMode ? "Power (9.0 / 10)" : "Adhesion Level (e.g. Strong Glue Matrix)"} value={newProduct.specPower} onChange={(e) => setNewProduct({...newProduct, specPower: e.target.value})} className="p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 text-xs text-white" />
             </div>
           </div>
 
-          <button 
-            onClick={saveProduct} 
-            disabled={isDeploying}
-            className={`w-full py-3 text-black text-xs font-black uppercase tracking-widest rounded-xl transition-all ${
-              isDeploying ? 'bg-zinc-600 cursor-wait animate-pulse' : 'bg-emerald-500 hover:bg-emerald-400'
-            }`}
-          >
+          <button onClick={saveProduct} disabled={isDeploying} className={`w-full py-3 text-black text-xs font-black uppercase tracking-widest rounded-xl transition-all ${isDeploying ? 'bg-zinc-600 cursor-wait animate-pulse' : 'bg-emerald-500 hover:bg-emerald-400'}`}>
             {isDeploying ? "Processing Database Synchronization..." : selectedProductKey === "NEW_ASSET" ? "Deploy Catalog Assets" : "Update Catalog Assets"}
           </button>
         </div>
