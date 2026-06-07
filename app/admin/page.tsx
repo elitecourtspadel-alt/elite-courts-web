@@ -60,7 +60,6 @@ export default function AdminPage() {
     });
   };
 
-  // Upgraded to a type-safe async function with explicit global exception handling
   const addProduct = async () => {
     if (!newProduct.name || !newProduct.marketPrice || !newProduct.elitePrice || !newProduct.imagesInput) {
       alert("Missing Required Fields! Please verify you filled out the Product Name, Prices, and Image URLs at the top of the form.");
@@ -76,14 +75,14 @@ export default function AdminPage() {
         .filter((url: string) => url.length > 0);
 
       const db = getDatabase(app);
-      // Generate a clean, unique sequential node under store/products
       const productRef = push(ref(db, 'store/products'));
       
+      // CLEAN STRINGS FOR FIREBASE COMPLIANCE (No forward slashes allowed)
       const specsObject: Record<string, string> = {};
-      if (newProduct.specShape) specsObject["Shape / Configuration"] = newProduct.specShape;
-      if (newProduct.specFace) specsObject["Face / Surface Material"] = newProduct.specFace;
+      if (newProduct.specShape) specsObject["Shape"] = newProduct.specShape;
+      if (newProduct.specFace) specsObject["Face Material"] = newProduct.specFace;
       if (newProduct.specFrame) specsObject["Frame Composition"] = newProduct.specFrame;
-      if (newProduct.specCore) specsObject["Core Core / Density"] = newProduct.specCore;
+      if (newProduct.specCore) specsObject["Core Density"] = newProduct.specCore;
       if (newProduct.specWeight) specsObject["Weight Parameters"] = newProduct.specWeight;
       if (newProduct.specBalance) specsObject["Balance Profile"] = newProduct.specBalance;
       if (newProduct.specBracket) specsObject["Player Bracket"] = newProduct.specBracket;
@@ -101,12 +100,10 @@ export default function AdminPage() {
         specs: specsObject
       };
 
-      // Switched from update to set for deterministic initialization of empty pushed references
       await set(productRef, payload);
       
       alert("Success! Premium matrix configurations deployed smoothly to Realtime Database.");
       
-      // Clear form back to pristine state
       setNewProduct({ 
         name: "", marketPrice: "", elitePrice: "", imagesInput: "",
         category: "Padel", subcategory: "Rackets", description: "",
