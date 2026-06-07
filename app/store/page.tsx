@@ -29,16 +29,28 @@ export default function StorePage() {
 
   return (
     <div className="p-10 bg-zinc-950 min-h-screen text-white">
-      <h1 className="text-4xl font-bold text-emerald-400 mb-8">Elite Store</h1>
+      <h1 className="text-4xl font-bold text-emerald-400 mb-2">Elite Store</h1>
+      <p className="text-zinc-500 mb-8">Premium gear for serious players.</p>
+      
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {products.map((p, i) => (
-          <div key={i} className="bg-zinc-900 p-6 rounded-2xl border border-zinc-800">
+          <div key={i} className="bg-zinc-900 p-6 rounded-2xl border border-zinc-800 hover:border-emerald-500/50 transition-all">
             <img src={p.image} className="rounded-xl mb-4 w-full h-48 object-cover" alt={p.name} />
-            <h3 className="text-lg font-bold">{p.name}</h3>
-            <p className="text-emerald-400 font-mono font-bold mb-6">{p.price}</p>
+            <h3 className="text-xl font-bold mb-2">{p.name}</h3>
+            
+            {/* Price Anchoring Section */}
+            <div className="flex items-center gap-3 mb-6">
+              <span className="text-zinc-500 line-through text-sm">
+                {p.marketPrice}
+              </span>
+              <span className="text-emerald-400 font-bold text-2xl">
+                {p.elitePrice}
+              </span>
+            </div>
+
             <button 
-              onClick={() => window.open(`https://wa.me/923084708858?text=Interested in ${p.name}`, '_blank')} 
-              className="w-full bg-emerald-500 py-3 rounded-lg font-bold text-black"
+              onClick={() => window.open(`https://wa.me/923084708858?text=I%20am%20interested%20in%20buying%20the%20${p.name}`, '_blank')} 
+              className="w-full bg-emerald-500 py-3 rounded-lg font-bold text-black hover:bg-emerald-400 transition-colors"
             >
               Order on WhatsApp
             </button>
