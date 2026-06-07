@@ -36,9 +36,6 @@ const SUB_CATEGORIES: Record<string, string[]> = {
   "Badminton": ["All Gear", "Rackets", "Shuttlecocks", "Grips", "Bags", "Accessories"]
 };
 
-// ==========================================
-// PRODUCT DETAIL VIEW COMPONENT
-// ==========================================
 function ProductDetailView({ product, onBack }: { product: Product; onBack: () => void }) {
   const imageList: string[] = Array.isArray(product.images) 
     ? product.images.map((url: string) => url.trim()).filter((url: string) => url !== "")
@@ -51,52 +48,32 @@ function ProductDetailView({ product, onBack }: { product: Product; onBack: () =
   }, [product.images, product.image]);
 
   const specs = product.specs || {};
+  const isHardware = ["Rackets", "Paddles", "Bats"].includes(product.subcategory);
 
   return (
     <div className="animate-fadeIn">
-      <button 
-        onClick={onBack}
-        className="mb-8 flex items-center gap-2 text-zinc-400 hover:text-emerald-400 font-medium transition-colors text-sm"
-      >
+      <button onClick={onBack} className="mb-8 flex items-center gap-2 text-zinc-400 hover:text-emerald-400 font-medium transition-colors text-sm">
         ❮ Back to Shop Explorer
       </button>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start mb-12">
-        {/* Gallery Window */}
         <div className="lg:col-span-5 space-y-4">
           <div className="w-full h-[380px] md:h-[460px] bg-zinc-900 border border-zinc-800 rounded-2xl flex items-center justify-center p-6 shadow-2xl relative">
-            <img 
-              src={activeImg} 
-              className="max-h-full max-w-full object-contain transition-transform duration-300 hover:scale-105" 
-              alt={product.name}
-              onError={(e) => { (e.target as HTMLImageElement).src = 'https://placehold.co/600x600/18181b/ffffff?text=Image+Preview'; }}
-            />
+            <img src={activeImg} className="max-h-full max-w-full object-contain transition-transform duration-300 hover:scale-105" alt={product.name} onError={(e) => { (e.target as HTMLImageElement).src = 'https://placehold.co/600x600/18181b/ffffff?text=Image+Preview'; }} />
             <span className="absolute top-4 right-4 bg-emerald-500 text-black text-xs font-bold px-3 py-1 rounded-md uppercase tracking-wider">Sale</span>
           </div>
 
           {imageList.length > 1 && (
             <div className="flex gap-2.5 overflow-x-auto pb-2 scrollbar-none">
               {imageList.map((url: string, idx: number) => (
-                <button
-                  key={idx}
-                  onClick={() => setActiveImg(url)}
-                  className={`w-20 h-20 rounded-xl overflow-hidden bg-zinc-900 border-2 flex-shrink-0 p-1 transition-all ${
-                    activeImg === url ? 'border-emerald-500 scale-95' : 'border-zinc-800 opacity-60'
-                  }`}
-                >
-                  <img 
-                    src={url} 
-                    className="w-full h-full object-contain" 
-                    alt="" 
-                    onError={(e) => { (e.target as HTMLImageElement).src = 'https://placehold.co/150'; }}
-                  />
+                <button key={idx} onClick={() => setActiveImg(url)} className={`w-20 h-20 rounded-xl overflow-hidden bg-zinc-900 border-2 flex-shrink-0 p-1 transition-all ${activeImg === url ? 'border-emerald-500 scale-95' : 'border-zinc-800 opacity-60'}`}>
+                  <img src={url} className="w-full h-full object-contain" alt="" onError={(e) => { (e.target as HTMLImageElement).src = 'https://placehold.co/150'; }} />
                 </button>
               ))}
             </div>
           )}
         </div>
 
-        {/* Purchase Mechanics Panel */}
         <div className="lg:col-span-7 space-y-6">
           <div>
             <span className="text-xs uppercase font-bold tracking-widest text-emerald-400">{product.category} Portfolio</span>
@@ -121,16 +98,13 @@ function ProductDetailView({ product, onBack }: { product: Product; onBack: () =
             <p>{product.description || "High-end technical configuration optimized for competitive tournament play."}</p>
           </div>
 
-          <button 
-            onClick={() => window.open(`https://wa.me/923084708858?text=Salam!%20I%20want%20to%20order%20the%20${encodeURIComponent(product.name)}.%20Please%20confirm%20booking.`, '_blank')} 
-            className="w-full md:w-auto md:px-12 bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold py-4 rounded-xl transition-all shadow-lg shadow-emerald-500/10 block text-center text-sm uppercase tracking-wider"
-          >
+          <button onClick={() => window.open(`https://wa.me/923084708858?text=Salam!%20I%20want%20to%20order%20the%20${encodeURIComponent(product.name)}.%20Please%20confirm%20booking.`, '_blank')} className="w-full md:w-auto md:px-12 bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold py-4 rounded-xl transition-all shadow-lg shadow-emerald-500/10 block text-center text-sm uppercase tracking-wider">
             Order via WhatsApp
           </button>
         </div>
       </div>
 
-      {/* HIGH-FIDELITY SPECIFICATIONS MATRIX SECTION */}
+      {/* COMPLETELY DYNAMIC ATTRIBUTE MATRIX */}
       <div className="border-t border-zinc-900 pt-10 mt-12 max-w-4xl">
         <div className="mb-10">
           <h2 className="text-xl md:text-2xl font-bold text-zinc-100 tracking-tight mb-2">Technical Specifications Matrix</h2>
@@ -147,51 +121,26 @@ function ProductDetailView({ product, onBack }: { product: Product; onBack: () =
                   <td className="py-3.5 font-bold text-zinc-200">Product Model</td>
                   <td className="py-3.5">{product.name}</td>
                 </tr>
-                {specs["Shape"] && (
-                  <tr>
-                    <td className="py-3.5 font-bold text-zinc-200">Equipment Shape / Profile</td>
-                    <td className="py-3.5">{specs["Shape"]}</td>
-                  </tr>
-                )}
-                {specs["Face Material"] && (
-                  <tr>
-                    <td className="py-3.5 font-bold text-zinc-200">Face / Blade Material</td>
-                    <td className="py-3.5">{specs["Face Material"]}</td>
-                  </tr>
-                )}
-                {specs["Frame Composition"] && (
-                  <tr>
-                    <td className="py-3.5 font-bold text-zinc-200">Frame Composition</td>
-                    <td className="py-3.5">{specs["Frame Composition"]}</td>
-                  </tr>
-                )}
-                {specs["Core Density"] && (
-                  <tr>
-                    <td className="py-3.5 font-bold text-zinc-200">Core Engine / Rubber Density</td>
-                    <td className="py-3.5">{specs["Core Density"]}</td>
-                  </tr>
-                )}
-                {specs["Weight Parameters"] && (
-                  <tr>
-                    <td className="py-3.5 font-bold text-zinc-200">Weight Parameters</td>
-                    <td className="py-3.5">{specs["Weight Parameters"]}</td>
-                  </tr>
-                )}
-                {specs["Balance Profile"] && (
-                  <tr>
-                    <td className="py-3.5 font-bold text-zinc-200">Balance Profile</td>
-                    <td className="py-3.5">{specs["Balance Profile"]}</td>
-                  </tr>
-                )}
+                {Object.entries(specs).map(([key, val]) => {
+                  if (["Player Bracket", "Control Rating", "Power Rating", "Feature Note", "Durability", "Adhesion Level"].includes(key)) return null;
+                  return (
+                    <tr key={key}>
+                      <td className="py-3.5 font-bold text-zinc-200">{key}</td>
+                      <td className="py-3.5">{val}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         </div>
 
-        {/* IDEAL PLAYER PROFILE MATRIX BLOCK */}
-        {(specs["Player Bracket"] || specs["Control Rating"] || specs["Power Rating"]) && (
+        {/* METRICS & PROFILES BLOCK */}
+        {(specs["Player Bracket"] || specs["Control Rating"] || specs["Power Rating"] || specs["Feature Note"] || specs["Durability"] || specs["Adhesion Level"]) && (
           <div className="mb-10">
-            <h2 className="text-xl md:text-2xl font-bold text-zinc-100 tracking-tight mb-4">Ideal Player Profile</h2>
+            <h2 className="text-xl md:text-2xl font-bold text-zinc-100 tracking-tight mb-4">
+              {isHardware ? "Ideal Player Profile" : "Performance Metrics"}
+            </h2>
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm border-collapse">
                 <tbody className="divide-y divide-zinc-900 text-zinc-300">
@@ -201,16 +150,34 @@ function ProductDetailView({ product, onBack }: { product: Product; onBack: () =
                       <td className="py-3.5 w-2/3">{specs["Player Bracket"]}</td>
                     </tr>
                   )}
+                  {specs["Feature Note"] && (
+                    <tr>
+                      <td className="py-3.5 font-bold text-zinc-200 w-1/3">Key Feature</td>
+                      <td className="py-3.5 w-2/3">{specs["Feature Note"]}</td>
+                    </tr>
+                  )}
                   {specs["Control Rating"] && (
                     <tr>
                       <td className="py-3.5 font-bold text-zinc-200">Control Rating</td>
                       <td className="py-3.5 text-emerald-400 font-semibold">{specs["Control Rating"]}</td>
                     </tr>
                   )}
+                  {specs["Durability"] && (
+                    <tr>
+                      <td className="py-3.5 font-bold text-zinc-200">Durability</td>
+                      <td className="py-3.5 text-emerald-400 font-semibold">{specs["Durability"]}</td>
+                    </tr>
+                  )}
                   {specs["Power Rating"] && (
                     <tr>
                       <td className="py-3.5 font-bold text-zinc-200">Power Rating</td>
                       <td className="py-3.5 text-emerald-400 font-semibold">{specs["Power Rating"]}</td>
+                    </tr>
+                  )}
+                  {specs["Adhesion Level"] && (
+                    <tr>
+                      <td className="py-3.5 font-bold text-zinc-200">Adhesion Level</td>
+                      <td className="py-3.5 text-emerald-400 font-semibold">{specs["Adhesion Level"]}</td>
                     </tr>
                   )}
                 </tbody>
@@ -223,9 +190,6 @@ function ProductDetailView({ product, onBack }: { product: Product; onBack: () =
   );
 }
 
-// ==========================================
-// MAIN HOUSING ROUTER
-// ==========================================
 export default function StorePage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -236,13 +200,11 @@ export default function StorePage() {
   useEffect(() => {
     const db = getDatabase(app);
     const productsRef = ref(db, 'store/products');
-    
     const unsubscribe = onValue(productsRef, (snapshot) => {
       const data = snapshot.val();
       setProducts(data ? Object.values(data) : []);
       setLoading(false);
     });
-
     return () => unsubscribe();
   }, []);
 
@@ -318,12 +280,7 @@ export default function StorePage() {
                   return (
                     <div key={i} onClick={() => setSelectedProduct(p)} className="bg-zinc-900 rounded-xl border border-zinc-800 overflow-hidden flex flex-col cursor-pointer group hover:border-zinc-700 transition-all">
                       <div className="w-full h-44 bg-zinc-950 flex items-center justify-center p-4 border-b border-zinc-800/60">
-                        <img 
-                          src={imageList[0]} 
-                          className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform" 
-                          alt="" 
-                          onError={(e) => { (e.target as HTMLImageElement).src = 'https://placehold.co/400x400/18181b/ffffff?text=No+Image'; }}
-                        />
+                        <img src={imageList[0]} className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform" alt="" onError={(e) => { (e.target as HTMLImageElement).src = 'https://placehold.co/400x400/18181b/ffffff?text=No+Image'; }} />
                       </div>
                       <div className="p-4 flex-grow flex flex-col justify-between">
                         <h4 className="text-sm font-bold text-zinc-200 line-clamp-1 group-hover:text-emerald-400">{p.name}</h4>
@@ -361,12 +318,7 @@ export default function StorePage() {
               return (
                 <div key={i} onClick={() => setSelectedProduct(p)} className="bg-zinc-900 rounded-2xl border border-zinc-800 overflow-hidden flex flex-col cursor-pointer group hover:border-zinc-700 transition-all">
                   <div className="w-full h-52 bg-zinc-950 flex items-center justify-center p-4">
-                    <img 
-                      src={imageList[0]} 
-                      className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform" 
-                      alt="" 
-                      onError={(e) => { (e.target as HTMLImageElement).src = 'https://placehold.co/400x400/18181b/ffffff?text=No+Image'; }}
-                    />
+                    <img src={imageList[0]} className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform" alt="" onError={(e) => { (e.target as HTMLImageElement).src = 'https://placehold.co/400x400/18181b/ffffff?text=No+Image'; }} />
                   </div>
                   <div className="p-4 flex flex-col flex-grow justify-between">
                     <h3 className="text-sm font-bold text-zinc-100 line-clamp-2 group-hover:text-emerald-400">{p.name}</h3>
