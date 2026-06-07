@@ -15,15 +15,29 @@ const firebaseConfig = {
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
 
-const CATEGORIES = ["Padel", "Pickleball", "Table Tennis"];
-const SUBCATEGORIES: { [key: string]: string[] } = {
+interface ProductForm {
+  name: string;
+  marketPrice: string;
+  elitePrice: string;
+  imagesInput: string;
+  category: string;
+  subcategory: string;
+  description: string;
+  specMaterial: string;
+  specWeight: string;
+  specBalance: string;
+  specLevel: string;
+}
+
+const CATEGORIES: string[] = ["Padel", "Pickleball", "Table Tennis"];
+const SUBCATEGORIES: Record<string, string[]> = {
   "Padel": ["Rackets", "Balls", "Padel Grips", "Bags", "Accessories"],
   "Pickleball": ["Paddles", "Balls", "Grips", "Bags", "Accessories"],
   "Table Tennis": ["Bats", "Balls", "Rubbers", "Accessories"]
 };
 
 export default function AdminPage() {
-  const [newProduct, setNewProduct] = useState({ 
+  const [newProduct, setNewProduct] = useState<ProductForm>({ 
     name: "", 
     marketPrice: "", 
     elitePrice: "", 
@@ -31,7 +45,6 @@ export default function AdminPage() {
     category: "Padel",
     subcategory: "Rackets",
     description: "",
-    // Explicit spec variables to pass structured data to Firebase cleanly
     specMaterial: "",
     specWeight: "",
     specBalance: "",
@@ -42,7 +55,7 @@ export default function AdminPage() {
     setNewProduct({
       ...newProduct,
       category: cat,
-      subcategory: SUBCATEGORIES[cat][0]
+      subcategory: SUBCATEGORIES[cat] ? SUBCATEGORIES[cat][0] : ""
     });
   };
 
@@ -54,13 +67,12 @@ export default function AdminPage() {
 
     const imagesArray = newProduct.imagesInput
       .split(',')
-      .map(url => url.trim())
-      .filter(url => url.length > 0);
+      .map((url: string) => url.trim())
+      .filter((url: string) => url.length > 0);
 
     const db = getDatabase(app);
     const productRef = push(ref(db, 'store/products'));
     
-    // Constructing a structured tech specs payload matching your storefront layout matrix
     const specsObject = {
       "Material / Composition": newProduct.specMaterial || "Premium Carbon Fiber Blend",
       "Average Weight": newProduct.specWeight || "Standard Weight Configuration",
@@ -82,7 +94,6 @@ export default function AdminPage() {
     update(productRef, payload);
     alert("Premium stock profile written to Firebase ledger successfully!");
     
-    // Clear all fields down cleanly
     setNewProduct({ 
       name: "", 
       marketPrice: "", 
@@ -109,7 +120,6 @@ export default function AdminPage() {
         <div className="bg-zinc-900 p-6 md:p-8 rounded-2xl space-y-6 border border-zinc-800 shadow-2xl">
           <h2 className="text-xl font-bold text-emerald-400 uppercase tracking-wide border-b border-zinc-800 pb-3">New Product Configuration</h2>
           
-          {/* Row 1: Title */}
           <div>
             <label className="text-xs uppercase font-bold tracking-wider text-zinc-400 block mb-1.5">Product Name / Model Label</label>
             <input 
@@ -120,7 +130,6 @@ export default function AdminPage() {
             />
           </div>
 
-          {/* Row 2: Category System */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="text-xs uppercase font-bold tracking-wider text-zinc-400 block mb-1.5">Primary Sport Category</label>
@@ -129,7 +138,7 @@ export default function AdminPage() {
                 onChange={(e) => handleCategoryChange(e.target.value)}
                 className="w-full p-3 bg-zinc-950 rounded-xl border border-zinc-800 text-sm focus:outline-none focus:border-emerald-500 text-zinc-200"
               >
-                {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                {CATEGORIES.map((cat: string) => <option key={cat} value={cat}>{cat}</option>)}
               </select>
             </div>
 
@@ -140,12 +149,13 @@ export default function AdminPage() {
                 onChange={(e) => setNewProduct({...newProduct, subcategory: e.target.value})}
                 className="w-full p-3 bg-zinc-950 rounded-xl border border-zinc-800 text-sm focus:outline-none focus:border-emerald-500 text-zinc-200"
               >
-                {SUBCATEGORIES[newProduct.category].map(sub => <option key={sub} value={sub}>{sub}</option>)}
+                {(SUBCATEGORIES[newProduct.category] || []).map((sub: string) => (
+                  <option key={sub} value={sub}>{sub}</option>
+                ))}
               </select>
             </div>
           </div>
 
-          {/* Row 3: Pricing Parameters */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="text-xs uppercase font-bold tracking-wider text-zinc-400 block mb-1.5">Standard Market Value Strike</label>
@@ -167,24 +177,21 @@ export default function AdminPage() {
             </div>
           </div>
 
-          {/* Row 4: Multi-Image Stack URLs */}
           <div>
             <label className="text-xs uppercase font-bold tracking-wider text-zinc-400 block mb-1.5">Asset Links (Comma-Separated Grid List)</label>
             <textarea 
-              placeholder="https://i.ibb.co/pic1.jpg, https://i.ibb.co/pic2.jpg, https://i.ibb.co/pic3.jpg" 
+              placeholder="https://i.ibb.co/pic1.jpg, https://i.ibb.co/pic2.jpg" 
               value={newProduct.imagesInput}
               onChange={(e) => setNewProduct({...newProduct, imagesInput: e.target.value})} 
               rows={3}
               className="w-full p-3 bg-zinc-950 rounded-xl border border-zinc-800 text-sm focus:outline-none focus:border-emerald-500 resize-none transition-colors"
             />
-            <span className="text-[10px] text-zinc-500 font-mono mt-1 block">Paste consecutive absolute links cleanly broken up strictly with a single comma character.</span>
           </div>
 
-          {/* Row 5: Detailed Rich Text Marketing Description */}
           <div>
             <label className="text-xs uppercase font-bold tracking-wider text-zinc-400 block mb-1.5">E-Commerce Product Overview Narrative</label>
             <textarea 
-              placeholder="Provide a compelling overview detailing structural integrity, power control balance ratios, and structural touch performance profiles..." 
+              placeholder="Provide a compelling overview detailing structural integrity, power control balance ratios..." 
               value={newProduct.description}
               onChange={(e) => setNewProduct({...newProduct, description: e.target.value})} 
               rows={4}
@@ -192,9 +199,8 @@ export default function AdminPage() {
             />
           </div>
 
-          {/* Row 6: Detailed Structural Tech Specs Component Matrix */}
           <div className="border-t border-zinc-800 pt-5 space-y-4">
-            <h3 className="text-sm font-bold uppercase tracking-wider text-emerald-400">Technical Attribute Matrix (Optional spec overrides)</h3>
+            <h3 className="text-sm font-bold uppercase tracking-wider text-emerald-400">Technical Attribute Matrix (Optional)</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="text-[11px] uppercase font-bold tracking-wider text-zinc-500 block mb-1">Face/Frame Material</label>
@@ -208,34 +214,15 @@ export default function AdminPage() {
               <div>
                 <label className="text-[11px] uppercase font-bold tracking-wider text-zinc-500 block mb-1">Weight Parameters</label>
                 <input 
-                  placeholder="e.g., 360g - 375g (+/- 10g)" 
+                  placeholder="e.g., 360g - 375g" 
                   value={newProduct.specWeight}
                   onChange={(e) => setNewProduct({...newProduct, specWeight: e.target.value})}
-                  className="w-full p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 text-xs focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-              <div>
-                <label className="text-[11px] uppercase font-bold tracking-wider text-zinc-500 block mb-1">Sweet-spot Balance Profile</label>
-                <input 
-                  placeholder="e.g., Medium-High Over-balance" 
-                  value={newProduct.specBalance}
-                  onChange={(e) => setNewProduct({...newProduct, specBalance: e.target.value})}
-                  className="w-full p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 text-xs focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-              <div>
-                <label className="text-[11px] uppercase font-bold tracking-wider text-zinc-500 block mb-1">Target Skill Bracket</label>
-                <input 
-                  placeholder="e.g., Competitive / Advanced Pro" 
-                  value={newProduct.specLevel}
-                  onChange={(e) => setNewProduct({...newProduct, specLevel: e.target.value})}
                   className="w-full p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 text-xs focus:outline-none focus:border-emerald-500"
                 />
               </div>
             </div>
           </div>
 
-          {/* Submission Execution */}
           <button 
             onClick={addProduct} 
             className="w-full bg-emerald-500 hover:bg-emerald-400 py-3.5 font-black uppercase text-xs tracking-widest text-black rounded-xl transition-all shadow-xl shadow-emerald-500/10 active:scale-[0.99] mt-2"
