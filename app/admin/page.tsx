@@ -23,10 +23,15 @@ interface ProductForm {
   category: string;
   subcategory: string;
   description: string;
-  specMaterial: string;
+  specShape: string;
+  specFace: string;
+  specFrame: string;
+  specCore: string;
   specWeight: string;
   specBalance: string;
-  specLevel: string;
+  specBracket: string;
+  specControl: string;
+  specPower: string;
 }
 
 const CATEGORIES: string[] = ["Padel", "Pickleball", "Table Tennis", "Cricket", "Badminton"];
@@ -40,17 +45,10 @@ const SUBCATEGORIES: Record<string, string[]> = {
 
 export default function AdminPage() {
   const [newProduct, setNewProduct] = useState<ProductForm>({ 
-    name: "", 
-    marketPrice: "", 
-    elitePrice: "", 
-    imagesInput: "",
-    category: "Padel",
-    subcategory: "Rackets",
-    description: "",
-    specMaterial: "",
-    specWeight: "",
-    specBalance: "",
-    specLevel: ""
+    name: "", marketPrice: "", elitePrice: "", imagesInput: "",
+    category: "Padel", subcategory: "Rackets", description: "",
+    specShape: "", specFace: "", specFrame: "", specCore: "",
+    specWeight: "", specBalance: "", specBracket: "", specControl: "", specPower: ""
   });
 
   const handleCategoryChange = (cat: string) => {
@@ -62,8 +60,8 @@ export default function AdminPage() {
   };
 
   const addProduct = () => {
-    if (!newProduct.name || !newProduct.marketPrice || !newProduct.elitePrice || !newProduct.imagesInput || !newProduct.description) {
-      alert("Please fill out all fundamental details and descriptions before saving!");
+    if (!newProduct.name || !newProduct.marketPrice || !newProduct.elitePrice || !newProduct.imagesInput) {
+      alert("Please fill name, prices and image parameters!");
       return;
     }
 
@@ -75,12 +73,16 @@ export default function AdminPage() {
     const db = getDatabase(app);
     const productRef = push(ref(db, 'store/products'));
     
-    const specsObject = {
-      "Material / Composition": newProduct.specMaterial || "Premium Grade Composition",
-      "Average Weight": newProduct.specWeight || "Standard Weight Configuration",
-      "Balance Allocation": newProduct.specBalance || "Balanced Optimization",
-      "Intended Skill Level": newProduct.specLevel || "Intermediate / Professional"
-    };
+    const specsObject: Record<string, string> = {};
+    if (newProduct.specShape) specsObject["Shape / Configuration"] = newProduct.specShape;
+    if (newProduct.specFace) specsObject["Face / Surface Material"] = newProduct.specFace;
+    if (newProduct.specFrame) specsObject["Frame Composition"] = newProduct.specFrame;
+    if (newProduct.specCore) specsObject["Core Core / Density"] = newProduct.specCore;
+    if (newProduct.specWeight) specsObject["Weight Parameters"] = newProduct.specWeight;
+    if (newProduct.specBalance) specsObject["Balance Profile"] = newProduct.specBalance;
+    if (newProduct.specBracket) specsObject["Player Bracket"] = newProduct.specBracket;
+    if (newProduct.specControl) specsObject["Control Rating"] = newProduct.specControl;
+    if (newProduct.specPower) specsObject["Power Rating"] = newProduct.specPower;
 
     const payload = {
       name: newProduct.name,
@@ -94,142 +96,87 @@ export default function AdminPage() {
     };
 
     update(productRef, payload);
-    alert("Stock profile successfully synchronized with database!");
+    alert("Premium matrix configurations synchronized with Realtime Database!");
     
     setNewProduct({ 
-      name: "", 
-      marketPrice: "", 
-      elitePrice: "", 
-      imagesInput: "",
-      category: "Padel",
-      subcategory: "Rackets",
-      description: "",
-      specMaterial: "",
-      specWeight: "",
-      specBalance: "",
-      specLevel: ""
+      name: "", marketPrice: "", elitePrice: "", imagesInput: "",
+      category: "Padel", subcategory: "Rackets", description: "",
+      specShape: "", specFace: "", specFrame: "", specCore: "",
+      specWeight: "", specBalance: "", specBracket: "", specControl: "", specPower: ""
     });
   };
 
   return (
     <div className="p-6 md:p-12 bg-zinc-950 min-h-screen text-white flex flex-col items-center">
       <div className="w-full max-w-2xl">
-        <header className="mb-8 border-b border-zinc-900 pb-4 w-full">
-          <h1 className="text-3xl font-black uppercase tracking-tight text-zinc-100">Elite Inventory Engine</h1>
-          <p className="text-zinc-500 text-sm mt-1">Populate specialized high-fidelity gear assets directly onto the live web catalogs.</p>
+        <header className="mb-8 border-b border-zinc-900 pb-4">
+          <h1 className="text-2xl font-black uppercase tracking-tight">Elite Matrix Inventory Control</h1>
         </header>
         
-        <div className="bg-zinc-900 p-6 md:p-8 rounded-2xl space-y-6 border border-zinc-800 shadow-2xl">
-          <h2 className="text-xl font-bold text-emerald-400 uppercase tracking-wide border-b border-zinc-800 pb-3">New Product Configuration</h2>
-          
+        <div className="bg-zinc-900 p-6 md:p-8 rounded-2xl space-y-5 border border-zinc-800">
           <div>
-            <label className="text-xs uppercase font-bold tracking-wider text-zinc-400 block mb-1.5">Product Name / Model Label</label>
-            <input 
-              placeholder="e.g., CA Plus 15000 Player Edition Cricket Bat" 
-              value={newProduct.name}
-              onChange={(e) => setNewProduct({...newProduct, name: e.target.value})} 
-              className="w-full p-3 bg-zinc-950 rounded-xl border border-zinc-800 text-sm focus:outline-none focus:border-emerald-500 transition-colors"
-            />
+            <label className="text-xs uppercase font-bold tracking-wider text-zinc-400 block mb-1">Product Name / Model Label</label>
+            <input placeholder="e.g., Drop Shot Delta 2.0 3K" value={newProduct.name} onChange={(e) => setNewProduct({...newProduct, name: e.target.value})} className="w-full p-3 bg-zinc-950 rounded-xl border border-zinc-800 text-sm focus:border-emerald-500 text-white" />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-xs uppercase font-bold tracking-wider text-zinc-400 block mb-1.5">Primary Sport Category</label>
-              <select
-                value={newProduct.category}
-                onChange={(e) => handleCategoryChange(e.target.value)}
-                className="w-full p-3 bg-zinc-950 rounded-xl border border-zinc-800 text-sm focus:outline-none focus:border-emerald-500 text-zinc-200"
-              >
+              <label className="text-xs uppercase font-bold tracking-wider text-zinc-400 block mb-1">Category</label>
+              <select value={newProduct.category} onChange={(e) => handleCategoryChange(e.target.value)} className="w-full p-3 bg-zinc-950 rounded-xl border border-zinc-800 text-sm text-zinc-200">
                 {CATEGORIES.map((cat: string) => <option key={cat} value={cat}>{cat}</option>)}
               </select>
             </div>
-
             <div>
-              <label className="text-xs uppercase font-bold tracking-wider text-zinc-400 block mb-1.5">Specific Subcategory Equipment Type</label>
-              <select
-                value={newProduct.subcategory}
-                onChange={(e) => setNewProduct({...newProduct, subcategory: e.target.value})}
-                className="w-full p-3 bg-zinc-950 rounded-xl border border-zinc-800 text-sm focus:outline-none focus:border-emerald-500 text-zinc-200"
-              >
-                {(SUBCATEGORIES[newProduct.category] || []).map((sub: string) => (
-                  <option key={sub} value={sub}>{sub}</option>
-                ))}
+              <label className="text-xs uppercase font-bold tracking-wider text-zinc-400 block mb-1">Subcategory</label>
+              <select value={newProduct.subcategory} onChange={(e) => setNewProduct({...newProduct, subcategory: e.target.value})} className="w-full p-3 bg-zinc-950 rounded-xl border border-zinc-800 text-sm text-zinc-200">
+                {(SUBCATEGORIES[newProduct.category] || []).map((sub: string) => <option key={sub} value={sub}>{sub}</option>)}
               </select>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-xs uppercase font-bold tracking-wider text-zinc-400 block mb-1.5">Standard Market Value Strike</label>
-              <input 
-                placeholder="e.g., Rs 65,000" 
-                value={newProduct.marketPrice}
-                onChange={(e) => setNewProduct({...newProduct, marketPrice: e.target.value})} 
-                className="w-full p-3 bg-zinc-950 rounded-xl border border-zinc-800 text-sm focus:outline-none focus:border-emerald-500 transition-colors"
-              />
+              <label className="text-xs uppercase font-bold tracking-wider text-zinc-400 block mb-1">Market Price</label>
+              <input placeholder="Rs 21,000" value={newProduct.marketPrice} onChange={(e) => setNewProduct({...newProduct, marketPrice: e.target.value})} className="w-full p-3 bg-zinc-950 rounded-xl border border-zinc-800 text-sm" />
             </div>
             <div>
-              <label className="text-xs uppercase font-bold tracking-wider text-zinc-400 block mb-1.5">Elite Store Member Offer Price</label>
-              <input 
-                placeholder="e.g., Rs 58,500" 
-                value={newProduct.elitePrice}
-                onChange={(e) => setNewProduct({...newProduct, elitePrice: e.target.value})} 
-                className="w-full p-3 bg-zinc-950 rounded-xl border border-zinc-800 text-sm focus:outline-none focus:border-emerald-500 transition-colors"
-              />
+              <label className="text-xs uppercase font-bold tracking-wider text-zinc-400 block mb-1">Elite Store Price</label>
+              <input placeholder="Rs 15,000" value={newProduct.elitePrice} onChange={(e) => setNewProduct({...newProduct, elitePrice: e.target.value})} className="w-full p-3 bg-zinc-950 rounded-xl border border-zinc-800 text-sm" />
             </div>
           </div>
 
           <div>
-            <label className="text-xs uppercase font-bold tracking-wider text-zinc-400 block mb-1.5">Asset Links (Comma-Separated Grid List)</label>
-            <textarea 
-              placeholder="https://i.ibb.co/image1.jpg, https://i.ibb.co/image2.jpg" 
-              value={newProduct.imagesInput}
-              onChange={(e) => setNewProduct({...newProduct, imagesInput: e.target.value})} 
-              rows={3}
-              className="w-full p-3 bg-zinc-950 rounded-xl border border-zinc-800 text-sm focus:outline-none focus:border-emerald-500 resize-none transition-colors"
-            />
+            <label className="text-xs uppercase font-bold tracking-wider text-zinc-400 block mb-1">Image URLs (Comma separated ImgBB Links)</label>
+            <input placeholder="https://i.ibb.co/abc/image.jpg" value={newProduct.imagesInput} onChange={(e) => setNewProduct({...newProduct, imagesInput: e.target.value})} className="w-full p-3 bg-zinc-950 rounded-xl border border-zinc-800 text-sm" />
           </div>
 
           <div>
-            <label className="text-xs uppercase font-bold tracking-wider text-zinc-400 block mb-1.5">E-Commerce Product Overview Narrative</label>
-            <textarea 
-              placeholder="Describe balance profiles, willow grades, string tensions, structural responses..." 
-              value={newProduct.description}
-              onChange={(e) => setNewProduct({...newProduct, description: e.target.value})} 
-              rows={4}
-              className="w-full p-3 bg-zinc-950 rounded-xl border border-zinc-800 text-sm focus:outline-none focus:border-emerald-500 resize-none transition-colors"
-            />
+            <label className="text-xs uppercase font-bold tracking-wider text-zinc-400 block mb-1">Product Description</label>
+            <textarea placeholder="Product description narratives..." value={newProduct.description} onChange={(e) => setNewProduct({...newProduct, description: e.target.value})} rows={3} className="w-full p-3 bg-zinc-950 rounded-xl border border-zinc-800 text-sm resize-none" />
           </div>
 
-          <div className="border-t border-zinc-800 pt-5 space-y-4">
-            <h3 className="text-sm font-bold uppercase tracking-wider text-emerald-400">Technical Attribute Matrix (Optional)</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="text-[11px] uppercase font-bold tracking-wider text-zinc-500 block mb-1">Material Composition / Willow Grade</label>
-                <input 
-                  placeholder="e.g., Grade 1 English Willow / High-Modulus Carbon" 
-                  value={newProduct.specMaterial}
-                  onChange={(e) => setNewProduct({...newProduct, specMaterial: e.target.value})}
-                  className="w-full p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 text-xs focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-              <div>
-                <label className="text-[11px] uppercase font-bold tracking-wider text-zinc-500 block mb-1">Weight / Tension Parameters</label>
-                <input 
-                  placeholder="e.g., 2.8 lbs / 26 lbs string tension" 
-                  value={newProduct.specWeight}
-                  onChange={(e) => setNewProduct({...newProduct, specWeight: e.target.value})}
-                  className="w-full p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 text-xs focus:outline-none focus:border-emerald-500"
-                />
-              </div>
+          <div className="border-t border-zinc-800 pt-4 space-y-4">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-400">Advanced Specifications Matrix Fields</h3>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <input placeholder="Racket Shape (Teardrop / Oversized Diamond)" value={newProduct.specShape} onChange={(e) => setNewProduct({...newProduct, specShape: e.target.value})} className="p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 text-xs text-white" />
+              <input placeholder="Face Material (3K Carbon Fiber Face)" value={newProduct.specFace} onChange={(e) => setNewProduct({...newProduct, specFace: e.target.value})} className="p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 text-xs text-white" />
+              <input placeholder="Frame Material (Twin Tubular Carbon)" value={newProduct.specFrame} onChange={(e) => setNewProduct({...newProduct, specFrame: e.target.value})} className="p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 text-xs text-white" />
+              <input placeholder="Core Core / Density (EVA Pro Medium)" value={newProduct.specCore} onChange={(e) => setNewProduct({...newProduct, specCore: e.target.value})} className="p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 text-xs text-white" />
+              <input placeholder="Weight Parameters (360g - 375g)" value={newProduct.specWeight} onChange={(e) => setNewProduct({...newProduct, specWeight: e.target.value})} className="p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 text-xs text-white" />
+              <input placeholder="Balance Profile (Mid-High Allocation)" value={newProduct.specBalance} onChange={(e) => setNewProduct({...newProduct, specBalance: e.target.value})} className="p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 text-xs text-white" />
+            </div>
+
+            <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-400 pt-2">Performance & Player Bracket Ratings</h3>
+            <div className="grid grid-cols-3 gap-3">
+              <input placeholder="Bracket (Advanced / Intensive)" value={newProduct.specBracket} onChange={(e) => setNewProduct({...newProduct, specBracket: e.target.value})} className="p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 text-xs text-white col-span-1" />
+              <input placeholder="Control (e.g. 8.5 / 10)" value={newProduct.specControl} onChange={(e) => setNewProduct({...newProduct, specControl: e.target.value})} className="p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 text-xs text-white" />
+              <input placeholder="Power (e.g. 9.5 / 10)" value={newProduct.specPower} onChange={(e) => setNewProduct({...newProduct, specPower: e.target.value})} className="p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 text-xs text-white" />
             </div>
           </div>
 
-          <button 
-            onClick={addProduct} 
-            className="w-full bg-emerald-500 hover:bg-emerald-400 py-3.5 font-black uppercase text-xs tracking-widest text-black rounded-xl transition-all shadow-xl shadow-emerald-500/10 active:scale-[0.99] mt-2"
-          >
-            Deploy Product Stream
+          <button onClick={addProduct} className="w-full bg-emerald-500 hover:bg-emerald-400 py-3 text-black text-xs font-black uppercase tracking-widest rounded-xl transition-all">
+            Deploy Catalog Assets
           </button>
         </div>
       </div>
