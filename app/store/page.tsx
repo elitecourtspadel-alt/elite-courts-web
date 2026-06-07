@@ -37,7 +37,7 @@ const SUB_CATEGORIES: Record<string, string[]> = {
 };
 
 // ==========================================
-// 1. PRODUCT DETAIL VIEW COMPONENT
+// PRODUCT DETAIL VIEW WITH MATRIX SPECIFICATIONS
 // ==========================================
 function ProductDetailView({ product, onBack }: { product: Product; onBack: () => void }) {
   const imageList: string[] = Array.isArray(product.images) 
@@ -50,12 +50,7 @@ function ProductDetailView({ product, onBack }: { product: Product; onBack: () =
     if (imageList.length > 0) setActiveImg(imageList[0]);
   }, [product.images, product.image]);
 
-  const defaultSpecs: Record<string, string> = product.specs || {
-    "Category": product.category || "General",
-    "Type": product.subcategory || "Equipment",
-    "Status": "Official Premium Stock",
-    "Delivery": "Available Nationwide"
-  };
+  const specs = product.specs || {};
 
   return (
     <div className="animate-fadeIn">
@@ -66,11 +61,16 @@ function ProductDetailView({ product, onBack }: { product: Product; onBack: () =
         ❮ Back to Shop Explorer
       </button>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start mb-12">
         {/* Gallery Window */}
         <div className="lg:col-span-5 space-y-4">
           <div className="w-full h-[380px] md:h-[460px] bg-zinc-900 border border-zinc-800 rounded-2xl flex items-center justify-center p-6 shadow-2xl relative">
-            <img src={activeImg} className="max-h-full max-w-full object-contain transition-transform duration-300 hover:scale-105" alt="" />
+            <img 
+              src={activeImg} 
+              className="max-h-full max-w-full object-contain transition-transform duration-300 hover:scale-105" 
+              alt={product.name}
+              onError={(e) => { (e.target as HTMLImageElement).src = 'https://placehold.co/600x600/18181b/ffffff?text=Image+Preview'; }}
+            />
             <span className="absolute top-4 right-4 bg-emerald-500 text-black text-xs font-bold px-3 py-1 rounded-md uppercase tracking-wider">Sale</span>
           </div>
 
@@ -84,7 +84,12 @@ function ProductDetailView({ product, onBack }: { product: Product; onBack: () =
                     activeImg === url ? 'border-emerald-500 scale-95' : 'border-zinc-800 opacity-60'
                   }`}
                 >
-                  <img src={url} className="w-full h-full object-contain" alt="" />
+                  <img 
+                    src={url} 
+                    className="w-full h-full object-contain" 
+                    alt="" 
+                    onError={(e) => { (e.target as HTMLImageElement).src = 'https://placehold.co/150'; }}
+                  />
                 </button>
               ))}
             </div>
@@ -122,26 +127,104 @@ function ProductDetailView({ product, onBack }: { product: Product; onBack: () =
           >
             Order via WhatsApp
           </button>
+        </div>
+      </div>
 
-          <div className="border-t border-zinc-900 pt-6 mt-8">
-            <h3 className="font-bold text-zinc-200 text-base mb-4">Technical Details</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {Object.entries(defaultSpecs).map(([key, val]: [string, string]) => (
-                <div key={key} className="flex justify-between items-center bg-zinc-900/30 border border-zinc-900 p-3 rounded-xl text-sm">
-                  <span className="text-zinc-500 font-medium">{key}</span>
-                  <span className="text-zinc-200 font-semibold">{val}</span>
-                </div>
-              ))}
-            </div>
+      {/* HIGH-FIDELITY SPECIFICATIONS MATRIX SECTION */}
+      <div className="border-t border-zinc-900 pt-10 mt-12 max-w-4xl">
+        <div className="mb-10">
+          <h2 className="text-xl md:text-2xl font-bold text-zinc-100 tracking-tight mb-2">Technical Specifications Matrix</h2>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm border-collapse">
+              <thead>
+                <tr className="border-b border-zinc-800 text-zinc-400 font-semibold">
+                  <th className="py-3 w-1/3">Attribute</th>
+                  <th className="py-3 w-2/3">Specification Details</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-900 text-zinc-300">
+                <tr>
+                  <td className="py-3.5 font-bold text-zinc-200">Product Model</td>
+                  <td className="py-3.5">{product.name}</td>
+                </tr>
+                {specs["Shape / Configuration"] && (
+                  <tr>
+                    <td className="py-3.5 font-bold text-zinc-200">Equipment Shape / Profile</td>
+                    <td className="py-3.5">{specs["Shape / Configuration"]}</td>
+                  </tr>
+                )}
+                {specs["Face / Surface Material"] && (
+                  <tr>
+                    <td className="py-3.5 font-bold text-zinc-200">Face / Blade Material</td>
+                    <td className="py-3.5">{specs["Face / Surface Material"]}</td>
+                  </tr>
+                )}
+                {specs["Frame Composition"] && (
+                  <tr>
+                    <td className="py-3.5 font-bold text-zinc-200">Frame Composition</td>
+                    <td className="py-3.5">{specs["Frame Composition"]}</td>
+                  </tr>
+                )}
+                {specs["Core Core / Density"] && (
+                  <tr>
+                    <td className="py-3.5 font-bold text-zinc-200">Core Engine / Rubber Density</td>
+                    <td className="py-3.5">{specs["Core Core / Density"]}</td>
+                  </tr>
+                )}
+                {specs["Weight Parameters"] && (
+                  <tr>
+                    <td className="py-3.5 font-bold text-zinc-200">Weight Parameters</td>
+                    <td className="py-3.5">{specs["Weight Parameters"]}</td>
+                  </tr>
+                )}
+                {specs["Balance Profile"] && (
+                  <tr>
+                    <td className="py-3.5 font-bold text-zinc-200">Balance Profile</td>
+                    <td className="py-3.5">{specs["Balance Profile"]}</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
+
+        {/* IDEAL PLAYER PROFILE MATRIX BLOCK */}
+        {((specs["Player Bracket"] || specs["Control Rating"] || specs["Power Rating"])) && (
+          <div className="mb-10">
+            <h2 className="text-xl md:text-2xl font-bold text-zinc-100 tracking-tight mb-4">Ideal Player Profile</h2>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm border-collapse">
+                <tbody className="divide-y divide-zinc-900 text-zinc-300">
+                  {specs["Player Bracket"] && (
+                    <tr>
+                      <td className="py-3.5 font-bold text-zinc-200 w-1/3">Player Bracket</td>
+                      <td className="py-3.5 w-2/3">{specs["Player Bracket"]}</td>
+                    </tr>
+                  )}
+                  {specs["Control Rating"] && (
+                    <tr>
+                      <td className="py-3.5 font-bold text-zinc-200">Control Rating</td>
+                      <td className="py-3.5 text-emerald-400 font-semibold">{specs["Control Rating"]}</td>
+                    </tr>
+                  )}
+                  {specs["Power Rating"] && (
+                    <tr>
+                      <td className="py-3.5 font-bold text-zinc-200">Power Rating</td>
+                      <td className="py-3.5 text-emerald-400 font-semibold">{specs["Power Rating"]}</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
 // ==========================================
-// 2. MAIN HUB PORTAL COMPONENT
+// MAIN HUB HUB ROUTER
 // ==========================================
 export default function StorePage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -188,107 +271,64 @@ export default function StorePage() {
 
   return (
     <div className="bg-zinc-950 min-h-screen text-white">
-      
-      {/* GLOBAL BANNER NAVIGATION STRIP */}
-      <div className="bg-zinc-900 border-b border-zinc-800 px-6 py-4 sticky top-0 z-40 shadow-md backdrop-blur-md bg-zinc-900/90">
+      <div className="bg-zinc-900 border-b border-zinc-800 px-6 py-4 sticky top-0 z-40 backdrop-blur-md bg-zinc-900/90">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="cursor-pointer" onClick={() => setViewState("Home")}>
             <span className="text-xl font-black tracking-tighter text-zinc-100 uppercase">Elite<span className="text-emerald-400">Store</span></span>
           </div>
           <nav className="flex flex-wrap items-center justify-center gap-1 md:gap-2">
-            <button 
-              onClick={() => setViewState("Home")} 
-              className={`px-3 py-1.5 md:px-4 md:py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-colors ${viewState === "Home" ? 'text-emerald-400 bg-zinc-950' : 'text-zinc-400 hover:text-white'}`}
-            >
-              Home
-            </button>
+            <button onClick={() => setViewState("Home")} className={`px-3 py-1.5 md:px-4 md:py-2 text-xs font-bold uppercase tracking-wider rounded-lg ${viewState === "Home" ? 'text-emerald-400 bg-zinc-950' : 'text-zinc-400'}`}>Home</button>
             {SPORTS.map((sport: string) => (
-              <button 
-                key={sport} 
-                onClick={() => routeToSport(sport)} 
-                className={`px-3 py-1.5 md:px-4 md:py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-colors ${viewState === sport ? 'text-emerald-400 bg-zinc-950' : 'text-zinc-400 hover:text-white'}`}
-              >
-                {sport}
-              </button>
+              <button key={sport} onClick={() => routeToSport(sport)} className={`px-3 py-1.5 md:px-4 md:py-2 text-xs font-bold uppercase tracking-wider rounded-lg ${viewState === sport ? 'text-emerald-400 bg-zinc-950' : 'text-zinc-400'}`}>{sport}</button>
             ))}
           </nav>
         </div>
       </div>
 
-      {/* VIEW LAYER 1: E-COMMERCE HUB PORTAL (HOME) */}
       {viewState === "Home" && (
         <div className="animate-fadeIn">
-          {/* HERO BANNER */}
-          <div className="relative bg-gradient-to-br from-zinc-900 to-zinc-950 border-b border-zinc-900 py-16 md:py-24 px-6 text-center overflow-hidden">
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-emerald-500/5 via-transparent to-transparent pointer-events-none" />
-            <div className="max-w-3xl mx-auto relative z-10 space-y-4">
+          <div className="relative bg-gradient-to-br from-zinc-900 to-zinc-950 py-16 text-center">
+            <div className="max-w-3xl mx-auto space-y-4">
               <span className="text-xs uppercase font-black tracking-widest text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">Pro Equipment Hub</span>
-              <h1 className="text-4xl md:text-6xl font-black text-zinc-100 tracking-tight leading-none uppercase">Premium Sports Gear</h1>
-              <p className="text-zinc-400 text-sm md:text-lg max-w-xl mx-auto font-medium">Elevate your performance parameters. Source authentic rackets, bats, professional match balls, and customized accessories.</p>
+              <h1 className="text-4xl md:text-6xl font-black text-zinc-100 tracking-tight uppercase">Premium Sports Gear</h1>
+              <p className="text-zinc-400 text-sm md:text-base">Elevate your game assets. Source authentic rackets, bats, match grade ball packs, and accessories.</p>
             </div>
           </div>
 
-          {/* SHOP BY SPORT GRID MATRIX */}
           <div className="max-w-6xl mx-auto px-6 py-12">
             <h2 className="text-xl md:text-2xl font-black uppercase tracking-tight text-zinc-200 mb-6">Browse Pro Collections</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-              {SPORTS.map((sport: string) => {
-                const totalCount = products.filter((p: Product) => p.category === sport).length;
-                return (
-                  <div 
-                    key={sport}
-                    onClick={() => routeToSport(sport)}
-                    className="group bg-zinc-900 border border-zinc-800 rounded-2xl p-5 flex flex-col justify-between h-40 cursor-pointer hover:border-emerald-500/40 hover:shadow-xl transition-all duration-300 relative overflow-hidden"
-                  >
-                    <div className="absolute -right-4 -bottom-4 text-zinc-800/10 font-black text-7xl tracking-tighter uppercase select-none group-hover:scale-110 transition-transform group-hover:text-emerald-500/5">
-                      {sport[0]}
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-extrabold text-zinc-100 group-hover:text-emerald-400 transition-colors uppercase tracking-tight">{sport}</h3>
-                      <p className="text-zinc-500 text-[11px] mt-1">Official Gear</p>
-                    </div>
-                    <span className="text-[11px] font-mono font-bold text-zinc-400 flex items-center gap-1">
-                      View ({totalCount}) ➔
-                    </span>
-                  </div>
-                );
-              })}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              {SPORTS.map((sport: string) => (
+                <div key={sport} onClick={() => routeToSport(sport)} className="group bg-zinc-900 border border-zinc-800 rounded-2xl p-5 h-36 flex flex-col justify-between cursor-pointer hover:border-emerald-500/40 transition-all">
+                  <h3 className="text-lg font-extrabold text-zinc-100 group-hover:text-emerald-400 transition-colors uppercase">{sport}</h3>
+                  <span className="text-xs font-mono text-zinc-400">Explore Catalog ➔</span>
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* FEATURED GENERAL ARRIVALS */}
           <div className="max-w-6xl mx-auto px-6 pb-20">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl md:text-2xl font-black uppercase tracking-tight text-zinc-200">Trending Hardware</h2>
-              <span className="w-12 h-0.5 bg-zinc-800 flex-grow mx-4 hidden sm:block" />
-            </div>
-
+            <h2 className="text-xl md:text-2xl font-black uppercase tracking-tight text-zinc-200 mb-6">Trending Hardware</h2>
             {loading ? (
-              <p className="text-zinc-500 animate-pulse font-mono text-xs">Syncing ledger records...</p>
-            ) : products.length === 0 ? (
-              <p className="text-zinc-500 text-sm italic">New inventory allocations pending.</p>
+              <p className="text-zinc-500 animate-pulse text-xs font-mono">Syncing database assets...</p>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                 {products.slice(0, 8).map((p: Product, i: number) => {
                   const imageList = Array.isArray(p.images) ? p.images : (p.image ? [p.image] : ['/placeholder.jpg']);
                   return (
-                    <div 
-                      key={i} 
-                      onClick={() => setSelectedProduct(p)}
-                      className="bg-zinc-900 rounded-xl border border-zinc-800/80 overflow-hidden flex flex-col shadow-lg hover:border-zinc-700 transition-all cursor-pointer group"
-                    >
-                      <div className="w-full h-44 bg-zinc-950 flex items-center justify-center p-4 border-b border-zinc-800/60 overflow-hidden">
-                        <img src={imageList[0]} className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-300" alt="" />
+                    <div key={i} onClick={() => setSelectedProduct(p)} className="bg-zinc-900 rounded-xl border border-zinc-800 overflow-hidden flex flex-col cursor-pointer group hover:border-zinc-700 transition-all">
+                      <div className="w-full h-44 bg-zinc-950 flex items-center justify-center p-4 border-b border-zinc-800/60">
+                        <img 
+                          src={imageList[0]} 
+                          className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform" 
+                          alt="" 
+                          onError={(e) => { (e.target as HTMLImageElement).src = 'https://placehold.co/400x400/18181b/ffffff?text=No+Image'; }}
+                        />
                       </div>
-                      <div className="p-4 flex-grow flex flex-col justify-between space-y-2">
-                        <div>
-                          <span className="text-[9px] uppercase tracking-wider text-emerald-400 font-bold bg-emerald-500/5 px-2 py-0.5 rounded border border-emerald-500/10 max-w-max block">
-                            {p.category}
-                          </span>
-                          <h4 className="text-sm font-bold text-zinc-200 mt-1.5 line-clamp-1 group-hover:text-emerald-400 transition-colors tracking-tight">{p.name}</h4>
-                        </div>
-                        <div className="flex items-baseline gap-2 pt-1">
-                          <span className="text-zinc-500 line-through text-[11px] font-medium">{p.marketPrice}</span>
+                      <div className="p-4 flex-grow flex flex-col justify-between">
+                        <h4 className="text-sm font-bold text-zinc-200 line-clamp-1 group-hover:text-emerald-400">{p.name}</h4>
+                        <div className="flex items-baseline gap-2 pt-2">
+                          <span className="text-zinc-500 line-through text-[11px]">{p.marketPrice}</span>
                           <span className="text-emerald-400 font-extrabold text-sm">{p.elitePrice}</span>
                         </div>
                       </div>
@@ -301,69 +341,44 @@ export default function StorePage() {
         </div>
       )}
 
-      {/* VIEW LAYER 2: SPORT DEPARTMENTS */}
       {viewState !== "Home" && (
         <div className="max-w-6xl mx-auto px-6 py-10 animate-fadeIn">
-          
           <div className="mb-8 border-b border-zinc-900 pb-6">
-            <div className="text-sm text-zinc-500 font-medium mb-1 flex items-center gap-2">
-              <span className="cursor-pointer hover:text-white" onClick={() => setViewState("Home")}>Store Home</span> ➔ <span className="text-zinc-300">{viewState} Department</span>
-            </div>
-            <h1 className="text-3xl md:text-4xl font-black text-emerald-400 uppercase tracking-tight">{viewState} Center</h1>
+            <h1 className="text-3xl font-black text-emerald-400 uppercase">{viewState} Department</h1>
           </div>
 
           {SUB_CATEGORIES[viewState] && (
-            <div className="flex flex-wrap gap-1.5 mb-8 bg-zinc-900/40 p-1.5 rounded-xl border border-zinc-900 max-w-max">
+            <div className="flex flex-wrap gap-2 mb-8 bg-zinc-900/40 p-1.5 rounded-xl border border-zinc-900 max-w-max">
               {SUB_CATEGORIES[viewState].map((sub: string) => (
-                <button
-                  key={sub}
-                  onClick={() => setActiveSub(sub)}
-                  className={`px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors ${
-                    activeSub === sub
-                      ? 'bg-zinc-800 text-emerald-400 border border-zinc-700'
-                      : 'text-zinc-500 hover:text-zinc-300'
-                  }`}
-                >
-                  {sub}
-                </button>
+                <button key={sub} onClick={() => setActiveSub(sub)} className={`px-4 py-1.5 rounded-lg text-xs font-bold uppercase transition-colors ${activeSub === sub ? 'bg-zinc-800 text-emerald-400' : 'text-zinc-500'}`}>{sub}</button>
               ))}
             </div>
           )}
 
-          {filteredProducts.length === 0 ? (
-            <div className="text-center p-12 bg-zinc-900/30 rounded-2xl border border-zinc-900">
-              <p className="text-zinc-500 italic">No allocation matched the tag sequence "{activeSub}" yet.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
-              {filteredProducts.map((p: Product, i: number) => {
-                const imageList = Array.isArray(p.images) ? p.images : (p.image ? [p.image] : ['/placeholder.jpg']);
-                return (
-                  <div 
-                    key={i} 
-                    onClick={() => setSelectedProduct(p)}
-                    className="bg-zinc-900 rounded-2xl border border-zinc-800 overflow-hidden flex flex-col shadow-xl hover:border-zinc-700 transition-all cursor-pointer group"
-                  >
-                    <div className="w-full h-56 bg-zinc-950 overflow-hidden relative border-b border-zinc-800 flex items-center justify-center p-4">
-                      <img src={imageList[0]} className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-300" alt="" />
-                    </div>
-                    <div className="p-5 flex flex-col flex-grow justify-between">
-                      <div>
-                        <span className="text-[10px] uppercase tracking-wider text-emerald-400 font-semibold bg-emerald-500/5 px-2 py-0.5 rounded border border-emerald-500/10 max-w-max block mb-2">
-                          {p.subcategory || "Equipment"}
-                        </span>
-                        <h3 className="text-base font-bold text-zinc-100 mb-2 line-clamp-2 tracking-tight group-hover:text-emerald-400 transition-colors">{p.name}</h3>
-                        <div className="flex items-baseline gap-2 mt-3">
-                          <span className="text-zinc-500 line-through text-xs font-medium">{p.marketPrice}</span>
-                          <span className="text-emerald-400 font-extrabold text-lg">{p.elitePrice}</span>
-                        </div>
-                      </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+            {filteredProducts.map((p: Product, i: number) => {
+              const imageList = Array.isArray(p.images) ? p.images : (p.image ? [p.image] : ['/placeholder.jpg']);
+              return (
+                <div key={i} onClick={() => setSelectedProduct(p)} className="bg-zinc-900 rounded-2xl border border-zinc-800 overflow-hidden flex flex-col cursor-pointer group hover:border-zinc-700 transition-all">
+                  <div className="w-full h-52 bg-zinc-950 flex items-center justify-center p-4">
+                    <img 
+                      src={imageList[0]} 
+                      className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform" 
+                      alt="" 
+                      onError={(e) => { (e.target as HTMLImageElement).src = 'https://placehold.co/400x400/18181b/ffffff?text=No+Image'; }}
+                    />
+                  </div>
+                  <div className="p-4 flex flex-col flex-grow justify-between">
+                    <h3 className="text-sm font-bold text-zinc-100 line-clamp-2 group-hover:text-emerald-400">{p.name}</h3>
+                    <div className="flex items-baseline gap-2 mt-2">
+                      <span className="text-zinc-500 line-through text-xs">{p.marketPrice}</span>
+                      <span className="text-emerald-400 font-extrabold text-base">{p.elitePrice}</span>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>
