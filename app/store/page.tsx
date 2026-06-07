@@ -15,28 +15,40 @@ const firebaseConfig = {
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
 
-const SPORTS = ["Padel", "Pickleball", "Table Tennis"];
-const SUB_CATEGORIES: { [key: string]: string[] } = {
+interface Product {
+  name: string;
+  category: string;
+  subcategory: string;
+  marketPrice: string;
+  elitePrice: string;
+  images?: string[];
+  image?: string;
+  description?: string;
+  specs?: Record<string, string>;
+}
+
+const SPORTS: string[] = ["Padel", "Pickleball", "Table Tennis"];
+const SUB_CATEGORIES: Record<string, string[]> = {
   "Padel": ["All Gear", "Rackets", "Balls", "Padel Grips", "Bags", "Accessories"],
   "Pickleball": ["All Gear", "Paddles", "Balls", "Grips", "Bags", "Accessories"],
   "Table Tennis": ["All Gear", "Bats", "Balls", "Rubbers", "Accessories"]
 };
 
 // ==========================================
-// 1. SINGLE PRODUCT DETAIL VIEW COMPONENT
+// 1. PRODUCT DETAIL VIEW COMPONENT (TYPED)
 // ==========================================
-function ProductDetailView({ product, onBack }: { product: any; onBack: () => void }) {
-  const imageList = Array.isArray(product.images) 
+function ProductDetailView({ product, onBack }: { product: Product; onBack: () => void }) {
+  const imageList: string[] = Array.isArray(product.images) 
     ? product.images.map((url: string) => url.trim()).filter((url: string) => url !== "")
     : (product.image ? [product.image.trim()] : ['/placeholder.jpg']);
     
-  const [activeImg, setActiveImg] = useState(imageList[0] || '/placeholder.jpg');
+  const [activeImg, setActiveImg] = useState<string>(imageList[0] || '/placeholder.jpg');
 
   useEffect(() => {
     if (imageList.length > 0) setActiveImg(imageList[0]);
   }, [product.images, product.image]);
 
-  const defaultSpecs = product.specs || {
+  const defaultSpecs: Record<string, string> = product.specs || {
     "Category": product.category || "General",
     "Type": product.subcategory || "Equipment",
     "Status": "Official Premium Stock",
@@ -62,7 +74,7 @@ function ProductDetailView({ product, onBack }: { product: any; onBack: () => vo
 
           {imageList.length > 1 && (
             <div className="flex gap-2.5 overflow-x-auto pb-2 scrollbar-none">
-              {imageList.map((url, idx) => (
+              {imageList.map((url: string, idx: number) => (
                 <button
                   key={idx}
                   onClick={() => setActiveImg(url)}
@@ -99,7 +111,7 @@ function ProductDetailView({ product, onBack }: { product: any; onBack: () => vo
 
           <div className="space-y-2 text-zinc-400 text-sm md:text-base leading-relaxed">
             <h3 className="font-bold text-zinc-200 text-base">Product Overview</h3>
-            <p>High-end technical configuration optimized for tournament fields. This design minimizes standard structural drag ratios while expanding sweet-spot clean hit mapping matrices cleanly.</p>
+            <p>{product.description || "High-end technical configuration optimized for tournament fields. This design minimizes standard structural drag ratios while expanding sweet-spot clean hit mapping matrices cleanly."}</p>
           </div>
 
           <button 
@@ -112,10 +124,10 @@ function ProductDetailView({ product, onBack }: { product: any; onBack: () => vo
           <div className="border-t border-zinc-900 pt-6 mt-8">
             <h3 className="font-bold text-zinc-200 text-base mb-4">Technical Details</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {Object.entries(defaultSpecs).map(([key, val]) => (
+              {Object.entries(defaultSpecs).map(([key, val]: [string, string]) => (
                 <div key={key} className="flex justify-between items-center bg-zinc-900/30 border border-zinc-900 p-3 rounded-xl text-sm">
                   <span className="text-zinc-500 font-medium">{key}</span>
-                  <span className="text-zinc-200 font-semibold">{val as string}</span>
+                  <span className="text-zinc-200 font-semibold">{val}</span>
                 </div>
               ))}
             </div>
@@ -127,16 +139,14 @@ function ProductDetailView({ product, onBack }: { product: any; onBack: () => vo
 }
 
 // ==========================================
-// 2. MAIN HUB PORTAL COMPONENT
+// 2. MAIN HUB PORTAL COMPONENT (TYPED)
 // ==========================================
 export default function StorePage() {
-  const [products, setProducts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
-
-  // Layout View States: "Home" or specific sport string
-  const [viewState, setViewState] = useState("Home");
-  const [activeSub, setActiveSub] = useState("All Gear");
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [viewState, setViewState] = useState<string>("Home");
+  const [activeSub, setActiveSub] = useState<string>("All Gear");
 
   useEffect(() => {
     const db = getDatabase(app);
@@ -157,8 +167,7 @@ export default function StorePage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Master Filter Filtering Engine Context
-  const filteredProducts = products.filter(p => {
+  const filteredProducts = products.filter((p: Product) => {
     if (viewState === "Home") return true;
     const matchesSport = p.category === viewState;
     const matchesSub = activeSub === "All Gear" || p.subcategory === activeSub;
@@ -191,7 +200,7 @@ export default function StorePage() {
             >
               Shop Home
             </button>
-            {SPORTS.map(sport => (
+            {SPORTS.map((sport: string) => (
               <button 
                 key={sport} 
                 onClick={() => routeToSport(sport)} 
@@ -207,7 +216,7 @@ export default function StorePage() {
       {/* VIEW LAYER 1: E-COMMERCE HUB PORTAL (HOME) */}
       {viewState === "Home" && (
         <div className="animate-fadeIn">
-          {/* HIGH-END E-COMMERCE HERO HERO */}
+          {/* HIGH-END E-COMMERCE HERO BANNER */}
           <div className="relative bg-gradient-to-br from-zinc-900 to-zinc-950 border-b border-zinc-900 py-16 md:py-24 px-6 text-center overflow-hidden">
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-emerald-500/5 via-transparent to-transparent pointer-events-none" />
             <div className="max-w-3xl mx-auto relative z-10 space-y-4">
@@ -221,9 +230,8 @@ export default function StorePage() {
           <div className="max-w-6xl mx-auto px-6 py-12">
             <h2 className="text-xl md:text-2xl font-black uppercase tracking-tight text-zinc-200 mb-6">Browse Pro Collections</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {SPORTS.map((sport) => {
-                // Inline local counts for clean catalog indicators
-                const totalCount = products.filter(p => p.category === sport).length;
+              {SPORTS.map((sport: string) => {
+                const totalCount = products.filter((p: Product) => p.category === sport).length;
                 return (
                   <div 
                     key={sport}
@@ -259,7 +267,7 @@ export default function StorePage() {
               <p className="text-zinc-500 text-sm italic">New inventory allocations pending.</p>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-                {products.slice(0, 8).map((p, i) => {
+                {products.slice(0, 8).map((p: Product, i: number) => {
                   const imageList = Array.isArray(p.images) ? p.images : (p.image ? [p.image] : ['/placeholder.jpg']);
                   return (
                     <div 
@@ -306,7 +314,7 @@ export default function StorePage() {
           {/* DYNAMIC SUBCATEGORY SECONDARY SUB-NAVIGATION ROW */}
           {SUB_CATEGORIES[viewState] && (
             <div className="flex flex-wrap gap-1.5 mb-8 bg-zinc-900/40 p-1.5 rounded-xl border border-zinc-900 max-w-max">
-              {SUB_CATEGORIES[viewState].map((sub) => (
+              {SUB_CATEGORIES[viewState].map((sub: string) => (
                 <button
                   key={sub}
                   onClick={() => setActiveSub(sub)}
@@ -329,7 +337,7 @@ export default function StorePage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
-              {filteredProducts.map((p, i) => {
+              {filteredProducts.map((p: Product, i: number) => {
                 const imageList = Array.isArray(p.images) ? p.images : (p.image ? [p.image] : ['/placeholder.jpg']);
                 return (
                   <div 
