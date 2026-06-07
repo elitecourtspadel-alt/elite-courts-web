@@ -20,37 +20,51 @@ export default function AdminPage() {
     name: "", 
     marketPrice: "", 
     elitePrice: "", 
-    image: "" 
+    imagesInput: "" // Comma-separated field for input
   });
 
   const addProduct = () => {
-    if (!newProduct.name || !newProduct.marketPrice || !newProduct.elitePrice || !newProduct.image) {
+    if (!newProduct.name || !newProduct.marketPrice || !newProduct.elitePrice || !newProduct.imagesInput) {
       alert("Please fill out all fields before uploading!");
       return;
     }
 
+    // Convert the comma-separated string into a clean array of URLs
+    const imagesArray = newProduct.imagesInput
+      .split(',')
+      .map(url => url.trim())
+      .filter(url => url.length > 0);
+
     const db = getDatabase(app);
     const productRef = push(ref(db, 'store/products'));
-    update(productRef, newProduct);
     
-    alert("Product Added successfully!");
-    // Clear form fields
-    setNewProduct({ name: "", marketPrice: "", elitePrice: "", image: "" });
+    // Construct database payload
+    const payload = {
+      name: newProduct.name,
+      marketPrice: newProduct.marketPrice,
+      elitePrice: newProduct.elitePrice,
+      images: imagesArray // Saved as a real database array
+    };
+
+    update(productRef, payload);
+    
+    alert("Product with multi-images uploaded successfully!");
+    setNewProduct({ name: "", marketPrice: "", elitePrice: "", imagesInput: "" });
   };
 
   return (
     <div className="p-10 bg-zinc-950 min-h-screen text-white flex flex-col items-center">
       <div className="w-full max-w-md">
-        <h1 className="text-3xl font-bold mb-2 text-zinc-100">Admin Dashboard</h1>
-        <p className="text-zinc-500 mb-8">Manage inventory and updates for Elite Store.</p>
+        <h1 className="text-3xl font-bold mb-2">Admin Dashboard</h1>
+        <p className="text-zinc-500 mb-8">Add premium stock with multiple layout views.</p>
         
         <div className="bg-zinc-900 p-6 rounded-2xl space-y-4 border border-zinc-800 shadow-xl">
-          <h2 className="text-xl font-bold text-emerald-400 mb-2">Add New Product</h2>
+          <h2 className="text-xl font-bold text-emerald-400">Add New Product</h2>
           
           <div>
-            <label className="text-xs text-zinc-400 block mb-1 font-medium">Product Name</label>
+            <label className="text-xs text-zinc-400 block mb-1">Product Name</label>
             <input 
-              placeholder="e.g., Joola Perseus Pickleball Paddle" 
+              placeholder="e.g., Drop Shot Delta 2.0" 
               value={newProduct.name}
               onChange={(e) => setNewProduct({...newProduct, name: e.target.value})} 
               className="w-full p-2.5 bg-zinc-800 rounded-xl border border-zinc-700 text-sm focus:outline-none focus:border-emerald-500"
@@ -58,9 +72,9 @@ export default function AdminPage() {
           </div>
 
           <div>
-            <label className="text-xs text-zinc-400 block mb-1 font-medium">Original Market Price</label>
+            <label className="text-xs text-zinc-400 block mb-1">Original Market Price</label>
             <input 
-              placeholder="e.g., Rs 65,000" 
+              placeholder="e.g., Rs 10,500" 
               value={newProduct.marketPrice}
               onChange={(e) => setNewProduct({...newProduct, marketPrice: e.target.value})} 
               className="w-full p-2.5 bg-zinc-800 rounded-xl border border-zinc-700 text-sm focus:outline-none focus:border-emerald-500"
@@ -68,9 +82,9 @@ export default function AdminPage() {
           </div>
 
           <div>
-            <label className="text-xs text-zinc-400 block mb-1 font-medium">Elite Discounted Price</label>
+            <label className="text-xs text-zinc-400 block mb-1">Elite Discounted Price</label>
             <input 
-              placeholder="e.g., Rs 58,000" 
+              placeholder="e.g., Rs 9,500" 
               value={newProduct.elitePrice}
               onChange={(e) => setNewProduct({...newProduct, elitePrice: e.target.value})} 
               className="w-full p-2.5 bg-zinc-800 rounded-xl border border-zinc-700 text-sm focus:outline-none focus:border-emerald-500"
@@ -78,18 +92,20 @@ export default function AdminPage() {
           </div>
 
           <div>
-            <label className="text-xs text-zinc-400 block mb-1 font-medium">Image URL (ImgBB Direct Link)</label>
-            <input 
-              placeholder="https://i.ibb.co/your-image.jpg" 
-              value={newProduct.image}
-              onChange={(e) => setNewProduct({...newProduct, image: e.target.value})} 
-              className="w-full p-2.5 bg-zinc-800 rounded-xl border border-zinc-700 text-sm focus:outline-none focus:border-emerald-500"
+            <label className="text-xs text-zinc-400 block mb-1">Image URLs (Separate with commas)</label>
+            <textarea 
+              placeholder="https://link1.jpg, https://link2.jpg, https://link3.jpg" 
+              value={newProduct.imagesInput}
+              onChange={(e) => setNewProduct({...newProduct, imagesInput: e.target.value})} 
+              rows={3}
+              className="w-full p-2.5 bg-zinc-800 rounded-xl border border-zinc-700 text-sm focus:outline-none focus:border-emerald-500 resize-none"
             />
+            <span className="text-[10px] text-zinc-500 mt-1 block">Paste your ImgBB direct links separated by a comma.</span>
           </div>
           
           <button 
             onClick={addProduct} 
-            className="w-full bg-emerald-500 py-3 font-bold text-black rounded-xl hover:bg-emerald-400 transition-colors mt-4 shadow-lg shadow-emerald-500/10"
+            className="w-full bg-emerald-500 py-3 font-bold text-black rounded-xl hover:bg-emerald-400 transition-colors mt-2 shadow-lg"
           >
             Upload to Store
           </button>
