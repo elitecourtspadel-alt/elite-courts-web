@@ -27,15 +27,17 @@ interface Product {
   specs?: Record<string, string>;
 }
 
-const SPORTS: string[] = ["Padel", "Pickleball", "Table Tennis"];
+const SPORTS: string[] = ["Padel", "Pickleball", "Table Tennis", "Cricket", "Badminton"];
 const SUB_CATEGORIES: Record<string, string[]> = {
   "Padel": ["All Gear", "Rackets", "Balls", "Padel Grips", "Bags", "Accessories"],
   "Pickleball": ["All Gear", "Paddles", "Balls", "Grips", "Bags", "Accessories"],
-  "Table Tennis": ["All Gear", "Bats", "Balls", "Rubbers", "Accessories"]
+  "Table Tennis": ["All Gear", "Bats", "Balls", "Rubbers", "Accessories"],
+  "Cricket": ["All Gear", "Bats", "Balls", "Protective Gear", "Bags", "Accessories"],
+  "Badminton": ["All Gear", "Rackets", "Shuttlecocks", "Grips", "Bags", "Accessories"]
 };
 
 // ==========================================
-// 1. PRODUCT DETAIL VIEW COMPONENT (TYPED)
+// 1. PRODUCT DETAIL VIEW COMPONENT
 // ==========================================
 function ProductDetailView({ product, onBack }: { product: Product; onBack: () => void }) {
   const imageList: string[] = Array.isArray(product.images) 
@@ -111,7 +113,7 @@ function ProductDetailView({ product, onBack }: { product: Product; onBack: () =
 
           <div className="space-y-2 text-zinc-400 text-sm md:text-base leading-relaxed">
             <h3 className="font-bold text-zinc-200 text-base">Product Overview</h3>
-            <p>{product.description || "High-end technical configuration optimized for tournament fields. This design minimizes standard structural drag ratios while expanding sweet-spot clean hit mapping matrices cleanly."}</p>
+            <p>{product.description || "High-end technical configuration optimized for competitive tournament play."}</p>
           </div>
 
           <button 
@@ -139,7 +141,7 @@ function ProductDetailView({ product, onBack }: { product: Product; onBack: () =
 }
 
 // ==========================================
-// 2. MAIN HUB PORTAL COMPONENT (TYPED)
+// 2. MAIN HUB PORTAL COMPONENT
 // ==========================================
 export default function StorePage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -193,18 +195,18 @@ export default function StorePage() {
           <div className="cursor-pointer" onClick={() => setViewState("Home")}>
             <span className="text-xl font-black tracking-tighter text-zinc-100 uppercase">Elite<span className="text-emerald-400">Store</span></span>
           </div>
-          <nav className="flex items-center gap-1 md:gap-2">
+          <nav className="flex flex-wrap items-center justify-center gap-1 md:gap-2">
             <button 
               onClick={() => setViewState("Home")} 
-              className={`px-4 py-2 text-xs md:text-sm font-bold uppercase tracking-wider rounded-lg transition-colors ${viewState === "Home" ? 'text-emerald-400 bg-zinc-950' : 'text-zinc-400 hover:text-white'}`}
+              className={`px-3 py-1.5 md:px-4 md:py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-colors ${viewState === "Home" ? 'text-emerald-400 bg-zinc-950' : 'text-zinc-400 hover:text-white'}`}
             >
-              Shop Home
+              Home
             </button>
             {SPORTS.map((sport: string) => (
               <button 
                 key={sport} 
                 onClick={() => routeToSport(sport)} 
-                className={`px-4 py-2 text-xs md:text-sm font-bold uppercase tracking-wider rounded-lg transition-colors ${viewState === sport ? 'text-emerald-400 bg-zinc-950' : 'text-zinc-400 hover:text-white'}`}
+                className={`px-3 py-1.5 md:px-4 md:py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-colors ${viewState === sport ? 'text-emerald-400 bg-zinc-950' : 'text-zinc-400 hover:text-white'}`}
               >
                 {sport}
               </button>
@@ -216,37 +218,37 @@ export default function StorePage() {
       {/* VIEW LAYER 1: E-COMMERCE HUB PORTAL (HOME) */}
       {viewState === "Home" && (
         <div className="animate-fadeIn">
-          {/* HIGH-END E-COMMERCE HERO BANNER */}
+          {/* HERO BANNER */}
           <div className="relative bg-gradient-to-br from-zinc-900 to-zinc-950 border-b border-zinc-900 py-16 md:py-24 px-6 text-center overflow-hidden">
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-emerald-500/5 via-transparent to-transparent pointer-events-none" />
             <div className="max-w-3xl mx-auto relative z-10 space-y-4">
               <span className="text-xs uppercase font-black tracking-widest text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">Pro Equipment Hub</span>
-              <h1 className="text-4xl md:text-6xl font-black text-zinc-100 tracking-tight leading-none uppercase">Premium Court Gear</h1>
-              <p className="text-zinc-400 text-sm md:text-lg max-w-xl mx-auto font-medium">Elevate your performance parameters. Source authentic rackets, high-density field balls, and engineered grip configurations.</p>
+              <h1 className="text-4xl md:text-6xl font-black text-zinc-100 tracking-tight leading-none uppercase">Premium Sports Gear</h1>
+              <p className="text-zinc-400 text-sm md:text-lg max-w-xl mx-auto font-medium">Elevate your performance parameters. Source authentic rackets, bats, professional match balls, and customized accessories.</p>
             </div>
           </div>
 
-          {/* SHOP BY SPORT SECTION DISPLAY MATRIX */}
+          {/* SHOP BY SPORT GRID MATRIX */}
           <div className="max-w-6xl mx-auto px-6 py-12">
             <h2 className="text-xl md:text-2xl font-black uppercase tracking-tight text-zinc-200 mb-6">Browse Pro Collections</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
               {SPORTS.map((sport: string) => {
                 const totalCount = products.filter((p: Product) => p.category === sport).length;
                 return (
                   <div 
                     key={sport}
                     onClick={() => routeToSport(sport)}
-                    className="group bg-zinc-900 border border-zinc-800 rounded-2xl p-6 flex flex-col justify-between h-44 cursor-pointer hover:border-emerald-500/40 hover:shadow-xl transition-all duration-300 relative overflow-hidden"
+                    className="group bg-zinc-900 border border-zinc-800 rounded-2xl p-5 flex flex-col justify-between h-40 cursor-pointer hover:border-emerald-500/40 hover:shadow-xl transition-all duration-300 relative overflow-hidden"
                   >
-                    <div className="absolute -right-6 -bottom-6 text-zinc-800/20 font-black text-8xl tracking-tighter uppercase select-none group-hover:scale-110 transition-transform group-hover:text-emerald-500/5">
+                    <div className="absolute -right-4 -bottom-4 text-zinc-800/10 font-black text-7xl tracking-tighter uppercase select-none group-hover:scale-110 transition-transform group-hover:text-emerald-500/5">
                       {sport[0]}
                     </div>
                     <div>
-                      <h3 className="text-2xl font-extrabold text-zinc-100 group-hover:text-emerald-400 transition-colors uppercase tracking-tight">{sport}</h3>
-                      <p className="text-zinc-500 text-xs mt-1">Official High-Spec Assets</p>
+                      <h3 className="text-xl font-extrabold text-zinc-100 group-hover:text-emerald-400 transition-colors uppercase tracking-tight">{sport}</h3>
+                      <p className="text-zinc-500 text-[11px] mt-1">Official Gear</p>
                     </div>
-                    <span className="text-xs font-mono font-bold text-zinc-400 flex items-center gap-1">
-                      Explore Catalog ({totalCount} items) ➔
+                    <span className="text-[11px] font-mono font-bold text-zinc-400 flex items-center gap-1">
+                      View ({totalCount}) ➔
                     </span>
                   </div>
                 );
@@ -254,7 +256,7 @@ export default function StorePage() {
             </div>
           </div>
 
-          {/* FEATURED GENERAL ARRIVALS MATRIX LAYOUT */}
+          {/* FEATURED GENERAL ARRIVALS */}
           <div className="max-w-6xl mx-auto px-6 pb-20">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl md:text-2xl font-black uppercase tracking-tight text-zinc-200">Trending Hardware</h2>
@@ -299,11 +301,10 @@ export default function StorePage() {
         </div>
       )}
 
-      {/* VIEW LAYER 2: DEDICATED SPORT DEPARTMENT CATALOGS */}
+      {/* VIEW LAYER 2: SPORT DEPARTMENTS */}
       {viewState !== "Home" && (
         <div className="max-w-6xl mx-auto px-6 py-10 animate-fadeIn">
           
-          {/* DEPT HEADER CONTROLS */}
           <div className="mb-8 border-b border-zinc-900 pb-6">
             <div className="text-sm text-zinc-500 font-medium mb-1 flex items-center gap-2">
               <span className="cursor-pointer hover:text-white" onClick={() => setViewState("Home")}>Store Home</span> ➔ <span className="text-zinc-300">{viewState} Department</span>
@@ -311,7 +312,6 @@ export default function StorePage() {
             <h1 className="text-3xl md:text-4xl font-black text-emerald-400 uppercase tracking-tight">{viewState} Center</h1>
           </div>
 
-          {/* DYNAMIC SUBCATEGORY SECONDARY SUB-NAVIGATION ROW */}
           {SUB_CATEGORIES[viewState] && (
             <div className="flex flex-wrap gap-1.5 mb-8 bg-zinc-900/40 p-1.5 rounded-xl border border-zinc-900 max-w-max">
               {SUB_CATEGORIES[viewState].map((sub: string) => (
@@ -330,7 +330,6 @@ export default function StorePage() {
             </div>
           )}
 
-          {/* CATALOG DISPLAY ELEMENT LAYER */}
           {filteredProducts.length === 0 ? (
             <div className="text-center p-12 bg-zinc-900/30 rounded-2xl border border-zinc-900">
               <p className="text-zinc-500 italic">No allocation matched the tag sequence "{activeSub}" yet.</p>
