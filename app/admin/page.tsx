@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { initializeApp, getApps } from "firebase/app";
-import { getDatabase, ref, push, update } from "firebase/database";
+import { getDatabase, ref, push, set } from "firebase/database";
 
 const firebaseConfig = {
   apiKey: "AizasyD4bPvYwRjOAGfiwoVPbG_4hj6QEbgdc9A",
@@ -44,6 +44,7 @@ const SUBCATEGORIES: Record<string, string[]> = {
 };
 
 export default function AdminPage() {
+  const [isDeploying, setIsDeploying] = useState<boolean>(false);
   const [newProduct, setNewProduct] = useState<ProductForm>({ 
     name: "", marketPrice: "", elitePrice: "", imagesInput: "",
     category: "Padel", subcategory: "Rackets", description: "",
@@ -59,51 +60,66 @@ export default function AdminPage() {
     });
   };
 
-  const addProduct = () => {
+  // Upgraded to a type-safe async function with explicit global exception handling
+  const addProduct = async () => {
     if (!newProduct.name || !newProduct.marketPrice || !newProduct.elitePrice || !newProduct.imagesInput) {
-      alert("Please fill name, prices and image parameters!");
+      alert("Missing Required Fields! Please verify you filled out the Product Name, Prices, and Image URLs at the top of the form.");
       return;
     }
 
-    const imagesArray = newProduct.imagesInput
-      .split(',')
-      .map((url: string) => url.trim())
-      .filter((url: string) => url.length > 0);
+    try {
+      setIsDeploying(true);
 
-    const db = getDatabase(app);
-    const productRef = push(ref(db, 'store/products'));
-    
-    const specsObject: Record<string, string> = {};
-    if (newProduct.specShape) specsObject["Shape / Configuration"] = newProduct.specShape;
-    if (newProduct.specFace) specsObject["Face / Surface Material"] = newProduct.specFace;
-    if (newProduct.specFrame) specsObject["Frame Composition"] = newProduct.specFrame;
-    if (newProduct.specCore) specsObject["Core Core / Density"] = newProduct.specCore;
-    if (newProduct.specWeight) specsObject["Weight Parameters"] = newProduct.specWeight;
-    if (newProduct.specBalance) specsObject["Balance Profile"] = newProduct.specBalance;
-    if (newProduct.specBracket) specsObject["Player Bracket"] = newProduct.specBracket;
-    if (newProduct.specControl) specsObject["Control Rating"] = newProduct.specControl;
-    if (newProduct.specPower) specsObject["Power Rating"] = newProduct.specPower;
+      const imagesArray = newProduct.imagesInput
+        .split(',')
+        .map((url: string) => url.trim())
+        .filter((url: string) => url.length > 0);
 
-    const payload = {
-      name: newProduct.name,
-      marketPrice: newProduct.marketPrice,
-      elitePrice: newProduct.elitePrice,
-      images: imagesArray,
-      category: newProduct.category,
-      subcategory: newProduct.subcategory,
-      description: newProduct.description,
-      specs: specsObject
-    };
+      const db = getDatabase(app);
+      // Generate a clean, unique sequential node under store/products
+      const productRef = push(ref(db, 'store/products'));
+      
+      const specsObject: Record<string, string> = {};
+      if (newProduct.specShape) specsObject["Shape / Configuration"] = newProduct.specShape;
+      if (newProduct.specFace) specsObject["Face / Surface Material"] = newProduct.specFace;
+      if (newProduct.specFrame) specsObject["Frame Composition"] = newProduct.specFrame;
+      if (newProduct.specCore) specsObject["Core Core / Density"] = newProduct.specCore;
+      if (newProduct.specWeight) specsObject["Weight Parameters"] = newProduct.specWeight;
+      if (newProduct.specBalance) specsObject["Balance Profile"] = newProduct.specBalance;
+      if (newProduct.specBracket) specsObject["Player Bracket"] = newProduct.specBracket;
+      if (newProduct.specControl) specsObject["Control Rating"] = newProduct.specControl;
+      if (newProduct.specPower) specsObject["Power Rating"] = newProduct.specPower;
 
-    update(productRef, payload);
-    alert("Premium matrix configurations synchronized with Realtime Database!");
-    
-    setNewProduct({ 
-      name: "", marketPrice: "", elitePrice: "", imagesInput: "",
-      category: "Padel", subcategory: "Rackets", description: "",
-      specShape: "", specFace: "", specFrame: "", specCore: "",
-      specWeight: "", specBalance: "", specBracket: "", specControl: "", specPower: ""
-    });
+      const payload = {
+        name: newProduct.name,
+        marketPrice: newProduct.marketPrice,
+        elitePrice: newProduct.elitePrice,
+        images: imagesArray,
+        category: newProduct.category,
+        subcategory: newProduct.subcategory,
+        description: newProduct.description,
+        specs: specsObject
+      };
+
+      // Switched from update to set for deterministic initialization of empty pushed references
+      await set(productRef, payload);
+      
+      alert("Success! Premium matrix configurations deployed smoothly to Realtime Database.");
+      
+      // Clear form back to pristine state
+      setNewProduct({ 
+        name: "", marketPrice: "", elitePrice: "", imagesInput: "",
+        category: "Padel", subcategory: "Rackets", description: "",
+        specShape: "", specFace: "", specFrame: "", specCore: "",
+        specWeight: "", specBalance: "", specBracket: "", specControl: "", specPower: ""
+      });
+
+    } catch (error: any) {
+      console.error("Database Write Rejection Details:", error);
+      alert(`Deployment Failed! Critical Error: ${error.message || "Unknown write error occurred. Check Firebase rules."}`);
+    } finally {
+      setIsDeploying(false);
+    }
   };
 
   return (
@@ -175,8 +191,14 @@ export default function AdminPage() {
             </div>
           </div>
 
-          <button onClick={addProduct} className="w-full bg-emerald-500 hover:bg-emerald-400 py-3 text-black text-xs font-black uppercase tracking-widest rounded-xl transition-all">
-            Deploy Catalog Assets
+          <button 
+            onClick={addProduct} 
+            disabled={isDeploying}
+            className={`w-full py-3 text-black text-xs font-black uppercase tracking-widest rounded-xl transition-all ${
+              isDeploying ? 'bg-zinc-600 cursor-wait animate-pulse' : 'bg-emerald-500 hover:bg-emerald-400'
+            }`}
+          >
+            {isDeploying ? "Processing Deployment..." : "Deploy Catalog Assets"}
           </button>
         </div>
       </div>
