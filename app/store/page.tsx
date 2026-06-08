@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { initializeApp, getApps } from "firebase/app";
-import { getDatabase, ref, onValue } from "firebase/database";
+import { getDatabase, ref, onValue, push } from "firebase/database";
 
 const firebaseConfig = {
   apiKey: "AizasyD4bPvYwRjOAGfiwoVPbG_4hj6QEbgdc9A",
@@ -27,6 +27,11 @@ interface Product {
   specs?: Record<string, string>;
 }
 
+interface CartItem {
+  product: Product;
+  quantity: number;
+}
+
 const SPORTS: string[] = ["Padel", "Pickleball", "Table Tennis", "Cricket", "Badminton"];
 const SUB_CATEGORIES: Record<string, string[]> = {
   "Padel": ["All Gear", "Rackets", "Balls", "Padel Grips", "Bags", "Accessories"],
@@ -36,7 +41,8 @@ const SUB_CATEGORIES: Record<string, string[]> = {
   "Badminton": ["All Gear", "Rackets", "Shuttlecocks", "Grips", "Bags", "Accessories"]
 };
 
-function ProductDetailView({ product, onBack }: { product: Product; onBack: () => void }) {
+// UPGRADED PRODUCT DETAIL VIEW WITH CART HANDLING
+function ProductDetailView({ product, onBack, onAddToCart, onBuyNow }: { product: Product; onBack: () => void; onAddToCart: (p: Product) => void; onBuyNow: (p: Product) => void }) {
   const imageList: string[] = Array.isArray(product.images) 
     ? product.images.map((url: string) => url.trim()).filter((url: string) => url !== "")
     : (product.image ? [product.image.trim()] : ['/placeholder.jpg']);
@@ -98,13 +104,25 @@ function ProductDetailView({ product, onBack }: { product: Product; onBack: () =
             <p>{product.description || "High-end technical configuration optimized for competitive tournament play."}</p>
           </div>
 
-          <button onClick={() => window.open(`https://wa.me/923084708858?text=Salam!%20I%20want%20to%20order%20the%20${encodeURIComponent(product.name)}.%20Please%20confirm%20booking.`, '_blank')} className="w-full md:w-auto md:px-12 bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold py-4 rounded-xl transition-all shadow-lg shadow-emerald-500/10 block text-center text-sm uppercase tracking-wider">
-            Order via WhatsApp
-          </button>
+          {/* CHECKOUT DUAL ACTION PANEL */}
+          <div className="flex flex-col sm:flex-row gap-4 pt-4">
+            <button 
+              onClick={() => onAddToCart(product)}
+              className="flex-1 py-4 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-white font-bold uppercase tracking-wider rounded-xl transition-all text-sm"
+            >
+              Add To Cart
+            </button>
+            <button 
+              onClick={() => onBuyNow(product)}
+              className="flex-1 py-4 bg-emerald-500 hover:bg-emerald-400 text-black font-black uppercase tracking-wider rounded-xl transition-all text-sm shadow-lg shadow-emerald-500/10"
+            >
+              Buy It Now
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* COMPLETELY DYNAMIC ATTRIBUTE MATRIX */}
+      {/* DYNAMIC SPECIFICATIONS MATRIX */}
       <div className="border-t border-zinc-900 pt-10 mt-12 max-w-4xl">
         <div className="mb-10">
           <h2 className="text-xl md:text-2xl font-bold text-zinc-100 tracking-tight mb-2">Technical Specifications Matrix</h2>
@@ -197,6 +215,22 @@ export default function StorePage() {
   const [viewState, setViewState] = useState<string>("Home");
   const [activeSub, setActiveSub] = useState<string>("All Gear");
 
+  // E-COMMERCE CORE STATES
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState<boolean>(false);
+  const [checkoutStep, setCheckoutStep] = useState<'FORM' | 'SUCCESS'>('FORM');
+  const [lastOrderId, setLastOrderId] = useState<string>('');
+
+  // USER REVENUE LOGISTICS FORM STATE
+  const [shippingDetails, setShippingDetails] = useState({
+    fullName: '',
+    phone: '',
+    address: '',
+    city: '',
+    paymentMethod: 'FULL_PAYMENT' // Options: FULL_PAYMENT, COD, COURT_PICKUP
+  });
+
   useEffect(() => {
     const db = getDatabase(app);
     const productsRef = ref(db, 'store/products');
@@ -208,9 +242,95 @@ export default function StorePage() {
     return () => unsubscribe();
   }, []);
 
+  // CART HANDLERS
+  const handleAddToCart = (product: Product, openPanel = true) => {
+    setCart((prevCart) => {
+      const existingIdx = prevCart.findIndex(item => item.product.name === product.name);
+      if (existingIdx > -1) {
+        const newCart = [...prevCart];
+        newCart[existingIdx].quantity += 1;
+        return newCart;
+      }
+      return [...prevCart, { product, quantity: 1 }];
+    });
+    if (openPanel) setIsCartOpen(true);
+  };
+
+  const handleBuyNow = (product: Product) => {
+    // Add to cart silently if not there, then immediately open the checkout panel
+    const existing = cart.find(item => item.product.name === product.name);
+    if (!existing) {
+      handleAddToCart(product, false);
+    }
+    setIsCheckoutOpen(true);
+  };
+
+  const updateCartQty = (idx: number, delta: number) => {
+    setCart((prevCart) => {
+      const newCart = [...prevCart];
+      newCart[idx].quantity += delta;
+      if (newCart[idx].quantity <= 0) {
+        newCart.splice(idx, 1);
+      }
+      return newCart;
+    });
+  };
+
+  // CALCULATE BALANCES
+  const getCartTotal = () => {
+    return cart.reduce((total, item) => {
+      const priceNum = parseInt(item.product.elitePrice.replace(/[^0-9]/g, '')) || 0;
+      return total + (priceNum * item.quantity);
+    }, 0);
+  };
+
+  // AUTOMATED FIREBASE CHECKOUT MUTATION
+  const handlePlaceOrder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (cart.length === 0) return;
+
+    const db = getDatabase(app);
+    const ordersRef = ref(db, 'store/orders');
+
+    const orderPayload = {
+      customer: {
+        name: shippingDetails.fullName,
+        phone: shippingDetails.phone,
+        address: shippingDetails.paymentMethod === 'COURT_PICKUP' ? 'Self-Pickup at Court Venue' : shippingDetails.address,
+        city: shippingDetails.paymentMethod === 'COURT_PICKUP' ? 'Lahore Court' : shippingDetails.city
+      },
+      items: cart.map(item => ({
+        name: item.product.name,
+        category: item.product.category,
+        quantity: item.quantity,
+        unitPrice: item.product.elitePrice,
+        totalItemCost: (parseInt(item.product.elitePrice.replace(/[^0-9]/g, '')) || 0) * item.quantity
+      })),
+      financials: {
+        orderTotal: `${getCartTotal().toLocaleString()} PKR`,
+        paymentMethod: shippingDetails.paymentMethod,
+      },
+      orderStatus: "PENDING_VERIFICATION",
+      timestamp: Math.floor(Date.now() / 1000)
+    };
+
+    try {
+      const newOrderRef = await push(ordersRef, orderPayload);
+      if (newOrderRef.key) {
+        setLastOrderId(newOrderRef.key);
+        setCheckoutStep('SUCCESS');
+        setCart([]); // Clear shopping basket upon successful commit
+      }
+    } catch (err) {
+      console.error("Order processing database execution failure:", err);
+      alert("Database serialization error. Please contact administrative staff.");
+    }
+  };
+
   const routeToSport = (sportName: string) => {
     setViewState(sportName);
     setActiveSub("All Gear");
+    setSelectedProduct(null);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -221,33 +341,50 @@ export default function StorePage() {
     return matchesSport && matchesSub;
   });
 
-  if (selectedProduct) {
-    return (
-      <div className="p-6 md:p-10 bg-zinc-950 min-h-screen text-white">
-        <div className="max-w-6xl mx-auto">
-          <ProductDetailView product={selectedProduct} onBack={() => setSelectedProduct(null)} />
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="bg-zinc-950 min-h-screen text-white">
+    <div className="bg-zinc-950 min-h-screen text-white relative overflow-x-hidden">
+      
+      {/* GLOBAL BANNER IMPLEMENTATION WITH LIVE CART PILL */}
       <div className="bg-zinc-900 border-b border-zinc-800 px-6 py-4 sticky top-0 z-40 backdrop-blur-md bg-zinc-900/90">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="cursor-pointer" onClick={() => setViewState("Home")}>
-            <span className="text-xl font-black tracking-tighter text-zinc-100 uppercase">Elite<span className="text-emerald-400">Store</span></span>
+          <div className="flex items-center justify-between w-full sm:w-auto gap-4">
+            <div className="cursor-pointer" onClick={() => { setViewState("Home"); setSelectedProduct(null); }}>
+              <span className="text-xl font-black tracking-tighter text-zinc-100 uppercase">Elite<span className="text-emerald-400">Store</span></span>
+            </div>
+            {/* Mobile View Cart Actionable */}
+            <button onClick={() => setIsCartOpen(true)} className="sm:hidden text-zinc-300 bg-zinc-950 px-3 py-1.5 rounded-lg border border-zinc-800 text-xs flex items-center gap-1.5">
+              🛒 <span className="bg-emerald-500 text-black px-1.5 py-0.5 rounded text-[10px] font-black">{cart.reduce((a,c) => a+c.quantity, 0)}</span>
+            </button>
           </div>
+          
           <nav className="flex flex-wrap items-center justify-center gap-1 md:gap-2">
-            <button onClick={() => setViewState("Home")} className={`px-3 py-1.5 md:px-4 md:py-2 text-xs font-bold uppercase tracking-wider rounded-lg ${viewState === "Home" ? 'text-emerald-400 bg-zinc-950' : 'text-zinc-400'}`}>Home</button>
+            <button onClick={() => { setViewState("Home"); setSelectedProduct(null); }} className={`px-3 py-1.5 md:px-4 md:py-2 text-xs font-bold uppercase tracking-wider rounded-lg ${viewState === "Home" && !selectedProduct ? 'text-emerald-400 bg-zinc-950' : 'text-zinc-400'}`}>Home</button>
             {SPORTS.map((sport: string) => (
-              <button key={sport} onClick={() => routeToSport(sport)} className={`px-3 py-1.5 md:px-4 md:py-2 text-xs font-bold uppercase tracking-wider rounded-lg ${viewState === sport ? 'text-emerald-400 bg-zinc-950' : 'text-zinc-400'}`}>{sport}</button>
+              <button key={sport} onClick={() => routeToSport(sport)} className={`px-3 py-1.5 md:px-4 md:py-2 text-xs font-bold uppercase tracking-wider rounded-lg ${viewState === sport && !selectedProduct ? 'text-emerald-400 bg-zinc-950' : 'text-zinc-400'}`}>{sport}</button>
             ))}
+            
+            {/* Desktop View Cart Actionable */}
+            <button onClick={() => setIsCartOpen(true)} className="hidden sm:flex items-center gap-2 ml-4 bg-zinc-950 hover:bg-zinc-900 border border-zinc-800 px-4 py-2 rounded-xl text-xs font-bold transition-all">
+              <span>Cart</span>
+              <span className="bg-emerald-500 text-black w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black">{cart.reduce((a,c) => a+c.quantity, 0)}</span>
+            </button>
           </nav>
         </div>
       </div>
 
-      {viewState === "Home" && (
+      {/* RENDER DYNAMIC VIEW DEPENDING ON SELECTION STATE */}
+      {selectedProduct ? (
+        <div className="p-6 md:p-10 bg-zinc-950 min-h-[calc(screen-80px)] text-white">
+          <div className="max-w-6xl mx-auto">
+            <ProductDetailView 
+              product={selectedProduct} 
+              onBack={() => setSelectedProduct(null)} 
+              onAddToCart={handleAddToCart}
+              onBuyNow={handleBuyNow}
+            />
+          </div>
+        </div>
+      ) : viewState === "Home" ? (
         <div className="animate-fadeIn">
           <div className="relative bg-gradient-to-br from-zinc-900 to-zinc-950 py-16 text-center">
             <div className="max-w-3xl mx-auto space-y-4">
@@ -296,9 +433,7 @@ export default function StorePage() {
             )}
           </div>
         </div>
-      )}
-
-      {viewState !== "Home" && (
+      ) : (
         <div className="max-w-6xl mx-auto px-6 py-10 animate-fadeIn">
           <div className="mb-8 border-b border-zinc-900 pb-6">
             <h1 className="text-3xl font-black text-emerald-400 uppercase">{viewState} Department</h1>
@@ -333,6 +468,186 @@ export default function StorePage() {
           </div>
         </div>
       )}
+
+      {/* INTERACTIVE COMPONENT: E-COMMERCE SHOPPING CART SLIDE-OVER */}
+      {isCartOpen && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex justify-end animate-fadeIn">
+          <div className="w-full max-w-md bg-zinc-900 h-full border-l border-zinc-800 p-6 flex flex-col justify-between shadow-2xl">
+            <div>
+              <div className="flex items-center justify-between border-b border-zinc-800 pb-4 mb-6">
+                <h3 className="text-lg font-black uppercase tracking-tight">Your Equipment Bag</h3>
+                <button onClick={() => setIsCartOpen(false)} className="text-zinc-500 hover:text-white font-mono text-xl">✕</button>
+              </div>
+
+              {cart.length === 0 ? (
+                <div className="text-center py-16 space-y-3">
+                  <p className="text-zinc-500 text-sm">Your bag is empty.</p>
+                  <button onClick={() => setIsCartOpen(false)} className="text-xs uppercase text-emerald-400 font-bold border border-emerald-500/20 px-4 py-2 rounded-lg bg-emerald-500/5 hover:bg-emerald-500/10">Browse Store</button>
+                </div>
+              ) : (
+                <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1 scrollbar-none">
+                  {cart.map((item, idx) => {
+                    const imgUrl = Array.isArray(item.product.images) ? item.product.images[0] : (item.product.image ? item.product.image : '/placeholder.jpg');
+                    return (
+                      <div key={idx} className="flex gap-4 p-3 bg-zinc-950 border border-zinc-800 rounded-xl items-center">
+                        <div className="w-16 h-16 bg-zinc-900 border border-zinc-800/80 p-1 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <img src={imgUrl} className="max-h-full max-w-full object-contain" alt="" />
+                        </div>
+                        <div className="flex-grow min-w-0">
+                          <h4 className="text-xs font-bold text-zinc-100 truncate">{item.product.name}</h4>
+                          <p className="text-xs text-emerald-400 font-extrabold mt-0.5">{item.product.elitePrice}</p>
+                          <div className="flex items-center gap-2 mt-2">
+                            <button onClick={() => updateCartQty(idx, -1)} className="w-5 h-5 bg-zinc-900 hover:bg-zinc-800 rounded text-xs font-mono">-</button>
+                            <span className="text-xs font-bold px-2">{item.quantity}</span>
+                            <button onClick={() => updateCartQty(idx, 1)} className="w-5 h-5 bg-zinc-900 hover:bg-zinc-800 rounded text-xs font-mono">+</button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {cart.length > 0 && (
+              <div className="border-t border-zinc-800 pt-4 space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs uppercase text-zinc-400 font-semibold">Total Invoice Amount:</span>
+                  <span className="text-xl font-black text-emerald-400">{getCartTotal().toLocaleString()} PKR</span>
+                </div>
+                <button 
+                  onClick={() => { setIsCartOpen(false); setIsCheckoutOpen(true); setCheckoutStep('FORM'); }}
+                  className="w-full bg-emerald-500 hover:bg-emerald-400 text-black font-black py-4 rounded-xl text-center text-xs uppercase tracking-wider block transition-all"
+                >
+                  Proceed to Secure Checkout
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* INTERACTIVE COMPONENT: SECURE SYSTEM CHECKOUT FLOW MODAL */}
+      {isCheckoutOpen && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="w-full max-w-xl bg-zinc-900 border border-zinc-800 rounded-2xl p-6 md:p-8 max-h-[90vh] overflow-y-auto scrollbar-none shadow-2xl relative">
+            
+            <button onClick={() => setIsCheckoutOpen(false)} className="absolute top-4 right-4 text-zinc-500 hover:text-white font-mono text-lg">✕</button>
+
+            {checkoutStep === 'FORM' ? (
+              <form onSubmit={handlePlaceOrder} className="space-y-6">
+                <div>
+                  <h2 className="text-xl font-black uppercase tracking-tight text-white">Elite System Checkout</h2>
+                  <p className="text-zinc-500 text-xs mt-1">Provide routing instructions to generate your digital database invoice.</p>
+                </div>
+
+                {/* PRODUCT ITERATION PREVIEW SUMMARY */}
+                <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800 space-y-2">
+                  <span className="text-[10px] uppercase font-black tracking-wider text-zinc-500">Order Summary</span>
+                  {cart.map((item, i) => (
+                    <div key={i} className="flex justify-between text-xs text-zinc-300">
+                      <span className="truncate max-w-[70%]">{item.product.name} <span className="text-zinc-500 font-mono">x{item.quantity}</span></span>
+                      <span className="font-bold text-emerald-400">{item.product.elitePrice}</span>
+                    </div>
+                  ))}
+                  <div className="border-t border-zinc-800 pt-2 mt-2 flex justify-between text-sm font-bold">
+                    <span className="text-white">Payable Balance:</span>
+                    <span className="text-emerald-400 font-black">{getCartTotal().toLocaleString()} PKR</span>
+                  </div>
+                </div>
+
+                {/* USER LOGISTICS MATRIX CHANNELS */}
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-[10px] uppercase font-black text-zinc-400 tracking-wider mb-1">Full Name</label>
+                    <input required type="text" value={shippingDetails.fullName} onChange={e => setShippingDetails({...shippingDetails, fullName: e.target.value})} className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-4 py-3 text-sm text-white focus:outline-none transition-all" placeholder="e.g. Shahrukh Khan" />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] uppercase font-black text-zinc-400 tracking-wider mb-1">Active Contact/Phone Number</label>
+                    <input required type="tel" value={shippingDetails.phone} onChange={e => setShippingDetails({...shippingDetails, phone: e.target.value})} className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-4 py-3 text-sm text-white focus:outline-none transition-all" placeholder="e.g. 03084708858" />
+                  </div>
+
+                  {shippingDetails.paymentMethod !== 'COURT_PICKUP' && (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-fadeIn">
+                      <div className="md:col-span-2">
+                        <label className="block text-[10px] uppercase font-black text-zinc-400 tracking-wider mb-1">Shipping Home Address</label>
+                        <input required type="text" value={shippingDetails.address} onChange={e => setShippingDetails({...shippingDetails, address: e.target.value})} className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-4 py-3 text-sm text-white focus:outline-none transition-all" placeholder="Street Address, Phase, Sector" />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] uppercase font-black text-zinc-400 tracking-wider mb-1">City</label>
+                        <input required type="text" value={shippingDetails.city} onChange={e => setShippingDetails({...shippingDetails, city: e.target.value})} className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-4 py-3 text-sm text-white focus:outline-none transition-all" placeholder="Lahore" />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* THREE CHANNELS OPTION MATRIX SELECTION CONTAINER */}
+                <div className="space-y-3">
+                  <label className="block text-[10px] uppercase font-black text-zinc-400 tracking-wider">Select Delivery & Payment Strategy</label>
+                  
+                  {/* OPTION 1: FULL ADVANCE PAYMENT */}
+                  <label className={`flex items-start gap-4 p-4 rounded-xl border cursor-pointer transition-all ${shippingDetails.paymentMethod === 'FULL_PAYMENT' ? 'border-emerald-500 bg-emerald-500/5' : 'border-zinc-800 bg-zinc-950 hover:border-zinc-700'}`}>
+                    <input type="radio" name="paymentStrategy" value="FULL_PAYMENT" checked={shippingDetails.paymentMethod === 'FULL_PAYMENT'} onChange={e => setShippingDetails({...shippingDetails, paymentMethod: e.target.value})} className="mt-1 accent-emerald-500" />
+                    <div>
+                      <p className="text-sm font-bold text-white">Full Payment (Home Delivery)</p>
+                      <p className="text-xs text-zinc-400 mt-0.5">Pay securely via Bank Transfer or Digital wallets before dispatch.</p>
+                    </div>
+                  </label>
+
+                  {/* OPTION 2: CASH ON DELIVERY */}
+                  <label className={`flex items-start gap-4 p-4 rounded-xl border cursor-pointer transition-all ${shippingDetails.paymentMethod === 'COD' ? 'border-emerald-500 bg-emerald-500/5' : 'border-zinc-800 bg-zinc-950 hover:border-zinc-700'}`}>
+                    <input type="radio" name="paymentStrategy" value="COD" checked={shippingDetails.paymentMethod === 'COD'} onChange={e => setShippingDetails({...shippingDetails, paymentMethod: e.target.value})} className="mt-1 accent-emerald-500" />
+                    <div>
+                      <p className="text-sm font-bold text-white">Cash on Delivery (Home Delivery)</p>
+                      <p className="text-xs text-zinc-400 mt-0.5">Settle with hard cash right at your doorstep upon courier package arrival.</p>
+                    </div>
+                  </label>
+
+                  {/* OPTION 3: SELF PICKUP AT COURT SYSTEM */}
+                  <label className={`flex items-start gap-4 p-4 rounded-xl border cursor-pointer transition-all ${shippingDetails.paymentMethod === 'COURT_PICKUP' ? 'border-emerald-500 bg-emerald-500/5' : 'border-zinc-800 bg-zinc-950 hover:border-zinc-700'}`}>
+                    <input type="radio" name="paymentStrategy" value="COURT_PICKUP" checked={shippingDetails.paymentMethod === 'COURT_PICKUP'} onChange={e => setShippingDetails({...shippingDetails, paymentMethod: e.target.value})} className="mt-1 accent-emerald-500" />
+                    <div>
+                      <p className="text-sm font-bold text-white">Pick Up at Court Venue (Pay at Desk)</p>
+                      <p className="text-xs text-zinc-400 mt-0.5">Secure item tracking and physically pay upon pickup right at our courts terminal.</p>
+                    </div>
+                  </label>
+                </div>
+
+                <button type="submit" className="w-full bg-emerald-500 hover:bg-emerald-400 text-black font-black py-4 rounded-xl transition-all text-sm uppercase tracking-wider shadow-xl shadow-emerald-500/10">
+                  Confirm & Finalize Order
+                </button>
+              </form>
+            ) : (
+              /* ORDER CONCLUDED TRANSACTION STATE */
+              <div className="text-center py-8 space-y-6 animate-fadeIn">
+                <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-full flex items-center justify-center text-3xl mx-auto">✓</div>
+                <div className="space-y-2">
+                  <h3 className="text-2xl font-black uppercase tracking-tight">Order Logged Successfully</h3>
+                  <p className="text-zinc-400 text-xs max-w-sm mx-auto">Your asset allocation record has been pushed to the Elite core server node.</p>
+                  <p className="text-[11px] font-mono text-zinc-500 pt-1">Invoice ID: {lastOrderId}</p>
+                </div>
+
+                {/* CONDITIONAL SYSTEM NOTIFICATION FOR BANK WIRE TRANSFERS */}
+                {shippingDetails.paymentMethod === 'FULL_PAYMENT' && (
+                  <div className="bg-zinc-950 p-4 border border-zinc-800 rounded-xl text-left max-w-md mx-auto space-y-2">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-amber-400">Wire Logistics Required</span>
+                    <p className="text-[11px] text-zinc-400 leading-relaxed">To complete processing, send the invoice balance of <strong className="text-white">{getCartTotal().toLocaleString()} PKR</strong> to your designated club banking node, referencing order ID: <span className="font-mono text-white">{lastOrderId}</span>.</p>
+                  </div>
+                )}
+
+                <button 
+                  onClick={() => { setIsCheckoutOpen(false); setSelectedProduct(null); setViewState("Home"); }} 
+                  className="bg-zinc-950 border border-zinc-800 hover:border-zinc-700 px-8 py-3 rounded-xl text-xs uppercase tracking-wider font-bold transition-all text-zinc-300"
+                >
+                  Return to Dashboard Explorer
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
