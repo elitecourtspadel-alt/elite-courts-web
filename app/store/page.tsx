@@ -35,7 +35,7 @@ interface CartItem {
 // PREMIUM SPECIFIC IMAGERY SCHEME (NO CYCLING - ACCURATE RACQUET/FIELD SPORTS)
 const SPORT_COLLECTIONS = [
   { name: "Padel", img: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800&auto=format&fit=crop&q=60" },
-  { name: "Pickleball", img: "https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?w=800&auto=format&fit=crop&q=60" },
+  { name: "Pickleball", img: "/images/sports/elite_courts_padel_card.avif" },
   { name: "Table Tennis", img: "https://images.unsplash.com/photo-1609710223199-14b5d5b1f8f7?w=800&auto=format&fit=crop&q=60" },
   { name: "Cricket", img: "https://images.unsplash.com/photo-1607734834519-d8576ae60ea6?w=800&auto=format&fit=crop&q=60" },
   { name: "Badminton", img: "https://images.unsplash.com/photo-1617083277684-630247384661?w=800&auto=format&fit=crop&q=60" }
