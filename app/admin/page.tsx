@@ -65,6 +65,7 @@ export default function AdminPage() {
   }, []);
 
   const isHardware = (sub: string) => ["Rackets", "Paddles", "Bats"].includes(sub);
+  const isBall = (sub: string) => sub === "Balls" || sub === "Shuttlecocks";
 
   const handleProductSelection = (key: string) => {
     setSelectedProductKey(key);
@@ -125,6 +126,7 @@ export default function AdminPage() {
       
       const specsObject: Record<string, string> = {};
       const isHW = isHardware(newProduct.subcategory);
+      const isBallItem = isBall(newProduct.subcategory);
 
       if (isHW) {
         if (newProduct.specShape) specsObject["Shape"] = newProduct.specShape;
@@ -138,10 +140,10 @@ export default function AdminPage() {
         if (newProduct.specPower) specsObject["Power Rating"] = newProduct.specPower;
       } else {
         if (newProduct.specShape) specsObject["Material"] = newProduct.specShape;
-        if (newProduct.specFace) specsObject["Dimensions"] = newProduct.specFace;
+        if (!isBallItem && newProduct.specFace) specsObject["Dimensions"] = newProduct.specFace;
         if (newProduct.specFrame) specsObject["Color"] = newProduct.specFrame;
         if (newProduct.specCore) specsObject["Compatibility"] = newProduct.specCore;
-        if (newProduct.specWeight) specsObject["Thickness"] = newProduct.specWeight;
+        if (!isBallItem && newProduct.specWeight) specsObject["Thickness"] = newProduct.specWeight;
         if (newProduct.specBalance) specsObject["Pack Size"] = newProduct.specBalance;
         if (newProduct.specBracket) specsObject["Feature Note"] = newProduct.specBracket;
         if (newProduct.specControl) specsObject["Durability"] = newProduct.specControl;
@@ -175,6 +177,7 @@ export default function AdminPage() {
   };
 
   const isHWMode = isHardware(newProduct.subcategory);
+  const isBallMode = isBall(newProduct.subcategory);
 
   return (
     <div className="p-6 md:p-12 bg-zinc-950 min-h-screen text-white flex flex-col items-center">
@@ -237,25 +240,29 @@ export default function AdminPage() {
 
           <div className="border-t border-zinc-800 pt-4 space-y-4">
             <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-400">
-              {isHWMode ? "Advanced Specifications Matrix Fields" : "Accessory Specification Fields"}
+              {isHWMode ? "Advanced Specifications Matrix Fields" : isBallMode ? "Ball Specifications" : "Accessory Specification Fields"}
             </h3>
             
             <div className="grid grid-cols-2 gap-4">
-              <input placeholder={isHWMode ? "Racket Shape (e.g. Teardrop)" : "Material (e.g. High-Resistance TPU)"} value={newProduct.specShape} onChange={(e) => setNewProduct({...newProduct, specShape: e.target.value})} className="p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 text-xs text-white" />
-              <input placeholder={isHWMode ? "Face Material (e.g. 3K Carbon)" : "Dimensions (e.g. 3.8cm x 40cm)"} value={newProduct.specFace} onChange={(e) => setNewProduct({...newProduct, specFace: e.target.value})} className="p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 text-xs text-white" />
-              <input placeholder={isHWMode ? "Frame Material (e.g. Carbon)" : "Color/Design (e.g. Clear Transparent)"} value={newProduct.specFrame} onChange={(e) => setNewProduct({...newProduct, specFrame: e.target.value})} className="p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 text-xs text-white" />
-              <input placeholder={isHWMode ? "Core Density (e.g. EVA Pro)" : "Compatibility (e.g. Universal Padel Frames)"} value={newProduct.specCore} onChange={(e) => setNewProduct({...newProduct, specCore: e.target.value})} className="p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 text-xs text-white" />
-              <input placeholder={isHWMode ? "Weight Parameters (e.g. 360g)" : "Thickness (e.g. 0.5mm)"} value={newProduct.specWeight} onChange={(e) => setNewProduct({...newProduct, specWeight: e.target.value})} className="p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 text-xs text-white" />
-              <input placeholder={isHWMode ? "Balance Profile (e.g. Mid Balance)" : "Pack Size / Qty (e.g. 1 Unit)"} value={newProduct.specBalance} onChange={(e) => setNewProduct({...newProduct, specBalance: e.target.value})} className="p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 text-xs text-white" />
+              <input placeholder={isHWMode ? "Racket Shape" : "Material"} value={newProduct.specShape} onChange={(e) => setNewProduct({...newProduct, specShape: e.target.value})} className="p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 text-xs text-white" />
+              {!isBallMode && (
+                <input placeholder={isHWMode ? "Face Material" : "Dimensions"} value={newProduct.specFace} onChange={(e) => setNewProduct({...newProduct, specFace: e.target.value})} className="p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 text-xs text-white" />
+              )}
+              <input placeholder={isHWMode ? "Frame Material" : "Color/Design"} value={newProduct.specFrame} onChange={(e) => setNewProduct({...newProduct, specFrame: e.target.value})} className="p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 text-xs text-white" />
+              <input placeholder={isHWMode ? "Core Density" : "Compatibility"} value={newProduct.specCore} onChange={(e) => setNewProduct({...newProduct, specCore: e.target.value})} className="p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 text-xs text-white" />
+              {!isBallMode && (
+                <input placeholder={isHWMode ? "Weight Parameters" : "Thickness"} value={newProduct.specWeight} onChange={(e) => setNewProduct({...newProduct, specWeight: e.target.value})} className="p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 text-xs text-white" />
+              )}
+              <input placeholder={isHWMode ? "Balance Profile" : "Pack Size / Qty"} value={newProduct.specBalance} onChange={(e) => setNewProduct({...newProduct, specBalance: e.target.value})} className="p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 text-xs text-white" />
             </div>
 
             <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-400 pt-2">
-              {isHWMode ? "Performance & Player Bracket Ratings" : "Accessory Performance Traits"}
+              {isHWMode ? "Performance & Ratings" : "Performance Traits"}
             </h3>
             <div className="grid grid-cols-3 gap-3">
-              <input placeholder={isHWMode ? "Bracket (Advanced)" : "Key Feature (e.g. Abrasion Shield)"} value={newProduct.specBracket} onChange={(e) => setNewProduct({...newProduct, specBracket: e.target.value})} className="p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 text-xs text-white col-span-1" />
-              <input placeholder={isHWMode ? "Control (8.5 / 10)" : "Durability Rating (e.g. 9.5 / 10)"} value={newProduct.specControl} onChange={(e) => setNewProduct({...newProduct, specControl: e.target.value})} className="p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 text-xs text-white" />
-              <input placeholder={isHWMode ? "Power (9.0 / 10)" : "Adhesion Level (e.g. Strong Glue Matrix)"} value={newProduct.specPower} onChange={(e) => setNewProduct({...newProduct, specPower: e.target.value})} className="p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 text-xs text-white" />
+              <input placeholder={isHWMode ? "Bracket" : "Key Feature"} value={newProduct.specBracket} onChange={(e) => setNewProduct({...newProduct, specBracket: e.target.value})} className="p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 text-xs text-white col-span-1" />
+              <input placeholder={isHWMode ? "Control" : "Durability"} value={newProduct.specControl} onChange={(e) => setNewProduct({...newProduct, specControl: e.target.value})} className="p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 text-xs text-white" />
+              <input placeholder={isHWMode ? "Power" : "Adhesion"} value={newProduct.specPower} onChange={(e) => setNewProduct({...newProduct, specPower: e.target.value})} className="p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 text-xs text-white" />
             </div>
           </div>
 
