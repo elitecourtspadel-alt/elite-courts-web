@@ -32,7 +32,17 @@ interface CartItem {
   quantity: number;
 }
 
-const SPORTS: string[] = ["Padel", "Pickleball", "Table Tennis", "Cricket", "Badminton"];
+// PREMIUM IMAGE COMPOSITION FOR HOME STOREFRONT 
+const SPORT_COLLECTIONS = [
+  { name: "Padel", img: "https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?q=80&w=800&auto=format&fit=crop" },
+  { name: "Pickleball", img: "https://images.unsplash.com/photo-1599447421416-3414500d18a5?q=80&w=800&auto=format&fit=crop" },
+  { name: "Table Tennis", img: "https://images.unsplash.com/photo-1534146789009-76ed5060ec31?q=80&w=800&auto=format&fit=crop" },
+  { name: "Cricket", img: "https://images.unsplash.com/photo-1531415074968-036ba1b575da?q=80&w=800&auto=format&fit=crop" },
+  { name: "Badminton", img: "https://images.unsplash.com/photo-1622279457486-62dce4a44506?q=80&w=800&auto=format&fit=crop" }
+];
+
+const SPORTS: string[] = SPORT_COLLECTIONS.map(s => s.name);
+
 const SUB_CATEGORIES: Record<string, string[]> = {
   "Padel": ["All Gear", "Rackets", "Balls", "Padel Grips", "Bags", "Accessories"],
   "Pickleball": ["All Gear", "Paddles", "Balls", "Grips", "Bags", "Accessories"],
@@ -41,7 +51,6 @@ const SUB_CATEGORIES: Record<string, string[]> = {
   "Badminton": ["All Gear", "Rackets", "Shuttlecocks", "Grips", "Bags", "Accessories"]
 };
 
-// UPGRADED PRODUCT DETAIL VIEW WITH CART HANDLING
 function ProductDetailView({ product, onBack, onAddToCart, onBuyNow }: { product: Product; onBack: () => void; onAddToCart: (p: Product) => void; onBuyNow: (p: Product) => void }) {
   const imageList: string[] = Array.isArray(product.images) 
     ? product.images.map((url: string) => url.trim()).filter((url: string) => url !== "")
@@ -104,7 +113,6 @@ function ProductDetailView({ product, onBack, onAddToCart, onBuyNow }: { product
             <p>{product.description || "High-end technical configuration optimized for competitive tournament play."}</p>
           </div>
 
-          {/* CHECKOUT DUAL ACTION PANEL */}
           <div className="flex flex-col sm:flex-row gap-4 pt-4">
             <button 
               onClick={() => onAddToCart(product)}
@@ -122,7 +130,6 @@ function ProductDetailView({ product, onBack, onAddToCart, onBuyNow }: { product
         </div>
       </div>
 
-      {/* DYNAMIC SPECIFICATIONS MATRIX */}
       <div className="border-t border-zinc-900 pt-10 mt-12 max-w-4xl">
         <div className="mb-10">
           <h2 className="text-xl md:text-2xl font-bold text-zinc-100 tracking-tight mb-2">Technical Specifications Matrix</h2>
@@ -153,7 +160,6 @@ function ProductDetailView({ product, onBack, onAddToCart, onBuyNow }: { product
           </div>
         </div>
 
-        {/* METRICS & PROFILES BLOCK */}
         {(specs["Player Bracket"] || specs["Control Rating"] || specs["Power Rating"] || specs["Feature Note"] || specs["Durability"] || specs["Adhesion Level"]) && (
           <div className="mb-10">
             <h2 className="text-xl md:text-2xl font-bold text-zinc-100 tracking-tight mb-4">
@@ -215,20 +221,18 @@ export default function StorePage() {
   const [viewState, setViewState] = useState<string>("Home");
   const [activeSub, setActiveSub] = useState<string>("All Gear");
 
-  // E-COMMERCE CORE STATES
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState<boolean>(false);
   const [checkoutStep, setCheckoutStep] = useState<'FORM' | 'SUCCESS'>('FORM');
   const [lastOrderId, setLastOrderId] = useState<string>('');
 
-  // USER REVENUE LOGISTICS FORM STATE
   const [shippingDetails, setShippingDetails] = useState({
     fullName: '',
     phone: '',
     address: '',
     city: '',
-    paymentMethod: 'FULL_PAYMENT' // Options: FULL_PAYMENT, COD, COURT_PICKUP
+    paymentMethod: 'FULL_PAYMENT'
   });
 
   useEffect(() => {
@@ -242,7 +246,6 @@ export default function StorePage() {
     return () => unsubscribe();
   }, []);
 
-  // CART HANDLERS
   const handleAddToCart = (product: Product, openPanel = true) => {
     setCart((prevCart) => {
       const existingIdx = prevCart.findIndex(item => item.product.name === product.name);
@@ -257,7 +260,6 @@ export default function StorePage() {
   };
 
   const handleBuyNow = (product: Product) => {
-    // Add to cart silently if not there, then immediately open the checkout panel
     const existing = cart.find(item => item.product.name === product.name);
     if (!existing) {
       handleAddToCart(product, false);
@@ -276,7 +278,6 @@ export default function StorePage() {
     });
   };
 
-  // CALCULATE BALANCES
   const getCartTotal = () => {
     return cart.reduce((total, item) => {
       const priceNum = parseInt(item.product.elitePrice.replace(/[^0-9]/g, '')) || 0;
@@ -284,7 +285,6 @@ export default function StorePage() {
     }, 0);
   };
 
-  // AUTOMATED FIREBASE CHECKOUT MUTATION
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     if (cart.length === 0) return;
@@ -319,11 +319,11 @@ export default function StorePage() {
       if (newOrderRef.key) {
         setLastOrderId(newOrderRef.key);
         setCheckoutStep('SUCCESS');
-        setCart([]); // Clear shopping basket upon successful commit
+        setCart([]);
       }
     } catch (err) {
-      console.error("Order processing database execution failure:", err);
-      alert("Database serialization error. Please contact administrative staff.");
+      console.error("Order writing failure:", err);
+      alert("Error linking with checkout nodes. Please try again.");
     }
   };
 
@@ -351,7 +351,6 @@ export default function StorePage() {
             <div className="cursor-pointer" onClick={() => { setViewState("Home"); setSelectedProduct(null); }}>
               <span className="text-xl font-black tracking-tighter text-zinc-100 uppercase">Elite<span className="text-emerald-400">Store</span></span>
             </div>
-            {/* Mobile View Cart Actionable */}
             <button onClick={() => setIsCartOpen(true)} className="sm:hidden text-zinc-300 bg-zinc-950 px-3 py-1.5 rounded-lg border border-zinc-800 text-xs flex items-center gap-1.5">
               🛒 <span className="bg-emerald-500 text-black px-1.5 py-0.5 rounded text-[10px] font-black">{cart.reduce((a,c) => a+c.quantity, 0)}</span>
             </button>
@@ -363,7 +362,6 @@ export default function StorePage() {
               <button key={sport} onClick={() => routeToSport(sport)} className={`px-3 py-1.5 md:px-4 md:py-2 text-xs font-bold uppercase tracking-wider rounded-lg ${viewState === sport && !selectedProduct ? 'text-emerald-400 bg-zinc-950' : 'text-zinc-400'}`}>{sport}</button>
             ))}
             
-            {/* Desktop View Cart Actionable */}
             <button onClick={() => setIsCartOpen(true)} className="hidden sm:flex items-center gap-2 ml-4 bg-zinc-950 hover:bg-zinc-900 border border-zinc-800 px-4 py-2 rounded-xl text-xs font-bold transition-all">
               <span>Cart</span>
               <span className="bg-emerald-500 text-black w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black">{cart.reduce((a,c) => a+c.quantity, 0)}</span>
@@ -372,7 +370,6 @@ export default function StorePage() {
         </div>
       </div>
 
-      {/* RENDER DYNAMIC VIEW DEPENDING ON SELECTION STATE */}
       {selectedProduct ? (
         <div className="p-6 md:p-10 bg-zinc-950 min-h-[calc(screen-80px)] text-white">
           <div className="max-w-6xl mx-auto">
@@ -386,27 +383,61 @@ export default function StorePage() {
         </div>
       ) : viewState === "Home" ? (
         <div className="animate-fadeIn">
-          <div className="relative bg-gradient-to-br from-zinc-900 to-zinc-950 py-16 text-center">
-            <div className="max-w-3xl mx-auto space-y-4">
-              <span className="text-xs uppercase font-black tracking-widest text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">Pro Equipment Hub</span>
-              <h1 className="text-4xl md:text-6xl font-black text-zinc-100 tracking-tight uppercase">Premium Sports Gear</h1>
-              <p className="text-zinc-400 text-sm md:text-base">Elevate your game assets. Source authentic rackets, bats, match grade ball packs, and accessories.</p>
+          
+          {/* HIGH-IMPACT ATTRACTIVE HERO SECTION (PEOPLE PLAYING LIFESTYLE SHOT) */}
+          <div className="max-w-6xl mx-auto px-6 pt-8 pb-12">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 bg-zinc-900 border border-zinc-800 rounded-3xl overflow-hidden min-h-[420px] items-center">
+              <div className="lg:col-span-5 p-8 md:p-12 space-y-4">
+                <span className="text-xs uppercase font-black tracking-widest text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20 max-w-max block">Pro Equipment Hub</span>
+                <h1 className="text-3xl md:text-5xl font-black text-zinc-100 tracking-tight uppercase leading-none">Premium<br/>Sports Gear</h1>
+                <p className="text-zinc-400 text-xs md:text-sm leading-relaxed">Elevate your game assets. Source authentic performance rackets, premium match-grade ball packs, bats, apparel, and technical accessories.</p>
+              </div>
+              <div className="lg:col-span-7 h-full min-h-[260px] lg:min-h-full relative">
+                <img 
+                  src="https://images.unsplash.com/photo-1517649763962-0c623066013b?q=80&w=1470&auto=format&fit=crop" 
+                  alt="Athletes in competitive training flow" 
+                  className="w-full h-full object-cover absolute inset-0 filter brightness-90 contrast-105"
+                />
+                <div className="absolute inset-0 bg-gradient-to-r from-zinc-900 via-transparent to-transparent hidden lg:block" />
+                <div className="absolute inset-0 bg-gradient-to-t from-zinc-900 via-transparent to-transparent lg:hidden" />
+              </div>
             </div>
           </div>
 
-          <div className="max-w-6xl mx-auto px-6 py-12">
+          {/* VISUAL COMPANION CATEGORY GRID (THUMBNAILS MIRRORING APOLLO SPORTS LOOK) */}
+          <div className="max-w-6xl mx-auto px-6 py-6">
             <h2 className="text-xl md:text-2xl font-black uppercase tracking-tight text-zinc-200 mb-6">Browse Pro Collections</h2>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-              {SPORTS.map((sport: string) => (
-                <div key={sport} onClick={() => routeToSport(sport)} className="group bg-zinc-900 border border-zinc-800 rounded-2xl p-5 h-36 flex flex-col justify-between cursor-pointer hover:border-emerald-500/40 transition-all">
-                  <h3 className="text-lg font-extrabold text-zinc-100 group-hover:text-emerald-400 transition-colors uppercase">{sport}</h3>
-                  <span className="text-xs font-mono text-zinc-400">Explore Catalog ➔</span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-5">
+              {SPORT_COLLECTIONS.map((sport) => (
+                <div 
+                  key={sport.name} 
+                  onClick={() => routeToSport(sport.name)} 
+                  className="group relative bg-zinc-900 border border-zinc-800 rounded-2xl aspect-[4/3] sm:aspect-square md:aspect-[4/5] overflow-hidden cursor-pointer hover:border-emerald-500/50 shadow-md transition-all"
+                >
+                  {/* Thumbnail Picture Background */}
+                  <img 
+                    src={sport.img} 
+                    alt={`${sport.name} Collection`} 
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out filter brightness-75 group-hover:brightness-90"
+                  />
+                  {/* Bottom Text Fade Overlay Gradient */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent" />
+                  
+                  {/* Pin Text to Bottom Left */}
+                  <div className="absolute bottom-5 left-5 right-5 flex flex-col gap-0.5">
+                    <h3 className="text-xl font-black text-white uppercase tracking-tight group-hover:text-emerald-400 transition-colors">
+                      {sport.name}
+                    </h3>
+                    <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      Explore Catalog ➔
+                    </span>
+                  </div>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="max-w-6xl mx-auto px-6 pb-20">
+          <div className="max-w-6xl mx-auto px-6 py-12 pb-20">
             <h2 className="text-xl md:text-2xl font-black uppercase tracking-tight text-zinc-200 mb-6">Trending Hardware</h2>
             {loading ? (
               <p className="text-zinc-500 animate-pulse text-xs font-mono">Syncing database assets...</p>
@@ -469,7 +500,7 @@ export default function StorePage() {
         </div>
       )}
 
-      {/* INTERACTIVE COMPONENT: E-COMMERCE SHOPPING CART SLIDE-OVER */}
+      {/* COMPONENT: SHOPPING CART OVERLAY */}
       {isCartOpen && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex justify-end animate-fadeIn">
           <div className="w-full max-w-md bg-zinc-900 h-full border-l border-zinc-800 p-6 flex flex-col justify-between shadow-2xl">
@@ -527,7 +558,7 @@ export default function StorePage() {
         </div>
       )}
 
-      {/* INTERACTIVE COMPONENT: SECURE SYSTEM CHECKOUT FLOW MODAL */}
+      {/* COMPONENT: SYSTEM CHECKOUT MODULE */}
       {isCheckoutOpen && (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-y-auto">
           <div className="w-full max-w-xl bg-zinc-900 border border-zinc-800 rounded-2xl p-6 md:p-8 max-h-[90vh] overflow-y-auto scrollbar-none shadow-2xl relative">
@@ -541,7 +572,6 @@ export default function StorePage() {
                   <p className="text-zinc-500 text-xs mt-1">Provide routing instructions to generate your digital database invoice.</p>
                 </div>
 
-                {/* PRODUCT ITERATION PREVIEW SUMMARY */}
                 <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800 space-y-2">
                   <span className="text-[10px] uppercase font-black tracking-wider text-zinc-500">Order Summary</span>
                   {cart.map((item, i) => (
@@ -556,7 +586,6 @@ export default function StorePage() {
                   </div>
                 </div>
 
-                {/* USER LOGISTICS MATRIX CHANNELS */}
                 <div className="space-y-4">
                   <div>
                     <label className="block text-[10px] uppercase font-black text-zinc-400 tracking-wider mb-1">Full Name</label>
@@ -564,7 +593,7 @@ export default function StorePage() {
                   </div>
 
                   <div>
-                    <label className="block text-[10px] uppercase font-black text-zinc-400 tracking-wider mb-1">Active Contact/Phone Number</label>
+                    <label className="block text-[10px] uppercase font-black text-zinc-400 tracking-wider mb-1">Active Contact Number</label>
                     <input required type="tel" value={shippingDetails.phone} onChange={e => setShippingDetails({...shippingDetails, phone: e.target.value})} className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-4 py-3 text-sm text-white focus:outline-none transition-all" placeholder="e.g. 03084708858" />
                   </div>
 
@@ -582,11 +611,9 @@ export default function StorePage() {
                   )}
                 </div>
 
-                {/* THREE CHANNELS OPTION MATRIX SELECTION CONTAINER */}
                 <div className="space-y-3">
                   <label className="block text-[10px] uppercase font-black text-zinc-400 tracking-wider">Select Delivery & Payment Strategy</label>
                   
-                  {/* OPTION 1: FULL ADVANCE PAYMENT */}
                   <label className={`flex items-start gap-4 p-4 rounded-xl border cursor-pointer transition-all ${shippingDetails.paymentMethod === 'FULL_PAYMENT' ? 'border-emerald-500 bg-emerald-500/5' : 'border-zinc-800 bg-zinc-950 hover:border-zinc-700'}`}>
                     <input type="radio" name="paymentStrategy" value="FULL_PAYMENT" checked={shippingDetails.paymentMethod === 'FULL_PAYMENT'} onChange={e => setShippingDetails({...shippingDetails, paymentMethod: e.target.value})} className="mt-1 accent-emerald-500" />
                     <div>
@@ -595,7 +622,6 @@ export default function StorePage() {
                     </div>
                   </label>
 
-                  {/* OPTION 2: CASH ON DELIVERY */}
                   <label className={`flex items-start gap-4 p-4 rounded-xl border cursor-pointer transition-all ${shippingDetails.paymentMethod === 'COD' ? 'border-emerald-500 bg-emerald-500/5' : 'border-zinc-800 bg-zinc-950 hover:border-zinc-700'}`}>
                     <input type="radio" name="paymentStrategy" value="COD" checked={shippingDetails.paymentMethod === 'COD'} onChange={e => setShippingDetails({...shippingDetails, paymentMethod: e.target.value})} className="mt-1 accent-emerald-500" />
                     <div>
@@ -604,7 +630,6 @@ export default function StorePage() {
                     </div>
                   </label>
 
-                  {/* OPTION 3: SELF PICKUP AT COURT SYSTEM */}
                   <label className={`flex items-start gap-4 p-4 rounded-xl border cursor-pointer transition-all ${shippingDetails.paymentMethod === 'COURT_PICKUP' ? 'border-emerald-500 bg-emerald-500/5' : 'border-zinc-800 bg-zinc-950 hover:border-zinc-700'}`}>
                     <input type="radio" name="paymentStrategy" value="COURT_PICKUP" checked={shippingDetails.paymentMethod === 'COURT_PICKUP'} onChange={e => setShippingDetails({...shippingDetails, paymentMethod: e.target.value})} className="mt-1 accent-emerald-500" />
                     <div>
@@ -619,7 +644,6 @@ export default function StorePage() {
                 </button>
               </form>
             ) : (
-              /* ORDER CONCLUDED TRANSACTION STATE */
               <div className="text-center py-8 space-y-6 animate-fadeIn">
                 <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-full flex items-center justify-center text-3xl mx-auto">✓</div>
                 <div className="space-y-2">
@@ -628,7 +652,6 @@ export default function StorePage() {
                   <p className="text-[11px] font-mono text-zinc-500 pt-1">Invoice ID: {lastOrderId}</p>
                 </div>
 
-                {/* CONDITIONAL SYSTEM NOTIFICATION FOR BANK WIRE TRANSFERS */}
                 {shippingDetails.paymentMethod === 'FULL_PAYMENT' && (
                   <div className="bg-zinc-950 p-4 border border-zinc-800 rounded-xl text-left max-w-md mx-auto space-y-2">
                     <span className="text-[10px] font-black uppercase tracking-widest text-amber-400">Wire Logistics Required</span>
