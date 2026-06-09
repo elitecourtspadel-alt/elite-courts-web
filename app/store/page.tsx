@@ -3,6 +3,25 @@ import { useEffect, useState } from 'react';
 import { initializeApp, getApps } from "firebase/app";
 import { getDatabase, ref, onValue, push } from "firebase/database";
 
+// Declare the custom web component for TypeScript
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      'model-viewer': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement> & {
+        src?: string;
+        alt?: string;
+        'camera-controls'?: boolean;
+        'auto-rotate'?: boolean;
+        'rotation-per-second'?: string;
+        'interaction-prompt'?: string;
+        'environment-image'?: string;
+        'skybox-image'?: string;
+        'shadow-intensity'?: string;
+      }, HTMLElement>;
+    }
+  }
+}
+
 const firebaseConfig = {
   apiKey: "AizasyD4bPvYwRjOAGfiwoVPbG_4hj6QEbgdc9A",
   authDomain: "elitecourtsapp.firebaseapp.com",
@@ -23,6 +42,7 @@ interface Product {
   elitePrice: string;
   images?: string[];
   image?: string;
+  model3d?: string; // URL to your .glb file
   description?: string;
   specs?: Record<string, string>;
 }
@@ -57,9 +77,16 @@ function ProductDetailView({ product, onBack, onAddToCart, onBuyNow }: { product
     
   const [activeImg, setActiveImg] = useState<string>(imageList[0] || '/placeholder.jpg');
 
+  // Inject the model-viewer script when the component mounts
   useEffect(() => {
+    if (!document.querySelector('script[src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"]')) {
+      const script = document.createElement('script');
+      script.type = 'module';
+      script.src = 'https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js';
+      document.head.appendChild(script);
+    }
     if (imageList.length > 0) setActiveImg(imageList[0]);
-  }, [product.images, product.image]);
+  }, [product.images, product.image, imageList]);
 
   const specs = product.specs || {};
 
@@ -71,12 +98,37 @@ function ProductDetailView({ product, onBack, onAddToCart, onBuyNow }: { product
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start mb-12">
         <div className="lg:col-span-5 space-y-4">
-          <div className="w-full h-[380px] md:h-[460px] bg-zinc-900 border border-zinc-800 rounded-2xl flex items-center justify-center p-6 shadow-2xl relative">
-            <img src={activeImg} className="max-h-full max-w-full object-contain transition-transform duration-300 hover:scale-105" alt={product.name} onError={(e) => { (e.target as HTMLImageElement).src = 'https://placehold.co/600x600/18181b/ffffff?text=Image+Preview'; }} />
-            <span className="absolute top-4 right-4 bg-emerald-500 text-black text-xs font-bold px-3 py-1 rounded-md uppercase tracking-wider">Sale</span>
-          </div>
+          
+          {/* Conditional Rendering: 3D Viewer OR 2D Image */}
+          {product.model3d ? (
+            <div className="w-full h-[380px] md:h-[460px] bg-zinc-950 border border-zinc-800 rounded-2xl flex items-center justify-center overflow-hidden shadow-2xl relative">
+              <model-viewer 
+                src={product.model3d} 
+                alt={product.name}
+                camera-controls 
+                auto-rotate 
+                rotation-per-second="30deg"
+                interaction-prompt="none"
+                environment-image="https://raw.githubusercontent.com/google/model-viewer/master/packages/shared-assets/environments/spruit_sunrise_1k_HDR.hdr" 
+                skybox-image="/images/padel-img.webp"
+                shadow-intensity="1.5"
+                style={{ width: '100%', height: '100%', outline: 'none' }}
+              >
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/70 px-4 py-1.5 rounded-full text-[10px] font-bold tracking-widest text-zinc-300 pointer-events-none border border-zinc-700/50 backdrop-blur-sm">
+                  DRAG TO ROTATE (3D)
+                </div>
+              </model-viewer>
+              <span className="absolute top-4 right-4 bg-emerald-500 text-black text-xs font-bold px-3 py-1 rounded-md uppercase tracking-wider z-10 pointer-events-none">Sale</span>
+            </div>
+          ) : (
+            <div className="w-full h-[380px] md:h-[460px] bg-zinc-900 border border-zinc-800 rounded-2xl flex items-center justify-center p-6 shadow-2xl relative">
+              <img src={activeImg} className="max-h-full max-w-full object-contain transition-transform duration-300 hover:scale-105" alt={product.name} onError={(e) => { (e.target as HTMLImageElement).src = 'https://placehold.co/600x600/18181b/ffffff?text=Image+Preview'; }} />
+              <span className="absolute top-4 right-4 bg-emerald-500 text-black text-xs font-bold px-3 py-1 rounded-md uppercase tracking-wider">Sale</span>
+            </div>
+          )}
 
-          {imageList.length > 1 && (
+          {/* Thumbnail Slider */}
+          {imageList.length > 1 && !product.model3d && (
             <div className="flex gap-2.5 overflow-x-auto pb-2 scrollbar-none">
               {imageList.map((url: string, idx: number) => (
                 <button key={idx} onClick={() => setActiveImg(url)} className={`w-20 h-20 rounded-xl overflow-hidden bg-zinc-900 border-2 flex-shrink-0 p-1 transition-all ${activeImg === url ? 'border-emerald-500 scale-95' : 'border-zinc-800 opacity-60'}`}>
@@ -334,21 +386,18 @@ export default function StorePage() {
       ) : viewState === "Home" ? (
         <div className="animate-fadeIn">
           
-          {/* HERO LAYOUT - Full Color Bleed Overlay Setup */}
+          {/* HERO LAYOUT */}
           <div className="max-w-6xl mx-auto px-6 pt-8 pb-10">
             <div className="relative border border-zinc-800 rounded-3xl overflow-hidden min-h-[440px] flex items-center">
               
-              {/* Background Court Image */}
               <img 
                 src="/images/padel-img.webp" 
                 alt="Athletes playing intensive match play on a racquet court" 
                 className="w-full h-full object-cover absolute inset-0 filter brightness-95 contrast-105 object-center"
               />
               
-              {/* Context-aware readable overlay protection across device viewports */}
               <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/45 to-transparent max-lg:bg-gradient-to-t max-lg:from-black/95 max-lg:via-black/50" />
 
-              {/* Floating Hero Content */}
               <div className="relative max-w-md p-8 md:p-12 space-y-4 z-10">
                 <span className="text-xs uppercase font-black tracking-widest text-emerald-400 bg-zinc-950/60 backdrop-blur-xs px-3 py-1 rounded-full border border-emerald-500/20 max-w-max block">
                   Pro Equipment Hub
@@ -364,7 +413,7 @@ export default function StorePage() {
             </div>
           </div>
 
-          {/* PREMIUM ASYMMETRICAL DASHBOARD GRID CONTROLLER */}
+          {/* ASYMMETRICAL DASHBOARD GRID */}
           <div className="max-w-6xl mx-auto px-6 py-6">
             <h2 className="text-xl font-bold tracking-wider text-white uppercase mb-6">
               Browse Pro Collections
@@ -372,7 +421,6 @@ export default function StorePage() {
             
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
               
-              {/* 1. PADEL - LARGE FEATURE CARD */}
               <div 
                 onClick={() => routeToSport(padelCategory.name)}
                 className="lg:col-span-7 relative overflow-hidden rounded-2xl min-h-[380px] lg:min-h-[480px] flex flex-col justify-end p-8 group border border-zinc-800/30 cursor-pointer"
@@ -405,7 +453,6 @@ export default function StorePage() {
                 </div>
               </div>
 
-              {/* RIGHT SIDE GRID - 2x2 PANELS COMPOSITION */}
               <div className="lg:col-span-5 grid grid-cols-2 gap-4">
                 {rightGridCategories.map((sport) => (
                   <div 
@@ -433,7 +480,7 @@ export default function StorePage() {
             </div>
           </div>
 
-          {/* LOWER STRIP: TRENDING INVENTORY */}
+          {/* LOWER STRIP */}
           <div className="max-w-6xl mx-auto px-6 py-12 pb-20">
             <h2 className="text-xl md:text-2xl font-black uppercase tracking-tight text-zinc-200 mb-6">Trending Hardware</h2>
             {loading ? (
@@ -462,7 +509,7 @@ export default function StorePage() {
           </div>
         </div>
       ) : (
-        /* TARGET INTERNAL DEPARTMENTS VIEW */
+        /* INTERNAL DEPARTMENTS VIEW */
         <div className="max-w-6xl mx-auto px-6 py-10 animate-fadeIn">
           <div className="mb-8 border-b border-zinc-900 pb-6">
             <h1 className="text-3xl font-black text-emerald-400 uppercase">{viewState} Department</h1>
@@ -498,7 +545,7 @@ export default function StorePage() {
         </div>
       )}
 
-      {/* COMPONENT: SHOPPING CART SIDEBAR */}
+      {/* SHOPPING CART */}
       {isCartOpen && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex justify-end animate-fadeIn">
           <div className="w-full max-w-md bg-zinc-900 h-full border-l border-zinc-800 p-6 flex flex-col justify-between shadow-2xl">
@@ -555,7 +602,7 @@ export default function StorePage() {
         </div>
       )}
 
-      {/* COMPONENT: SYSTEM CHECKOUT MODULE */}
+      {/* CHECKOUT MODULE */}
       {isCheckoutOpen && (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-y-auto">
           <div className="w-full max-w-xl bg-zinc-900 border border-zinc-800 rounded-2xl p-6 md:p-8 max-h-[90vh] overflow-y-auto scrollbar-none shadow-2xl relative">
@@ -590,91 +637,79 @@ export default function StorePage() {
                       required 
                       type="text" 
                       value={shippingDetails.fullName} 
-                      onChange={e => setShippingDetails({...shippingDetails, fullName: e.target.value})} 
-                      className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-4 py-3 text-sm text-white focus:outline-none transition-all" 
-                      placeholder="Muhammad Ali" 
+                      onChange={e => setShippingDetails({...shippingDetails, fullName: e.target.value})}
+                      className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm text-white outline-none focus:border-emerald-500 transition-colors"
                     />
                   </div>
-
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-[10px] uppercase font-black text-zinc-400 tracking-wider mb-1">Phone</label>
+                      <input 
+                        required 
+                        type="tel" 
+                        value={shippingDetails.phone} 
+                        onChange={e => setShippingDetails({...shippingDetails, phone: e.target.value})} 
+                        className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm text-white outline-none focus:border-emerald-500 transition-colors"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] uppercase font-black text-zinc-400 tracking-wider mb-1">City</label>
+                      <input 
+                        required 
+                        type="text" 
+                        value={shippingDetails.city} 
+                        onChange={e => setShippingDetails({...shippingDetails, city: e.target.value})} 
+                        className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm text-white outline-none focus:border-emerald-500 transition-colors"
+                      />
+                    </div>
+                  </div>
                   <div>
-                    <label className="block text-[10px] uppercase font-black text-zinc-400 tracking-wider mb-1">Phone Number</label>
-                    <input 
+                    <label className="block text-[10px] uppercase font-black text-zinc-400 tracking-wider mb-1">Delivery Address</label>
+                    <textarea 
                       required 
-                      type="tel" 
-                      value={shippingDetails.phone} 
-                      onChange={e => setShippingDetails({...shippingDetails, phone: e.target.value})} 
-                      className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-4 py-3 text-sm text-white focus:outline-none transition-all" 
-                      placeholder="03001234567" 
+                      value={shippingDetails.address} 
+                      onChange={e => setShippingDetails({...shippingDetails, address: e.target.value})} 
+                      rows={3} 
+                      className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm text-white outline-none focus:border-emerald-500 transition-colors"
                     />
                   </div>
-
                   <div>
-                    <label className="block text-[10px] uppercase font-black text-zinc-400 tracking-wider mb-1">Payment & Dispatch Strategy</label>
+                    <label className="block text-[10px] uppercase font-black text-zinc-400 tracking-wider mb-1">Payment Method</label>
                     <select 
                       value={shippingDetails.paymentMethod} 
                       onChange={e => setShippingDetails({...shippingDetails, paymentMethod: e.target.value})} 
-                      className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-4 py-3 text-sm text-white focus:outline-none transition-all"
+                      className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm text-white outline-none focus:border-emerald-500 transition-colors"
                     >
-                      <option value="FULL_PAYMENT">Cash on Delivery / Direct Bank Remittance</option>
-                      <option value="COURT_PICKUP">Self-Pickup at Lahore Venue Courts</option>
+                      <option value="FULL_PAYMENT">Full Payment</option>
+                      <option value="COURT_PICKUP">Court Pickup</option>
                     </select>
                   </div>
-
-                  {shippingDetails.paymentMethod !== 'COURT_PICKUP' && (
-                    <>
-                      <div>
-                        <label className="block text-[10px] uppercase font-black text-zinc-400 tracking-wider mb-1">Shipping Destination Address</label>
-                        <input 
-                          required={shippingDetails.paymentMethod !== 'COURT_PICKUP'} 
-                          type="text" 
-                          value={shippingDetails.address} 
-                          onChange={e => setShippingDetails({...shippingDetails, address: e.target.value})} 
-                          className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-4 py-3 text-sm text-white focus:outline-none transition-all" 
-                          placeholder="House Num, Street Layout, Sector Sector Address" 
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-[10px] uppercase font-black text-zinc-400 tracking-wider mb-1">City Node</label>
-                        <input 
-                          required={shippingDetails.paymentMethod !== 'COURT_PICKUP'} 
-                          type="text" 
-                          value={shippingDetails.city} 
-                          onChange={e => setShippingDetails({...shippingDetails, city: e.target.value})} 
-                          className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-4 py-3 text-sm text-white focus:outline-none transition-all" 
-                          placeholder="Lahore" 
-                        />
-                      </div>
-                    </>
-                  )}
                 </div>
 
                 <button 
                   type="submit" 
-                  className="w-full bg-emerald-500 hover:bg-emerald-400 text-black font-black py-4 rounded-xl text-center text-xs uppercase tracking-wider block transition-all shadow-lg shadow-emerald-500/10"
+                  className="w-full bg-emerald-500 hover:bg-emerald-400 text-black font-black py-4 rounded-xl text-center text-xs uppercase tracking-wider block transition-all mt-6"
                 >
-                  Confirm and Dispatch Order Request
+                  Confirm & Place Order
                 </button>
               </form>
             ) : (
-              <div className="text-center py-8 space-y-4">
-                <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/30 rounded-full flex items-center justify-center mx-auto text-emerald-400 text-2xl">✓</div>
-                <div>
-                  <h3 className="text-lg font-black uppercase tracking-tight text-white">Order Synced Successfully!</h3>
-                  <p className="text-zinc-400 text-xs mt-1">Your transaction record has been committed inside our backend Firebase architecture cluster.</p>
-                  <p className="text-zinc-500 font-mono text-[11px] mt-3 bg-zinc-950 p-2.5 rounded border border-zinc-800/60 break-all select-all">
-                    Order Matrix Reference Key: {lastOrderId}
-                  </p>
+              <div className="text-center py-12 space-y-4">
+                <div className="w-16 h-16 bg-emerald-500/20 text-emerald-500 rounded-full flex items-center justify-center mx-auto text-3xl mb-6">✓</div>
+                <h2 className="text-2xl font-black text-white">Order Confirmed</h2>
+                <p className="text-zinc-400 text-sm">Your order has been routed to the database successfully.</p>
+                <p className="text-xs font-mono text-zinc-500 bg-zinc-950 p-2 rounded inline-block">Order ID: {lastOrderId}</p>
+                
+                <div className="pt-6">
+                  <button 
+                    onClick={() => { setIsCheckoutOpen(false); setViewState('Home'); }} 
+                    className="bg-zinc-800 hover:bg-zinc-700 text-white font-bold py-3 px-8 rounded-xl text-xs uppercase tracking-wider transition-all"
+                  >
+                    Return to Store
+                  </button>
                 </div>
-                <button 
-                  onClick={() => setIsCheckoutOpen(false)} 
-                  className="px-6 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-xl text-xs font-bold uppercase tracking-wide transition-all"
-                >
-                  Terminate Interface View
-                </button>
               </div>
             )}
-
           </div>
         </div>
       )}
