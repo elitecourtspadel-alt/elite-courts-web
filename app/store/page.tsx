@@ -32,13 +32,13 @@ interface CartItem {
   quantity: number;
 }
 
-// PREMIUM IMAGE COMPOSITION FOR HOME STOREFRONT 
+// PREMIUM SPECIFIC IMAGERY SCHEME (NO CYCLING - ACCURATE RACQUET/FIELD SPORTS)
 const SPORT_COLLECTIONS = [
-  { name: "Padel", img: "https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?q=80&w=800&auto=format&fit=crop" },
-  { name: "Pickleball", img: "https://images.unsplash.com/photo-1599447421416-3414500d18a5?q=80&w=800&auto=format&fit=crop" },
-  { name: "Table Tennis", img: "https://images.unsplash.com/photo-1534146789009-76ed5060ec31?q=80&w=800&auto=format&fit=crop" },
-  { name: "Cricket", img: "https://images.unsplash.com/photo-1531415074968-036ba1b575da?q=80&w=800&auto=format&fit=crop" },
-  { name: "Badminton", img: "https://images.unsplash.com/photo-1622279457486-62dce4a44506?q=80&w=800&auto=format&fit=crop" }
+  { name: "Padel", img: "https://images.unsplash.com/photo-1630604398114-5267a1420138?q=80&w=1000&auto=format&fit=crop" },
+  { name: "Pickleball", img: "https://images.unsplash.com/photo-1599447421416-3414500d18a5?q=80&w=600&auto=format&fit=crop" },
+  { name: "Table Tennis", img: "https://images.unsplash.com/photo-1534146789009-76ed5060ec31?q=80&w=600&auto=format&fit=crop" },
+  { name: "Cricket", img: "https://images.unsplash.com/photo-1531415074968-036ba1b575da?q=80&w=600&auto=format&fit=crop" },
+  { name: "Badminton", img: "https://images.unsplash.com/photo-1622279457486-62dce4a44506?q=80&w=600&auto=format&fit=crop" }
 ];
 
 const SPORTS: string[] = SPORT_COLLECTIONS.map(s => s.name);
@@ -159,56 +159,6 @@ function ProductDetailView({ product, onBack, onAddToCart, onBuyNow }: { product
             </table>
           </div>
         </div>
-
-        {(specs["Player Bracket"] || specs["Control Rating"] || specs["Power Rating"] || specs["Feature Note"] || specs["Durability"] || specs["Adhesion Level"]) && (
-          <div className="mb-10">
-            <h2 className="text-xl md:text-2xl font-bold text-zinc-100 tracking-tight mb-4">
-              {isHardware ? "Ideal Player Profile" : "Performance Metrics"}
-            </h2>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm border-collapse">
-                <tbody className="divide-y divide-zinc-900 text-zinc-300">
-                  {specs["Player Bracket"] && (
-                    <tr>
-                      <td className="py-3.5 font-bold text-zinc-200 w-1/3">Player Bracket</td>
-                      <td className="py-3.5 w-2/3">{specs["Player Bracket"]}</td>
-                    </tr>
-                  )}
-                  {specs["Feature Note"] && (
-                    <tr>
-                      <td className="py-3.5 font-bold text-zinc-200 w-1/3">Key Feature</td>
-                      <td className="py-3.5 w-2/3">{specs["Feature Note"]}</td>
-                    </tr>
-                  )}
-                  {specs["Control Rating"] && (
-                    <tr>
-                      <td className="py-3.5 font-bold text-zinc-200">Control Rating</td>
-                      <td className="py-3.5 text-emerald-400 font-semibold">{specs["Control Rating"]}</td>
-                    </tr>
-                  )}
-                  {specs["Durability"] && (
-                    <tr>
-                      <td className="py-3.5 font-bold text-zinc-200">Durability</td>
-                      <td className="py-3.5 text-emerald-400 font-semibold">{specs["Durability"]}</td>
-                    </tr>
-                  )}
-                  {specs["Power Rating"] && (
-                    <tr>
-                      <td className="py-3.5 font-bold text-zinc-200">Power Rating</td>
-                      <td className="py-3.5 text-emerald-400 font-semibold">{specs["Power Rating"]}</td>
-                    </tr>
-                  )}
-                  {specs["Adhesion Level"] && (
-                    <tr>
-                      <td className="py-3.5 font-bold text-zinc-200">Adhesion Level</td>
-                      <td className="py-3.5 text-emerald-400 font-semibold">{specs["Adhesion Level"]}</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
@@ -322,8 +272,7 @@ export default function StorePage() {
         setCart([]);
       }
     } catch (err) {
-      console.error("Order writing failure:", err);
-      alert("Error linking with checkout nodes. Please try again.");
+      console.error("Order processing failure:", err);
     }
   };
 
@@ -341,10 +290,14 @@ export default function StorePage() {
     return matchesSport && matchesSub;
   });
 
+  // Extract separate category components for explicit high-impact sizing layout
+  const padelCategory = SPORT_COLLECTIONS.find(s => s.name === "Padel")!;
+  const rightGridCategories = SPORT_COLLECTIONS.filter(s => s.name !== "Padel");
+
   return (
     <div className="bg-zinc-950 min-h-screen text-white relative overflow-x-hidden">
       
-      {/* GLOBAL BANNER IMPLEMENTATION WITH LIVE CART PILL */}
+      {/* HEADER BAR AND NAVIGATION */}
       <div className="bg-zinc-900 border-b border-zinc-800 px-6 py-4 sticky top-0 z-40 backdrop-blur-md bg-zinc-900/90">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center justify-between w-full sm:w-auto gap-4">
@@ -384,59 +337,85 @@ export default function StorePage() {
       ) : viewState === "Home" ? (
         <div className="animate-fadeIn">
           
-          {/* HIGH-IMPACT ATTRACTIVE HERO SECTION (PEOPLE PLAYING LIFESTYLE SHOT) */}
-          <div className="max-w-6xl mx-auto px-6 pt-8 pb-12">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 bg-zinc-900 border border-zinc-800 rounded-3xl overflow-hidden min-h-[420px] items-center">
-              <div className="lg:col-span-5 p-8 md:p-12 space-y-4">
+          {/* HERO LAYOUT: ACCURATE ACTION FLOW IN COURT SPORT */}
+          <div className="max-w-6xl mx-auto px-6 pt-8 pb-10">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 bg-zinc-900 border border-zinc-800 rounded-3xl overflow-hidden min-h-[440px] items-center">
+              <div className="lg:col-span-5 p-8 md:p-12 space-y-4 z-10">
                 <span className="text-xs uppercase font-black tracking-widest text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20 max-w-max block">Pro Equipment Hub</span>
                 <h1 className="text-3xl md:text-5xl font-black text-zinc-100 tracking-tight uppercase leading-none">Premium<br/>Sports Gear</h1>
-                <p className="text-zinc-400 text-xs md:text-sm leading-relaxed">Elevate your game assets. Source authentic performance rackets, premium match-grade ball packs, bats, apparel, and technical accessories.</p>
+                <p className="text-zinc-400 text-xs md:text-sm leading-relaxed">Elevate your game assets. Source authentic performance rackets, paddles, match-grade ball packs, and technical accessories built for the courts.</p>
               </div>
-              <div className="lg:col-span-7 h-full min-h-[260px] lg:min-h-full relative">
+              <div className="lg:col-span-7 h-full min-h-[300px] lg:min-h-full relative self-stretch">
                 <img 
-                  src="https://images.unsplash.com/photo-1517649763962-0c623066013b?q=80&w=1470&auto=format&fit=crop" 
-                  alt="Athletes in competitive training flow" 
-                  className="w-full h-full object-cover absolute inset-0 filter brightness-90 contrast-105"
+                  src="https://images.unsplash.com/photo-1613564834644-a170d10b2720?q=80&w=1400&auto=format&fit=crop" 
+                  alt="Athletes playing intensive match play on a racquet court" 
+                  className="w-full h-full object-cover absolute inset-0 filter brightness-90 contrast-105 object-center"
                 />
-                <div className="absolute inset-0 bg-gradient-to-r from-zinc-900 via-transparent to-transparent hidden lg:block" />
-                <div className="absolute inset-0 bg-gradient-to-t from-zinc-900 via-transparent to-transparent lg:hidden" />
+                <div className="absolute inset-0 bg-gradient-to-r from-zinc-900 via-zinc-900/40 to-transparent hidden lg:block" />
+                <div className="absolute inset-0 bg-gradient-to-t from-zinc-900 via-zinc-900/20 to-transparent lg:hidden" />
               </div>
             </div>
           </div>
 
-          {/* VISUAL COMPANION CATEGORY GRID (THUMBNAILS MIRRORING APOLLO SPORTS LOOK) */}
+          {/* ASYMMETRICAL COLLECTION DASHBOARD GRID (PADEL FEATURED LARGE THUMBNAIL) */}
           <div className="max-w-6xl mx-auto px-6 py-6">
             <h2 className="text-xl md:text-2xl font-black uppercase tracking-tight text-zinc-200 mb-6">Browse Pro Collections</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-5">
-              {SPORT_COLLECTIONS.map((sport) => (
-                <div 
-                  key={sport.name} 
-                  onClick={() => routeToSport(sport.name)} 
-                  className="group relative bg-zinc-900 border border-zinc-800 rounded-2xl aspect-[4/3] sm:aspect-square md:aspect-[4/5] overflow-hidden cursor-pointer hover:border-emerald-500/50 shadow-md transition-all"
-                >
-                  {/* Thumbnail Picture Background */}
-                  <img 
-                    src={sport.img} 
-                    alt={`${sport.name} Collection`} 
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out filter brightness-75 group-hover:brightness-90"
-                  />
-                  {/* Bottom Text Fade Overlay Gradient */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent" />
-                  
-                  {/* Pin Text to Bottom Left */}
-                  <div className="absolute bottom-5 left-5 right-5 flex flex-col gap-0.5">
-                    <h3 className="text-xl font-black text-white uppercase tracking-tight group-hover:text-emerald-400 transition-colors">
-                      {sport.name}
-                    </h3>
-                    <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      Explore Catalog ➔
-                    </span>
-                  </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-stretch">
+              
+              {/* PADEL SECTOR - DOUBLE WIDTH & FULL HEIGHT */}
+              <div 
+                onClick={() => routeToSport(padelCategory.name)} 
+                className="group relative bg-zinc-900 border border-zinc-800 rounded-3xl overflow-hidden cursor-pointer hover:border-emerald-500/50 shadow-xl transition-all md:col-span-6 min-h-[340px] md:min-h-full flex flex-col justify-end"
+              >
+                <img 
+                  src={padelCategory.img} 
+                  alt="Padel Court Scene" 
+                  className="w-full h-full object-cover absolute inset-0 group-hover:scale-102 transition-transform duration-500 ease-out filter brightness-75 group-hover:brightness-90"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/30 to-transparent" />
+                
+                <div className="relative p-6 md:p-8 z-10 flex flex-col gap-1">
+                  <h3 className="text-3xl font-black text-white uppercase tracking-tight group-hover:text-emerald-400 transition-colors">
+                    {padelCategory.name}
+                  </h3>
+                  <span className="text-xs font-mono uppercase tracking-widest text-emerald-400/80">
+                    Explore Premium Catalog ➔
+                  </span>
                 </div>
-              ))}
+              </div>
+
+              {/* SECONDARY SIDE GRID PANELS - 2X2 COMPOSITION PACKED BESIDE FEATURED ITEM */}
+              <div className="md:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-5">
+                {rightGridCategories.map((sport) => (
+                  <div 
+                    key={sport.name} 
+                    onClick={() => routeToSport(sport.name)} 
+                    className="group relative bg-zinc-900 border border-zinc-800 rounded-2xl aspect-[4/3] sm:aspect-square overflow-hidden cursor-pointer hover:border-emerald-500/40 shadow-md transition-all flex flex-col justify-end"
+                  >
+                    <img 
+                      src={sport.img} 
+                      alt={`${sport.name} Equipment Display`} 
+                      className="w-full h-full object-cover absolute inset-0 group-hover:scale-103 transition-transform duration-500 ease-out filter brightness-75 group-hover:brightness-85"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent" />
+                    
+                    <div className="relative p-5 z-10 flex flex-col gap-0.5">
+                      <h4 className="text-lg font-black text-white uppercase tracking-tight group-hover:text-emerald-400 transition-colors">
+                        {sport.name}
+                      </h4>
+                      <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        View Department ➔
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
             </div>
           </div>
 
+          {/* LOWER STRIP: TRENDING INVENTORY */}
           <div className="max-w-6xl mx-auto px-6 py-12 pb-20">
             <h2 className="text-xl md:text-2xl font-black uppercase tracking-tight text-zinc-200 mb-6">Trending Hardware</h2>
             {loading ? (
@@ -465,6 +444,7 @@ export default function StorePage() {
           </div>
         </div>
       ) : (
+        /* TARGET INTERNAL SECTOR LAYOUT */
         <div className="max-w-6xl mx-auto px-6 py-10 animate-fadeIn">
           <div className="mb-8 border-b border-zinc-900 pb-6">
             <h1 className="text-3xl font-black text-emerald-400 uppercase">{viewState} Department</h1>
@@ -500,7 +480,7 @@ export default function StorePage() {
         </div>
       )}
 
-      {/* COMPONENT: SHOPPING CART OVERLAY */}
+      {/* COMPONENT: SHOPPING CART PANEL */}
       {isCartOpen && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex justify-end animate-fadeIn">
           <div className="w-full max-w-md bg-zinc-900 h-full border-l border-zinc-800 p-6 flex flex-col justify-between shadow-2xl">
@@ -513,7 +493,6 @@ export default function StorePage() {
               {cart.length === 0 ? (
                 <div className="text-center py-16 space-y-3">
                   <p className="text-zinc-500 text-sm">Your bag is empty.</p>
-                  <button onClick={() => setIsCartOpen(false)} className="text-xs uppercase text-emerald-400 font-bold border border-emerald-500/20 px-4 py-2 rounded-lg bg-emerald-500/5 hover:bg-emerald-500/10">Browse Store</button>
                 </div>
               ) : (
                 <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1 scrollbar-none">
@@ -651,13 +630,6 @@ export default function StorePage() {
                   <p className="text-zinc-400 text-xs max-w-sm mx-auto">Your asset allocation record has been pushed to the Elite core server node.</p>
                   <p className="text-[11px] font-mono text-zinc-500 pt-1">Invoice ID: {lastOrderId}</p>
                 </div>
-
-                {shippingDetails.paymentMethod === 'FULL_PAYMENT' && (
-                  <div className="bg-zinc-950 p-4 border border-zinc-800 rounded-xl text-left max-w-md mx-auto space-y-2">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-amber-400">Wire Logistics Required</span>
-                    <p className="text-[11px] text-zinc-400 leading-relaxed">To complete processing, send the invoice balance of <strong className="text-white">{getCartTotal().toLocaleString()} PKR</strong> to your designated club banking node, referencing order ID: <span className="font-mono text-white">{lastOrderId}</span>.</p>
-                  </div>
-                )}
 
                 <button 
                   onClick={() => { setIsCheckoutOpen(false); setSelectedProduct(null); setViewState("Home"); }} 
