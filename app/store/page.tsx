@@ -3,21 +3,29 @@ import { useEffect, useState } from 'react';
 import { initializeApp, getApps } from "firebase/app";
 import { getDatabase, ref, onValue, push } from "firebase/database";
 
-// Declare the custom web component for TypeScript
+// Bulletproof custom web component declaration for both legacy and modern React JSX configurations
 declare global {
+  namespace React {
+    namespace JSX {
+      interface IntrinsicElements {
+        'model-viewer': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement> & {
+          src?: string;
+          alt?: string;
+          'camera-controls'?: boolean;
+          'auto-rotate'?: boolean;
+          'rotation-per-second'?: string;
+          'interaction-prompt'?: string;
+          'environment-image'?: string;
+          'skybox-image'?: string;
+          'shadow-intensity'?: string;
+          style?: React.CSSProperties;
+        }, HTMLElement>;
+      }
+    }
+  }
   namespace JSX {
     interface IntrinsicElements {
-      'model-viewer': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement> & {
-        src?: string;
-        alt?: string;
-        'camera-controls'?: boolean;
-        'auto-rotate'?: boolean;
-        'rotation-per-second'?: string;
-        'interaction-prompt'?: string;
-        'environment-image'?: string;
-        'skybox-image'?: string;
-        'shadow-intensity'?: string;
-      }, HTMLElement>;
+      'model-viewer': any;
     }
   }
 }
@@ -77,7 +85,6 @@ function ProductDetailView({ product, onBack, onAddToCart, onBuyNow }: { product
     
   const [activeImg, setActiveImg] = useState<string>(imageList[0] || '/placeholder.jpg');
 
-  // Inject the model-viewer script when the component mounts
   useEffect(() => {
     if (!document.querySelector('script[src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"]')) {
       const script = document.createElement('script');
@@ -93,13 +100,12 @@ function ProductDetailView({ product, onBack, onAddToCart, onBuyNow }: { product
   return (
     <div className="animate-fadeIn">
       <button onClick={onBack} className="mb-8 flex items-center gap-2 text-zinc-400 hover:text-emerald-400 font-medium transition-colors text-sm">
-        ❮ Back to Shop Explorer
+        &larr; Back to Shop Explorer
       </button>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start mb-12">
         <div className="lg:col-span-5 space-y-4">
           
-          {/* Conditional Rendering: 3D Viewer OR 2D Image */}
           {product.model3d ? (
             <div className="w-full h-[380px] md:h-[460px] bg-zinc-950 border border-zinc-800 rounded-2xl flex items-center justify-center overflow-hidden shadow-2xl relative">
               <model-viewer 
@@ -127,7 +133,6 @@ function ProductDetailView({ product, onBack, onAddToCart, onBuyNow }: { product
             </div>
           )}
 
-          {/* Thumbnail Slider */}
           {imageList.length > 1 && !product.model3d && (
             <div className="flex gap-2.5 overflow-x-auto pb-2 scrollbar-none">
               {imageList.map((url: string, idx: number) => (
@@ -279,7 +284,7 @@ export default function StorePage() {
   };
 
   const getCartTotal = () => {
-    return cart.reduce((total, item) => {
+    return cart.reduce((total: number, item: CartItem) => {
       const priceNum = parseInt(item.product.elitePrice.replace(/[^0-9]/g, '')) || 0;
       return total + (priceNum * item.quantity);
     }, 0);
@@ -299,7 +304,7 @@ export default function StorePage() {
         address: shippingDetails.paymentMethod === 'COURT_PICKUP' ? 'Self-Pickup at Court Venue' : shippingDetails.address,
         city: shippingDetails.paymentMethod === 'COURT_PICKUP' ? 'Lahore Court' : shippingDetails.city
       },
-      items: cart.map(item => ({
+      items: cart.map((item: CartItem) => ({
         name: item.product.name,
         category: item.product.category,
         quantity: item.quantity,
@@ -346,7 +351,6 @@ export default function StorePage() {
   return (
     <div className="bg-zinc-950 min-h-screen text-white relative overflow-x-hidden">
       
-      {/* HEADER BAR AND NAVIGATION */}
       <div className="bg-zinc-900 border-b border-zinc-800 px-6 py-4 sticky top-0 z-40 backdrop-blur-md bg-zinc-900/90">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center justify-between w-full sm:w-auto gap-4">
@@ -354,7 +358,7 @@ export default function StorePage() {
               <span className="text-xl font-black tracking-tighter text-zinc-100 uppercase">Elite<span className="text-emerald-400">Store</span></span>
             </div>
             <button onClick={() => setIsCartOpen(true)} className="sm:hidden text-zinc-300 bg-zinc-950 px-3 py-1.5 rounded-lg border border-zinc-800 text-xs flex items-center gap-1.5">
-              🛒 <span className="bg-emerald-500 text-black px-1.5 py-0.5 rounded text-[10px] font-black">{cart.reduce((a,c) => a+c.quantity, 0)}</span>
+              🛒 <span className="bg-emerald-500 text-black px-1.5 py-0.5 rounded text-[10px] font-black">{cart.reduce((acc: number, item: CartItem) => acc + item.quantity, 0)}</span>
             </button>
           </div>
           
@@ -366,14 +370,14 @@ export default function StorePage() {
             
             <button onClick={() => setIsCartOpen(true)} className="hidden sm:flex items-center gap-2 ml-4 bg-zinc-950 hover:bg-zinc-900 border border-zinc-800 px-4 py-2 rounded-xl text-xs font-bold transition-all">
               <span>Cart</span>
-              <span className="bg-emerald-500 text-black w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black">{cart.reduce((a,c) => a+c.quantity, 0)}</span>
+              <span className="bg-emerald-500 text-black w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black">{cart.reduce((acc: number, item: CartItem) => acc + item.quantity, 0)}</span>
             </button>
           </nav>
         </div>
       </div>
 
       {selectedProduct ? (
-        <div className="p-6 md:p-10 bg-zinc-950 min-h-[calc(screen-80px)] text-white">
+        <div className="p-6 md:p-10 bg-zinc-950 min-h-[calc(100vh-80px)] text-white">
           <div className="max-w-6xl mx-auto">
             <ProductDetailView 
               product={selectedProduct} 
@@ -386,20 +390,16 @@ export default function StorePage() {
       ) : viewState === "Home" ? (
         <div className="animate-fadeIn">
           
-          {/* HERO LAYOUT */}
           <div className="max-w-6xl mx-auto px-6 pt-8 pb-10">
             <div className="relative border border-zinc-800 rounded-3xl overflow-hidden min-h-[440px] flex items-center">
-              
               <img 
                 src="/images/padel-img.webp" 
                 alt="Athletes playing intensive match play on a racquet court" 
                 className="w-full h-full object-cover absolute inset-0 filter brightness-95 contrast-105 object-center"
               />
-              
               <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/45 to-transparent max-lg:bg-gradient-to-t max-lg:from-black/95 max-lg:via-black/50" />
-
               <div className="relative max-w-md p-8 md:p-12 space-y-4 z-10">
-                <span className="text-xs uppercase font-black tracking-widest text-emerald-400 bg-zinc-950/60 backdrop-blur-xs px-3 py-1 rounded-full border border-emerald-500/20 max-w-max block">
+                <span className="text-xs uppercase font-black tracking-widest text-emerald-400 bg-zinc-950/60 backdrop-blur-sm px-3 py-1 rounded-full border border-emerald-500/20 max-w-max block">
                   Pro Equipment Hub
                 </span>
                 <h1 className="text-3xl md:text-5xl font-black text-white tracking-tight uppercase leading-none drop-shadow-lg">
@@ -409,18 +409,15 @@ export default function StorePage() {
                   Elevate your game assets. Source authentic performance rackets, paddles, match-grade ball packs, and technical accessories built for the courts.
                 </p>
               </div>
-
             </div>
           </div>
 
-          {/* ASYMMETRICAL DASHBOARD GRID */}
           <div className="max-w-6xl mx-auto px-6 py-6">
             <h2 className="text-xl font-bold tracking-wider text-white uppercase mb-6">
               Browse Pro Collections
             </h2>
             
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
-              
               <div 
                 onClick={() => routeToSport(padelCategory.name)}
                 className="lg:col-span-7 relative overflow-hidden rounded-2xl min-h-[380px] lg:min-h-[480px] flex flex-col justify-end p-8 group border border-zinc-800/30 cursor-pointer"
@@ -439,16 +436,8 @@ export default function StorePage() {
                   </h3>
                   <div className="flex items-center justify-between">
                     <span className="text-zinc-400 text-sm font-medium tracking-wide flex items-center gap-1 group-hover:text-white transition-colors">
-                      Explore Catalog <span className="group-hover:translate-x-1 transition-transform duration-300">→</span>
+                      Explore Catalog <span className="group-hover:translate-x-1 transition-transform duration-300">&rarr;</span>
                     </span>
-                    <div className="flex gap-2">
-                      <div className="w-7 h-7 rounded-full border border-zinc-700/80 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-                        <svg className="w-3.5 h-3.5 text-zinc-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37zM17.5 6.5h.01"/></svg>
-                      </div>
-                      <div className="w-7 h-7 rounded-full border border-zinc-700/80 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-                        <svg className="w-3.5 h-3.5 text-zinc-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20M2 12h20"/></svg>
-                      </div>
-                    </div>
                   </div>
                 </div>
               </div>
@@ -470,17 +459,15 @@ export default function StorePage() {
                     <div className="relative z-10">
                       <h3 className="text-lg lg:text-xl font-bold tracking-wide text-white uppercase mb-0.5">{sport.name}</h3>
                       <div className="flex items-center justify-between text-xs text-zinc-400">
-                        <span className="flex items-center gap-1 group-hover:text-white transition-colors">Explore Catalog →</span>
+                        <span className="flex items-center gap-1 group-hover:text-white transition-colors">Explore Catalog &rarr;</span>
                       </div>
                     </div>
                   </div>
                 ))}
               </div>
-
             </div>
           </div>
 
-          {/* LOWER STRIP */}
           <div className="max-w-6xl mx-auto px-6 py-12 pb-20">
             <h2 className="text-xl md:text-2xl font-black uppercase tracking-tight text-zinc-200 mb-6">Trending Hardware</h2>
             {loading ? (
@@ -509,7 +496,6 @@ export default function StorePage() {
           </div>
         </div>
       ) : (
-        /* INTERNAL DEPARTMENTS VIEW */
         <div className="max-w-6xl mx-auto px-6 py-10 animate-fadeIn">
           <div className="mb-8 border-b border-zinc-900 pb-6">
             <h1 className="text-3xl font-black text-emerald-400 uppercase">{viewState} Department</h1>
@@ -545,7 +531,6 @@ export default function StorePage() {
         </div>
       )}
 
-      {/* SHOPPING CART */}
       {isCartOpen && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex justify-end animate-fadeIn">
           <div className="w-full max-w-md bg-zinc-900 h-full border-l border-zinc-800 p-6 flex flex-col justify-between shadow-2xl">
@@ -561,7 +546,7 @@ export default function StorePage() {
                 </div>
               ) : (
                 <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1 scrollbar-none">
-                  {cart.map((item, idx) => {
+                  {cart.map((item: CartItem, idx: number) => {
                     const imgUrl = Array.isArray(item.product.images) ? item.product.images[0] : (item.product.image ? item.product.image : '/placeholder.jpg');
                     return (
                       <div key={idx} className="flex gap-4 p-3 bg-zinc-950 border border-zinc-800 rounded-xl items-center">
@@ -602,7 +587,6 @@ export default function StorePage() {
         </div>
       )}
 
-      {/* CHECKOUT MODULE */}
       {isCheckoutOpen && (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-y-auto">
           <div className="w-full max-w-xl bg-zinc-900 border border-zinc-800 rounded-2xl p-6 md:p-8 max-h-[90vh] overflow-y-auto scrollbar-none shadow-2xl relative">
@@ -618,7 +602,7 @@ export default function StorePage() {
 
                 <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800 space-y-2">
                   <span className="text-[10px] uppercase font-black tracking-wider text-zinc-500">Order Summary</span>
-                  {cart.map((item, i) => (
+                  {cart.map((item: CartItem, i: number) => (
                     <div key={i} className="flex justify-between text-xs text-zinc-300">
                       <span className="truncate max-w-[70%]">{item.product.name} <span className="text-zinc-500 font-mono">x{item.quantity}</span></span>
                       <span className="font-bold text-emerald-400">{item.product.elitePrice}</span>
