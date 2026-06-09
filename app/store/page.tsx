@@ -344,7 +344,7 @@ export default function StorePage() {
               </div>
               <div className="lg:col-span-7 h-full min-h-[300px] lg:min-h-full relative self-stretch">
                 <img 
-                  src="https://images.unsplash.com/photo-1613564834644-a170d10b2720?q=80&w=1400&auto=format&fit=crop" 
+                  src="/images/padel-img.webp" 
                   alt="Athletes playing intensive match play on a racquet court" 
                   className="w-full h-full object-cover absolute inset-0 filter brightness-90 contrast-105 object-center"
                 />
