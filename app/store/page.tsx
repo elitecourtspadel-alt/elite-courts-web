@@ -334,23 +334,33 @@ export default function StorePage() {
       ) : viewState === "Home" ? (
         <div className="animate-fadeIn">
           
-          {/* HERO LAYOUT */}
+          {/* HERO LAYOUT - Full Color Bleed Overlay Setup */}
           <div className="max-w-6xl mx-auto px-6 pt-8 pb-10">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 bg-zinc-900 border border-zinc-800 rounded-3xl overflow-hidden min-h-[440px] items-center">
-              <div className="lg:col-span-5 p-8 md:p-12 space-y-4 z-10">
-                <span className="text-xs uppercase font-black tracking-widest text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20 max-w-max block">Pro Equipment Hub</span>
-                <h1 className="text-3xl md:text-5xl font-black text-zinc-100 tracking-tight uppercase leading-none">Premium<br/>Sports Gear</h1>
-                <p className="text-zinc-400 text-xs md:text-sm leading-relaxed">Elevate your game assets. Source authentic performance rackets, paddles, match-grade ball packs, and technical accessories built for the courts.</p>
+            <div className="relative border border-zinc-800 rounded-3xl overflow-hidden min-h-[440px] flex items-center">
+              
+              {/* Background Court Image */}
+              <img 
+                src="/images/padel-img.webp" 
+                alt="Athletes playing intensive match play on a racquet court" 
+                className="w-full h-full object-cover absolute inset-0 filter brightness-95 contrast-105 object-center"
+              />
+              
+              {/* Context-aware readable overlay protection across device viewports */}
+              <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/45 to-transparent max-lg:bg-gradient-to-t max-lg:from-black/95 max-lg:via-black/50" />
+
+              {/* Floating Hero Content */}
+              <div className="relative max-w-md p-8 md:p-12 space-y-4 z-10">
+                <span className="text-xs uppercase font-black tracking-widest text-emerald-400 bg-zinc-950/60 backdrop-blur-xs px-3 py-1 rounded-full border border-emerald-500/20 max-w-max block">
+                  Pro Equipment Hub
+                </span>
+                <h1 className="text-3xl md:text-5xl font-black text-white tracking-tight uppercase leading-none drop-shadow-lg">
+                  Premium<br/>Sports Gear
+                </h1>
+                <p className="text-zinc-200 text-xs md:text-sm leading-relaxed font-medium drop-shadow-md">
+                  Elevate your game assets. Source authentic performance rackets, paddles, match-grade ball packs, and technical accessories built for the courts.
+                </p>
               </div>
-              <div className="lg:col-span-7 h-full min-h-[300px] lg:min-h-full relative self-stretch">
-                <img 
-                  src="/images/padel-img.webp" 
-                  alt="Athletes playing intensive match play on a racquet court" 
-                  className="w-full h-full object-cover absolute inset-0 filter brightness-90 contrast-105 object-center"
-                />
-                <div className="absolute inset-0 bg-gradient-to-r from-zinc-900 via-zinc-900/40 to-transparent hidden lg:block" />
-                <div className="absolute inset-0 bg-gradient-to-t from-zinc-900 via-zinc-900/20 to-transparent lg:hidden" />
-              </div>
+
             </div>
           </div>
 
@@ -362,7 +372,7 @@ export default function StorePage() {
             
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
               
-              {/* 1. PADEL - LARGE FEATURE CARD (Takes up 7/12 width) */}
+              {/* 1. PADEL - LARGE FEATURE CARD */}
               <div 
                 onClick={() => routeToSport(padelCategory.name)}
                 className="lg:col-span-7 relative overflow-hidden rounded-2xl min-h-[380px] lg:min-h-[480px] flex flex-col justify-end p-8 group border border-zinc-800/30 cursor-pointer"
@@ -395,7 +405,7 @@ export default function StorePage() {
                 </div>
               </div>
 
-              {/* RIGHT SIDE GRID - 2x2 PANELS COMPOSITION (Takes up 5/12 width) */}
+              {/* RIGHT SIDE GRID - 2x2 PANELS COMPOSITION */}
               <div className="lg:col-span-5 grid grid-cols-2 gap-4">
                 {rightGridCategories.map((sport) => (
                   <div 
@@ -576,72 +586,98 @@ export default function StorePage() {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-[10px] uppercase font-black text-zinc-400 tracking-wider mb-1">Full Name</label>
-                    <input required type="text" value={shippingDetails.fullName} onChange={e => setShippingDetails({...shippingDetails, fullName: e.target.value})} className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-4 py-3 text-sm text-white focus:outline-none transition-all" placeholder="e.g. Shahrukh Khan" />
+                    <input 
+                      required 
+                      type="text" 
+                      value={shippingDetails.fullName} 
+                      onChange={e => setShippingDetails({...shippingDetails, fullName: e.target.value})} 
+                      className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-4 py-3 text-sm text-white focus:outline-none transition-all" 
+                      placeholder="Muhammad Ali" 
+                    />
                   </div>
 
                   <div>
-                    <label className="block text-[10px] uppercase font-black text-zinc-400 tracking-wider mb-1">Active Contact Number</label>
-                    <input required type="tel" value={shippingDetails.phone} onChange={e => setShippingDetails({...shippingDetails, phone: e.target.value})} className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-4 py-3 text-sm text-white focus:outline-none transition-all" placeholder="e.g. 03084708858" />
+                    <label className="block text-[10px] uppercase font-black text-zinc-400 tracking-wider mb-1">Phone Number</label>
+                    <input 
+                      required 
+                      type="tel" 
+                      value={shippingDetails.phone} 
+                      onChange={e => setShippingDetails({...shippingDetails, phone: e.target.value})} 
+                      className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-4 py-3 text-sm text-white focus:outline-none transition-all" 
+                      placeholder="03001234567" 
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] uppercase font-black text-zinc-400 tracking-wider mb-1">Payment & Dispatch Strategy</label>
+                    <select 
+                      value={shippingDetails.paymentMethod} 
+                      onChange={e => setShippingDetails({...shippingDetails, paymentMethod: e.target.value})} 
+                      className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-4 py-3 text-sm text-white focus:outline-none transition-all"
+                    >
+                      <option value="FULL_PAYMENT">Cash on Delivery / Direct Bank Remittance</option>
+                      <option value="COURT_PICKUP">Self-Pickup at Lahore Venue Courts</option>
+                    </select>
                   </div>
 
                   {shippingDetails.paymentMethod !== 'COURT_PICKUP' && (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-fadeIn">
-                      <div className="md:col-span-2">
-                        <label className="block text-[10px] uppercase font-black text-zinc-400 tracking-wider mb-1">Shipping Address</label>
-                        <input required={shippingDetails.paymentMethod !== 'COURT_PICKUP'} type="text" value={shippingDetails.address} onChange={e => setShippingDetails({...shippingDetails, address: e.target.value})} className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-4 py-3 text-sm text-white focus:outline-none transition-all" placeholder="House/Apartment #, Street Name" />
-                      </div>
+                    <>
                       <div>
-                        <label className="block text-[10px] uppercase font-black text-zinc-400 tracking-wider mb-1">City</label>
-                        <input required={shippingDetails.paymentMethod !== 'COURT_PICKUP'} type="text" value={shippingDetails.city} onChange={e => setShippingDetails({...shippingDetails, city: e.target.value})} className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-4 py-3 text-sm text-white focus:outline-none transition-all" placeholder="Lahore" />
+                        <label className="block text-[10px] uppercase font-black text-zinc-400 tracking-wider mb-1">Shipping Destination Address</label>
+                        <input 
+                          required={shippingDetails.paymentMethod !== 'COURT_PICKUP'} 
+                          type="text" 
+                          value={shippingDetails.address} 
+                          onChange={e => setShippingDetails({...shippingDetails, address: e.target.value})} 
+                          className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-4 py-3 text-sm text-white focus:outline-none transition-all" 
+                          placeholder="House Num, Street Layout, Sector Sector Address" 
+                        />
                       </div>
-                    </div>
-                  )}
 
-                  <div>
-                    <label className="block text-[10px] uppercase font-black text-zinc-400 tracking-wider mb-2">Fulfillment Method</label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <label className={`border rounded-xl p-4 flex items-center gap-3 cursor-pointer transition-all ${shippingDetails.paymentMethod === 'FULL_PAYMENT' ? 'border-emerald-500 bg-emerald-500/5' : 'border-zinc-800 bg-zinc-950'}`}>
-                        <input type="radio" name="paymentMethod" value="FULL_PAYMENT" checked={shippingDetails.paymentMethod === 'FULL_PAYMENT'} onChange={e => setShippingDetails({...shippingDetails, paymentMethod: e.target.value})} className="accent-emerald-500" />
-                        <div>
-                          <p className="text-xs font-bold text-white">Standard Delivery</p>
-                          <p className="text-[10px] text-zinc-500">Shipped directly to address</p>
-                        </div>
-                      </label>
-                      <label className={`border rounded-xl p-4 flex items-center gap-3 cursor-pointer transition-all ${shippingDetails.paymentMethod === 'COURT_PICKUP' ? 'border-emerald-500 bg-emerald-500/5' : 'border-zinc-800 bg-zinc-950'}`}>
-                        <input type="radio" name="paymentMethod" value="COURT_PICKUP" checked={shippingDetails.paymentMethod === 'COURT_PICKUP'} onChange={e => setShippingDetails({...shippingDetails, paymentMethod: e.target.value})} className="accent-emerald-500" />
-                        <div>
-                          <p className="text-xs font-bold text-white">Court Self-Pickup</p>
-                          <p className="text-[10px] text-zinc-500">Collect live at Lahore court venue</p>
-                        </div>
-                      </label>
-                    </div>
-                  </div>
+                      <div>
+                        <label className="block text-[10px] uppercase font-black text-zinc-400 tracking-wider mb-1">City Node</label>
+                        <input 
+                          required={shippingDetails.paymentMethod !== 'COURT_PICKUP'} 
+                          type="text" 
+                          value={shippingDetails.city} 
+                          onChange={e => setShippingDetails({...shippingDetails, city: e.target.value})} 
+                          className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-4 py-3 text-sm text-white focus:outline-none transition-all" 
+                          placeholder="Lahore" 
+                        />
+                      </div>
+                    </>
+                  )}
                 </div>
 
-                <button type="submit" className="w-full bg-emerald-500 hover:bg-emerald-400 text-black font-black py-4 rounded-xl text-xs uppercase tracking-wider transition-all mt-4">
-                  Confirm and Submit Order
+                <button 
+                  type="submit" 
+                  className="w-full bg-emerald-500 hover:bg-emerald-400 text-black font-black py-4 rounded-xl text-center text-xs uppercase tracking-wider block transition-all shadow-lg shadow-emerald-500/10"
+                >
+                  Confirm and Dispatch Order Request
                 </button>
               </form>
             ) : (
-              <div className="text-center py-8 space-y-4 animate-fadeIn">
-                <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-full flex items-center justify-center text-2xl mx-auto">✓</div>
+              <div className="text-center py-8 space-y-4">
+                <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/30 rounded-full flex items-center justify-center mx-auto text-emerald-400 text-2xl">✓</div>
                 <div>
-                  <h3 className="text-xl font-black uppercase text-white">Order Placed Successfully</h3>
-                  <p className="text-zinc-400 text-xs mt-1">Your premium gear reservation has been recorded.</p>
+                  <h3 className="text-lg font-black uppercase tracking-tight text-white">Order Synced Successfully!</h3>
+                  <p className="text-zinc-400 text-xs mt-1">Your transaction record has been committed inside our backend Firebase architecture cluster.</p>
+                  <p className="text-zinc-500 font-mono text-[11px] mt-3 bg-zinc-950 p-2.5 rounded border border-zinc-800/60 break-all select-all">
+                    Order Matrix Reference Key: {lastOrderId}
+                  </p>
                 </div>
-                <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-4 text-left max-w-sm mx-auto font-mono text-xs text-zinc-400 space-y-1">
-                  <p><span className="text-zinc-600">ORDER_ID:</span> {lastOrderId}</p>
-                  <p><span className="text-zinc-600">STATUS:</span> PENDING_VERIFICATION</p>
-                </div>
-                <button onClick={() => setIsCheckoutOpen(false)} className="bg-zinc-800 hover:bg-zinc-700 text-white font-bold px-6 py-2.5 rounded-xl text-xs uppercase tracking-wider transition-all">
-                  Close Window
+                <button 
+                  onClick={() => setIsCheckoutOpen(false)} 
+                  className="px-6 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-xl text-xs font-bold uppercase tracking-wide transition-all"
+                >
+                  Terminate Interface View
                 </button>
               </div>
             )}
+
           </div>
         </div>
       )}
-
     </div>
   );
 }
