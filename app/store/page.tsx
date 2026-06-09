@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { initializeApp, getApps } from "firebase/app";
 import { getDatabase, ref, onValue, push } from "firebase/database";
 
-// Bulletproof custom web component declaration for both legacy and modern React JSX configurations
+// Custom web component declaration for modern React JSX configurations
 declare global {
   namespace React {
     namespace JSX {
@@ -83,17 +83,24 @@ function ProductDetailView({ product, onBack, onAddToCart, onBuyNow }: { product
     ? product.images.map((url: string) => url.trim()).filter((url: string) => url !== "")
     : (product.image ? [product.image.trim()] : ['/placeholder.jpg']);
     
-  const [activeImg, setActiveImg] = useState<string>(imageList[0] || '/placeholder.jpg');
+  const [activeImg, setActiveImg] = useState<string>('/placeholder.jpg');
 
   useEffect(() => {
+    // Dynamic script mounting for 3D model engine
     if (!document.querySelector('script[src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"]')) {
       const script = document.createElement('script');
       script.type = 'module';
       script.src = 'https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js';
       document.head.appendChild(script);
     }
-    if (imageList.length > 0) setActiveImg(imageList[0]);
-  }, [product.images, product.image, imageList]);
+    
+    // Set first image only when switching between completely different products
+    const initialImages = Array.isArray(product.images) 
+      ? product.images.map((url: string) => url.trim()).filter((url: string) => url !== "")
+      : (product.image ? [product.image.trim()] : ['/placeholder.jpg']);
+      
+    setActiveImg(initialImages[0] || '/placeholder.jpg');
+  }, [product]); // Watching the product layout container directly prevents the image-switch reset loop
 
   const specs = product.specs || {};
 
@@ -133,7 +140,7 @@ function ProductDetailView({ product, onBack, onAddToCart, onBuyNow }: { product
             </div>
           )}
 
-          {imageList.length > 1 && !product.model3d && (
+          {imageList.length > 1 && (
             <div className="flex gap-2.5 overflow-x-auto pb-2 scrollbar-none">
               {imageList.map((url: string, idx: number) => (
                 <button key={idx} onClick={() => setActiveImg(url)} className={`w-20 h-20 rounded-xl overflow-hidden bg-zinc-900 border-2 flex-shrink-0 p-1 transition-all ${activeImg === url ? 'border-emerald-500 scale-95' : 'border-zinc-800 opacity-60'}`}>
