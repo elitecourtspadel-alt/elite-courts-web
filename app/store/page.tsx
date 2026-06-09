@@ -32,13 +32,12 @@ interface CartItem {
   quantity: number;
 }
 
-// PREMIUM SPECIFIC IMAGERY SCHEME (NO CYCLING - ACCURATE RACQUET/FIELD SPORTS)
 const SPORT_COLLECTIONS = [
-  { name: "Padel", img: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800&auto=format&fit=crop&q=60" },
-  { name: "Pickleball", img: "/images/sports/elite_courts_padel_card.avif" },
-  { name: "Table Tennis", img: "https://images.unsplash.com/photo-1609710223199-14b5d5b1f8f7?w=800&auto=format&fit=crop&q=60" },
-  { name: "Cricket", img: "https://images.unsplash.com/photo-1607734834519-d8576ae60ea6?w=800&auto=format&fit=crop&q=60" },
-  { name: "Badminton", img: "https://images.unsplash.com/photo-1617083277684-630247384661?w=800&auto=format&fit=crop&q=60" }
+  { name: "Padel", img: "/images/sports/elite_courts_padel_card.jpg", fallback: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800" },
+  { name: "Pickleball", img: "/images/sports/elite_courts_pickleball_card.avif", fallback: "https://images.unsplash.com/photo-1613564834644-a170d10b2720?w=600" },
+  { name: "Table Tennis", img: "/images/sports/elite_courts_table_tennis_card.jpg", fallback: "https://images.unsplash.com/photo-1609710223199-14b5d5b1f8f7?w=600" },
+  { name: "Cricket", img: "/images/sports/elite_courts_cricket_card.gif", fallback: "https://images.unsplash.com/photo-1607734834519-d8576ae60ea6?w=600" },
+  { name: "Badminton", img: "/images/sports/elite_courts_badminton_card.gif", fallback: "https://images.unsplash.com/photo-1617083277684-630247384661?w=600" }
 ];
 
 const SPORTS: string[] = SPORT_COLLECTIONS.map(s => s.name);
@@ -63,7 +62,6 @@ function ProductDetailView({ product, onBack, onAddToCart, onBuyNow }: { product
   }, [product.images, product.image]);
 
   const specs = product.specs || {};
-  const isHardware = ["Rackets", "Paddles", "Bats"].includes(product.subcategory);
 
   return (
     <div className="animate-fadeIn">
@@ -290,7 +288,6 @@ export default function StorePage() {
     return matchesSport && matchesSub;
   });
 
-  // Extract separate category components for explicit high-impact sizing layout
   const padelCategory = SPORT_COLLECTIONS.find(s => s.name === "Padel")!;
   const rightGridCategories = SPORT_COLLECTIONS.filter(s => s.name !== "Padel");
 
@@ -337,7 +334,7 @@ export default function StorePage() {
       ) : viewState === "Home" ? (
         <div className="animate-fadeIn">
           
-          {/* HERO LAYOUT: ACCURATE ACTION FLOW IN COURT SPORT */}
+          {/* HERO LAYOUT */}
           <div className="max-w-6xl mx-auto px-6 pt-8 pb-10">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 bg-zinc-900 border border-zinc-800 rounded-3xl overflow-hidden min-h-[440px] items-center">
               <div className="lg:col-span-5 p-8 md:p-12 space-y-4 z-10">
@@ -357,56 +354,67 @@ export default function StorePage() {
             </div>
           </div>
 
-          {/* ASYMMETRICAL COLLECTION DASHBOARD GRID (PADEL FEATURED LARGE THUMBNAIL) */}
+          {/* PREMIUM ASYMMETRICAL DASHBOARD GRID CONTROLLER */}
           <div className="max-w-6xl mx-auto px-6 py-6">
-            <h2 className="text-xl md:text-2xl font-black uppercase tracking-tight text-zinc-200 mb-6">Browse Pro Collections</h2>
+            <h2 className="text-xl font-bold tracking-wider text-white uppercase mb-6">
+              Browse Pro Collections
+            </h2>
             
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-stretch">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
               
-              {/* PADEL SECTOR - DOUBLE WIDTH & FULL HEIGHT */}
+              {/* 1. PADEL - LARGE FEATURE CARD (Takes up 7/12 width) */}
               <div 
-                onClick={() => routeToSport(padelCategory.name)} 
-                className="group relative bg-zinc-900 border border-zinc-800 rounded-3xl overflow-hidden cursor-pointer hover:border-emerald-500/50 shadow-xl transition-all md:col-span-6 min-h-[340px] md:min-h-full flex flex-col justify-end"
+                onClick={() => routeToSport(padelCategory.name)}
+                className="lg:col-span-7 relative overflow-hidden rounded-2xl min-h-[380px] lg:min-h-[480px] flex flex-col justify-end p-8 group border border-zinc-800/30 cursor-pointer"
               >
                 <img 
                   src={padelCategory.img} 
-                  alt="Padel Court Scene" 
-                  className="w-full h-full object-cover absolute inset-0 group-hover:scale-102 transition-transform duration-500 ease-out filter brightness-75 group-hover:brightness-90"
+                  alt="Padel Collection"
+                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+                  onError={(e) => { (e.target as HTMLImageElement).src = padelCategory.fallback; }}
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/30 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent" />
                 
-                <div className="relative p-6 md:p-8 z-10 flex flex-col gap-1">
-                  <h3 className="text-3xl font-black text-white uppercase tracking-tight group-hover:text-emerald-400 transition-colors">
+                <div className="relative z-10">
+                  <h3 className="text-4xl lg:text-5xl font-black tracking-tight text-white uppercase mb-1">
                     {padelCategory.name}
                   </h3>
-                  <span className="text-xs font-mono uppercase tracking-widest text-emerald-400/80">
-                    Explore Premium Catalog ➔
-                  </span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-zinc-400 text-sm font-medium tracking-wide flex items-center gap-1 group-hover:text-white transition-colors">
+                      Explore Catalog <span className="group-hover:translate-x-1 transition-transform duration-300">→</span>
+                    </span>
+                    <div className="flex gap-2">
+                      <div className="w-7 h-7 rounded-full border border-zinc-700/80 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+                        <svg className="w-3.5 h-3.5 text-zinc-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37zM17.5 6.5h.01"/></svg>
+                      </div>
+                      <div className="w-7 h-7 rounded-full border border-zinc-700/80 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+                        <svg className="w-3.5 h-3.5 text-zinc-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20M2 12h20"/></svg>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              {/* SECONDARY SIDE GRID PANELS - 2X2 COMPOSITION PACKED BESIDE FEATURED ITEM */}
-              <div className="md:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-5">
+              {/* RIGHT SIDE GRID - 2x2 PANELS COMPOSITION (Takes up 5/12 width) */}
+              <div className="lg:col-span-5 grid grid-cols-2 gap-4">
                 {rightGridCategories.map((sport) => (
                   <div 
-                    key={sport.name} 
-                    onClick={() => routeToSport(sport.name)} 
-                    className="group relative bg-zinc-900 border border-zinc-800 rounded-2xl aspect-[4/3] sm:aspect-square overflow-hidden cursor-pointer hover:border-emerald-500/40 shadow-md transition-all flex flex-col justify-end"
+                    key={sport.name}
+                    onClick={() => routeToSport(sport.name)}
+                    className="relative overflow-hidden rounded-2xl min-h-[180px] lg:min-h-[232px] flex flex-col justify-end p-5 group border border-zinc-800/30 cursor-pointer"
                   >
                     <img 
                       src={sport.img} 
-                      alt={`${sport.name} Equipment Display`} 
-                      className="w-full h-full object-cover absolute inset-0 group-hover:scale-103 transition-transform duration-500 ease-out filter brightness-75 group-hover:brightness-85"
+                      alt={`${sport.name} Equipment`}
+                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+                      onError={(e) => { (e.target as HTMLImageElement).src = sport.fallback; }}
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent" />
-                    
-                    <div className="relative p-5 z-10 flex flex-col gap-0.5">
-                      <h4 className="text-lg font-black text-white uppercase tracking-tight group-hover:text-emerald-400 transition-colors">
-                        {sport.name}
-                      </h4>
-                      <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                        View Department ➔
-                      </span>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/50 to-transparent" />
+                    <div className="relative z-10">
+                      <h3 className="text-lg lg:text-xl font-bold tracking-wide text-white uppercase mb-0.5">{sport.name}</h3>
+                      <div className="flex items-center justify-between text-xs text-zinc-400">
+                        <span className="flex items-center gap-1 group-hover:text-white transition-colors">Explore Catalog →</span>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -444,7 +452,7 @@ export default function StorePage() {
           </div>
         </div>
       ) : (
-        /* TARGET INTERNAL SECTOR LAYOUT */
+        /* TARGET INTERNAL DEPARTMENTS VIEW */
         <div className="max-w-6xl mx-auto px-6 py-10 animate-fadeIn">
           <div className="mb-8 border-b border-zinc-900 pb-6">
             <h1 className="text-3xl font-black text-emerald-400 uppercase">{viewState} Department</h1>
@@ -480,7 +488,7 @@ export default function StorePage() {
         </div>
       )}
 
-      {/* COMPONENT: SHOPPING CART PANEL */}
+      {/* COMPONENT: SHOPPING CART SIDEBAR */}
       {isCartOpen && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex justify-end animate-fadeIn">
           <div className="w-full max-w-md bg-zinc-900 h-full border-l border-zinc-800 p-6 flex flex-col justify-between shadow-2xl">
@@ -579,63 +587,54 @@ export default function StorePage() {
                   {shippingDetails.paymentMethod !== 'COURT_PICKUP' && (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-fadeIn">
                       <div className="md:col-span-2">
-                        <label className="block text-[10px] uppercase font-black text-zinc-400 tracking-wider mb-1">Shipping Home Address</label>
-                        <input required type="text" value={shippingDetails.address} onChange={e => setShippingDetails({...shippingDetails, address: e.target.value})} className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-4 py-3 text-sm text-white focus:outline-none transition-all" placeholder="Street Address, Phase, Sector" />
+                        <label className="block text-[10px] uppercase font-black text-zinc-400 tracking-wider mb-1">Shipping Address</label>
+                        <input required={shippingDetails.paymentMethod !== 'COURT_PICKUP'} type="text" value={shippingDetails.address} onChange={e => setShippingDetails({...shippingDetails, address: e.target.value})} className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-4 py-3 text-sm text-white focus:outline-none transition-all" placeholder="House/Apartment #, Street Name" />
                       </div>
                       <div>
                         <label className="block text-[10px] uppercase font-black text-zinc-400 tracking-wider mb-1">City</label>
-                        <input required type="text" value={shippingDetails.city} onChange={e => setShippingDetails({...shippingDetails, city: e.target.value})} className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-4 py-3 text-sm text-white focus:outline-none transition-all" placeholder="Lahore" />
+                        <input required={shippingDetails.paymentMethod !== 'COURT_PICKUP'} type="text" value={shippingDetails.city} onChange={e => setShippingDetails({...shippingDetails, city: e.target.value})} className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-4 py-3 text-sm text-white focus:outline-none transition-all" placeholder="Lahore" />
                       </div>
                     </div>
                   )}
+
+                  <div>
+                    <label className="block text-[10px] uppercase font-black text-zinc-400 tracking-wider mb-2">Fulfillment Method</label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <label className={`border rounded-xl p-4 flex items-center gap-3 cursor-pointer transition-all ${shippingDetails.paymentMethod === 'FULL_PAYMENT' ? 'border-emerald-500 bg-emerald-500/5' : 'border-zinc-800 bg-zinc-950'}`}>
+                        <input type="radio" name="paymentMethod" value="FULL_PAYMENT" checked={shippingDetails.paymentMethod === 'FULL_PAYMENT'} onChange={e => setShippingDetails({...shippingDetails, paymentMethod: e.target.value})} className="accent-emerald-500" />
+                        <div>
+                          <p className="text-xs font-bold text-white">Standard Delivery</p>
+                          <p className="text-[10px] text-zinc-500">Shipped directly to address</p>
+                        </div>
+                      </label>
+                      <label className={`border rounded-xl p-4 flex items-center gap-3 cursor-pointer transition-all ${shippingDetails.paymentMethod === 'COURT_PICKUP' ? 'border-emerald-500 bg-emerald-500/5' : 'border-zinc-800 bg-zinc-950'}`}>
+                        <input type="radio" name="paymentMethod" value="COURT_PICKUP" checked={shippingDetails.paymentMethod === 'COURT_PICKUP'} onChange={e => setShippingDetails({...shippingDetails, paymentMethod: e.target.value})} className="accent-emerald-500" />
+                        <div>
+                          <p className="text-xs font-bold text-white">Court Self-Pickup</p>
+                          <p className="text-[10px] text-zinc-500">Collect live at Lahore court venue</p>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="space-y-3">
-                  <label className="block text-[10px] uppercase font-black text-zinc-400 tracking-wider">Select Delivery & Payment Strategy</label>
-                  
-                  <label className={`flex items-start gap-4 p-4 rounded-xl border cursor-pointer transition-all ${shippingDetails.paymentMethod === 'FULL_PAYMENT' ? 'border-emerald-500 bg-emerald-500/5' : 'border-zinc-800 bg-zinc-950 hover:border-zinc-700'}`}>
-                    <input type="radio" name="paymentStrategy" value="FULL_PAYMENT" checked={shippingDetails.paymentMethod === 'FULL_PAYMENT'} onChange={e => setShippingDetails({...shippingDetails, paymentMethod: e.target.value})} className="mt-1 accent-emerald-500" />
-                    <div>
-                      <p className="text-sm font-bold text-white">Full Payment (Home Delivery)</p>
-                      <p className="text-xs text-zinc-400 mt-0.5">Pay securely via Bank Transfer or Digital wallets before dispatch.</p>
-                    </div>
-                  </label>
-
-                  <label className={`flex items-start gap-4 p-4 rounded-xl border cursor-pointer transition-all ${shippingDetails.paymentMethod === 'COD' ? 'border-emerald-500 bg-emerald-500/5' : 'border-zinc-800 bg-zinc-950 hover:border-zinc-700'}`}>
-                    <input type="radio" name="paymentStrategy" value="COD" checked={shippingDetails.paymentMethod === 'COD'} onChange={e => setShippingDetails({...shippingDetails, paymentMethod: e.target.value})} className="mt-1 accent-emerald-500" />
-                    <div>
-                      <p className="text-sm font-bold text-white">Cash on Delivery (Home Delivery)</p>
-                      <p className="text-xs text-zinc-400 mt-0.5">Settle with hard cash right at your doorstep upon courier package arrival.</p>
-                    </div>
-                  </label>
-
-                  <label className={`flex items-start gap-4 p-4 rounded-xl border cursor-pointer transition-all ${shippingDetails.paymentMethod === 'COURT_PICKUP' ? 'border-emerald-500 bg-emerald-500/5' : 'border-zinc-800 bg-zinc-950 hover:border-zinc-700'}`}>
-                    <input type="radio" name="paymentStrategy" value="COURT_PICKUP" checked={shippingDetails.paymentMethod === 'COURT_PICKUP'} onChange={e => setShippingDetails({...shippingDetails, paymentMethod: e.target.value})} className="mt-1 accent-emerald-500" />
-                    <div>
-                      <p className="text-sm font-bold text-white">Pick Up at Court Venue (Pay at Desk)</p>
-                      <p className="text-xs text-zinc-400 mt-0.5">Secure item tracking and physically pay upon pickup right at our courts terminal.</p>
-                    </div>
-                  </label>
-                </div>
-
-                <button type="submit" className="w-full bg-emerald-500 hover:bg-emerald-400 text-black font-black py-4 rounded-xl transition-all text-sm uppercase tracking-wider shadow-xl shadow-emerald-500/10">
-                  Confirm & Finalize Order
+                <button type="submit" className="w-full bg-emerald-500 hover:bg-emerald-400 text-black font-black py-4 rounded-xl text-xs uppercase tracking-wider transition-all mt-4">
+                  Confirm and Submit Order
                 </button>
               </form>
             ) : (
-              <div className="text-center py-8 space-y-6 animate-fadeIn">
-                <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-full flex items-center justify-center text-3xl mx-auto">✓</div>
-                <div className="space-y-2">
-                  <h3 className="text-2xl font-black uppercase tracking-tight">Order Logged Successfully</h3>
-                  <p className="text-zinc-400 text-xs max-w-sm mx-auto">Your asset allocation record has been pushed to the Elite core server node.</p>
-                  <p className="text-[11px] font-mono text-zinc-500 pt-1">Invoice ID: {lastOrderId}</p>
+              <div className="text-center py-8 space-y-4 animate-fadeIn">
+                <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-full flex items-center justify-center text-2xl mx-auto">✓</div>
+                <div>
+                  <h3 className="text-xl font-black uppercase text-white">Order Placed Successfully</h3>
+                  <p className="text-zinc-400 text-xs mt-1">Your premium gear reservation has been recorded.</p>
                 </div>
-
-                <button 
-                  onClick={() => { setIsCheckoutOpen(false); setSelectedProduct(null); setViewState("Home"); }} 
-                  className="bg-zinc-950 border border-zinc-800 hover:border-zinc-700 px-8 py-3 rounded-xl text-xs uppercase tracking-wider font-bold transition-all text-zinc-300"
-                >
-                  Return to Dashboard Explorer
+                <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-4 text-left max-w-sm mx-auto font-mono text-xs text-zinc-400 space-y-1">
+                  <p><span className="text-zinc-600">ORDER_ID:</span> {lastOrderId}</p>
+                  <p><span className="text-zinc-600">STATUS:</span> PENDING_VERIFICATION</p>
+                </div>
+                <button onClick={() => setIsCheckoutOpen(false)} className="bg-zinc-800 hover:bg-zinc-700 text-white font-bold px-6 py-2.5 rounded-xl text-xs uppercase tracking-wider transition-all">
+                  Close Window
                 </button>
               </div>
             )}
