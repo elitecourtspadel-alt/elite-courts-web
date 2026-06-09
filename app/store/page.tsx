@@ -34,7 +34,7 @@ interface CartItem {
 
 const SPORT_COLLECTIONS = [
   { name: "Padel", img: "/images/sports/elite_courts_padel_card.jpg", fallback: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800" },
-  { name: "Pickleball", img: "/images/sports/elite_courts_pickleball_card.avif", fallback: "https://images.unsplash.com/photo-1613564834644-a170d10b2720?w=600" },
+  { name: "Pickleball", img: "/images/sports/elite_courts_pickleball_card.jpg", fallback: "https://images.unsplash.com/photo-1613564834644-a170d10b2720?w=600" },
   { name: "Table Tennis", img: "/images/sports/elite_courts_table_tennis_card.jpg", fallback: "https://images.unsplash.com/photo-1609710223199-14b5d5b1f8f7?w=600" },
   { name: "Cricket", img: "/images/sports/elite_courts_cricket_card.gif", fallback: "https://images.unsplash.com/photo-1607734834519-d8576ae60ea6?w=600" },
   { name: "Badminton", img: "/images/sports/elite_courts_badminton_card.gif", fallback: "https://images.unsplash.com/photo-1617083277684-630247384661?w=600" }
