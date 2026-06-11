@@ -301,7 +301,7 @@ export default function StorePage() {
             <div className="relative w-48 h-48 md:w-64 md:h-64 flex items-center justify-center opacity-90 group mt-4 md:mt-0">
               <div className="absolute inset-0 bg-emerald-500/20 blur-3xl rounded-full group-hover:bg-emerald-500/30 transition-all duration-500" />
               <img 
-                src={"/images/sports/elite_courts_padel_card.jpg"} 
+                src={"/images/sports/padel-img.webp"} 
                 alt="Elite Premium Gear" 
                 className="w-full h-full object-cover rounded-2xl rotate-3 border border-zinc-800 shadow-2xl relative z-10 transition-transform duration-500 group-hover:rotate-0"
                 onError={(e) => { (e.target as HTMLImageElement).src = padelCategory.fallback; }}
