@@ -115,6 +115,39 @@ export default function AdminDashboard() {
     };
   }, []);
 
+  // Secure WhatsApp Notification Parser Matrix
+  const triggerWhatsAppNotification = (order: Order, nextStatus: string) => {
+    // Sanitize the phone number string format cleanly
+    let cleanPhone = order.customer.phone.replace(/[^0-9]/g, '');
+    if (cleanPhone.startsWith('0')) {
+      cleanPhone = '92' + cleanPhone.substring(1);
+    }
+    if (!cleanPhone.startsWith('92') && cleanPhone.length === 10) {
+      cleanPhone = '92' + cleanPhone;
+    }
+
+    // Build the structural manifest layout text
+    const itemsText = order.items.map(it => `• ${it.name} (x${it.quantity})`).join('\n');
+    
+    let statusMessage = '';
+    if (nextStatus === 'PROCESSING') {
+      statusMessage = `✅ *Your Elite Store Order has been Acknowledged!*\n\nHi ${order.customer.name},\nWe are currently processing your high-performance equipment payload.`;
+    } else if (nextStatus === 'DISPATCHED_COMPOUND') {
+      statusMessage = `🚚 *Your Elite Store Order is out for Dispatch!*\n\nHi ${order.customer.name},\nYour equipment has been securely packaged and forwarded to logistics handlers.`;
+    } else {
+      statusMessage = `🏁 *Your Elite Store Order is Complete!*\n\nHi ${order.customer.name},\nYour transaction package has been successfully finalized. Thank you for choosing Elite Courts.`;
+    }
+
+    const totalText = `\n\n📦 *Order Reference:* ${order.id}\n🛒 *Manifest Items:*\n${itemsText}\n\n💰 *Total Payable:* ${order.financials.orderTotal}\n📍 *Fulfillment:* ${order.fulfillmentType === 'PICKUP' ? 'Complex Pickup HQ' : 'Home Delivery'}`;
+    const closingText = `\n\nIf you have any instant queries, feel free to reply directly to this thread.`;
+
+    const fullMessage = encodeURIComponent(`${statusMessage}${totalText}${closingText}`);
+    const whatsappUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${fullMessage}`;
+    
+    // Launch secure child thread window cleanly
+    window.open(whatsappUrl, '_blank');
+  };
+
   const handleCreateProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     const db = getDatabase(app);
@@ -143,7 +176,6 @@ export default function AdminDashboard() {
 
     try {
       await push(productsRef, productPayload);
-      // Reset Form State Elements
       setNewProduct({
         name: '', category: 'Padel', subcategory: '', marketPrice: '', elitePrice: '',
         description: '', model3d: '', image: '', images: ['']
@@ -164,16 +196,23 @@ export default function AdminDashboard() {
     await remove(targetRef);
   };
 
-  const handleUpdateOrderStatus = async (orderId: string, currentStatus: string) => {
+  const handleUpdateOrderStatus = async (order: Order) => {
     const nextStatusMap: Record<string, string> = {
       "PENDING_VERIFICATION": "PROCESSING",
       "PROCESSING": "DISPATCHED_COMPOUND",
       "DISPATCHED_COMPOUND": "COMPLETED_DELIVERY"
     };
-    const targetNext = nextStatusMap[currentStatus] || "COMPLETED_DELIVERY";
+    const targetNext = nextStatusMap[order.orderStatus] || "COMPLETED_DELIVERY";
     const db = getDatabase(app);
-    const statusRef = ref(db, `store/orders/${orderId}/orderStatus`);
-    await set(statusRef, targetNext);
+    const statusRef = ref(db, `store/orders/${order.id}/orderStatus`);
+    
+    try {
+      await set(statusRef, targetNext);
+      // Automatically generate up-to-date message layout to buyer
+      triggerWhatsAppNotification(order, targetNext);
+    } catch (err) {
+      console.error("Failed to cycle processing step:", err);
+    }
   };
 
   return (
@@ -249,7 +288,7 @@ export default function AdminDashboard() {
                 <textarea rows={3} value={newProduct.description} onChange={e => setNewProduct(prev => ({ ...prev, description: e.target.value }))} className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-4 py-2.5 text-xs text-white outline-none transition-all resize-none" placeholder="Provide specification log layout summary..." />
               </div>
 
-              {/* Fixed Layout Section for Performance Specifications */}
+              {/* Performance Specifications Configuration */}
               <div className="border-t border-zinc-800 pt-3 grid grid-cols-3 gap-2">
                 <div>
                   <label className="block text-[9px] font-bold uppercase text-zinc-500 mb-1">Total Weight</label>
@@ -352,7 +391,7 @@ export default function AdminDashboard() {
                       </div>
 
                       {ord.orderStatus !== 'COMPLETED_DELIVERY' && (
-                        <button onClick={() => handleUpdateOrderStatus(ord.id, ord.orderStatus)} className="bg-zinc-950 border border-zinc-800 hover:border-zinc-700 text-white font-bold text-xs uppercase px-4 py-2.5 rounded-xl transition-all">
+                        <button onClick={() => handleUpdateOrderStatus(ord)} className="bg-zinc-950 border border-zinc-800 hover:border-zinc-700 text-white font-bold text-xs uppercase px-4 py-2.5 rounded-xl transition-all">
                           {ord.orderStatus === 'PENDING_VERIFICATION' ? 'Acknowledge Order' :
                            ord.orderStatus === 'PROCESSING' ? 'Dispatch Payload' : 'Finalize Delivery'}
                         </button>
