@@ -1,5 +1,6 @@
 'use client';
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { initializeApp, getApps } from "firebase/app";
 import { getDatabase, ref, push } from "firebase/database";
 
@@ -35,10 +36,9 @@ export default function CheckoutPage() {
     phone: '',
     address: '',
     city: '',
-    paymentMethod: 'CASH_ON_DELIVERY' // Easily swappable for 'INTEGRATED_GATEWAY' later
+    paymentMethod: 'CASH_ON_DELIVERY'
   });
 
-  // Pull cart snapshot from local state manager on mount
   useEffect(() => {
     const savedCart = localStorage.getItem('elite_store_active_cart');
     if (savedCart) {
@@ -97,9 +97,6 @@ export default function CheckoutPage() {
     };
 
     try {
-      /* FUTURE PAYMENT GATEWAY HOOK GOES HERE */
-      // If paymentMethod === 'CARD', you'd trigger payment intent API here before saving to DB
-      
       const newOrderRef = await push(ordersRef, orderPayload);
       if (newOrderRef.key) {
         setLastOrderId(newOrderRef.key);
@@ -115,9 +112,9 @@ export default function CheckoutPage() {
   return (
     <div className="bg-zinc-950 min-h-screen text-white px-6 py-12 flex items-center justify-center">
       <div className="w-full max-w-4xl space-y-6">
-        <a href="/store" className="text-zinc-400 hover:text-emerald-400 text-xs uppercase tracking-wider font-bold transition-colors">
+        <Link href="/store" className="text-zinc-400 hover:text-emerald-400 text-xs uppercase tracking-wider font-bold transition-colors">
           &larr; Return to Shopping Hub
-        </a>
+        </Link>
 
         <h1 className="text-3xl font-black uppercase tracking-tight border-b border-zinc-900 pb-4">
           Secure Checkout System
@@ -206,9 +203,9 @@ export default function CheckoutPage() {
             <p className="text-zinc-400 text-xs max-w-sm mx-auto leading-relaxed">
               Your performance equipment record payload has been appended. Node Token Reference: <span className="font-mono text-emerald-400">{lastOrderId}</span>
             </p>
-            <a href="/store" className="inline-block px-6 py-3 bg-zinc-950 border border-zinc-800 hover:border-zinc-700 text-xs font-bold uppercase tracking-wider rounded-xl transition-all">
+            <Link href="/store" className="inline-block px-6 py-3 bg-zinc-950 border border-zinc-800 hover:border-zinc-700 text-xs font-bold uppercase tracking-wider rounded-xl transition-all">
               Return to Front Page Shop
-            </a>
+            </Link>
           </div>
         )}
       </div>
