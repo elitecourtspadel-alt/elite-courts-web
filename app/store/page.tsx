@@ -23,11 +23,6 @@ declare global {
       }
     }
   }
-  namespace JSX {
-    interface IntrinsicElements {
-      'model-viewer': any;
-    }
-  }
 }
 
 const firebaseConfig = {
@@ -41,6 +36,7 @@ const firebaseConfig = {
 };
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
+const ELITE_COURTS_ADDRESS = "Elite Courts Complex, Phase 5, DHA, Lahore, Pakistan";
 
 interface Product {
   name: string;
@@ -50,7 +46,7 @@ interface Product {
   elitePrice: string;
   images?: string[];
   image?: string;
-  model3d?: string; // URL to your .glb file
+  model3d?: string; 
   description?: string;
   specs?: Record<string, string>;
 }
@@ -86,7 +82,6 @@ function ProductDetailView({ product, onBack, onAddToCart, onBuyNow }: { product
   const [activeImg, setActiveImg] = useState<string>('/placeholder.jpg');
 
   useEffect(() => {
-    // Dynamic script mounting for 3D model engine
     if (!document.querySelector('script[src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"]')) {
       const script = document.createElement('script');
       script.type = 'module';
@@ -94,13 +89,12 @@ function ProductDetailView({ product, onBack, onAddToCart, onBuyNow }: { product
       document.head.appendChild(script);
     }
     
-    // Set first image only when switching between completely different products
     const initialImages = Array.isArray(product.images) 
       ? product.images.map((url: string) => url.trim()).filter((url: string) => url !== "")
       : (product.image ? [product.image.trim()] : ['/placeholder.jpg']);
       
     setActiveImg(initialImages[0] || '/placeholder.jpg');
-  }, [product]); // Watching the product layout container directly prevents the image-switch reset loop
+  }, [product]);
 
   const specs = product.specs || {};
 
@@ -112,7 +106,6 @@ function ProductDetailView({ product, onBack, onAddToCart, onBuyNow }: { product
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start mb-12">
         <div className="lg:col-span-5 space-y-4">
-          
           {product.model3d ? (
             <div className="w-full h-[380px] md:h-[460px] bg-zinc-950 border border-zinc-800 rounded-2xl flex items-center justify-center overflow-hidden shadow-2xl relative">
               <model-viewer 
@@ -176,16 +169,10 @@ function ProductDetailView({ product, onBack, onAddToCart, onBuyNow }: { product
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4 pt-4">
-            <button 
-              onClick={() => onAddToCart(product)}
-              className="flex-1 py-4 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-white font-bold uppercase tracking-wider rounded-xl transition-all text-sm"
-            >
+            <button onClick={() => onAddToCart(product)} className="flex-1 py-4 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-white font-bold uppercase tracking-wider rounded-xl transition-all text-sm">
               Add To Cart
             </button>
-            <button 
-              onClick={() => onBuyNow(product)}
-              className="flex-1 py-4 bg-emerald-500 hover:bg-emerald-400 text-black font-black uppercase tracking-wider rounded-xl transition-all text-sm shadow-lg shadow-emerald-500/10"
-            >
+            <button onClick={() => onBuyNow(product)} className="flex-1 py-4 bg-emerald-500 hover:bg-emerald-400 text-black font-black uppercase tracking-wider rounded-xl transition-all text-sm shadow-lg shadow-emerald-500/10">
               Buy It Now
             </button>
           </div>
@@ -239,6 +226,7 @@ export default function StorePage() {
   const [checkoutStep, setCheckoutStep] = useState<'FORM' | 'SUCCESS'>('FORM');
   const [lastOrderId, setLastOrderId] = useState<string>('');
 
+  const [fulfillment, setFulfillment] = useState<'DELIVERY' | 'PICKUP'>('DELIVERY');
   const [shippingDetails, setShippingDetails] = useState({
     fullName: '',
     phone: '',
@@ -257,6 +245,14 @@ export default function StorePage() {
     });
     return () => unsubscribe();
   }, []);
+
+  const handleFulfillmentChange = (type: 'DELIVERY' | 'PICKUP') => {
+    setFulfillment(type);
+    setShippingDetails(prev => ({
+      ...prev,
+      paymentMethod: type === 'PICKUP' ? 'COURT_PICKUP' : 'FULL_PAYMENT'
+    }));
+  };
 
   const handleAddToCart = (product: Product, openPanel = true) => {
     setCart((prevCart) => {
@@ -301,6 +297,11 @@ export default function StorePage() {
     e.preventDefault();
     if (cart.length === 0) return;
 
+    if (fulfillment === 'DELIVERY' && (!shippingDetails.address || !shippingDetails.city)) {
+      alert("Please fill out complete destination delivery properties.");
+      return;
+    }
+
     const db = getDatabase(app);
     const ordersRef = ref(db, 'store/orders');
 
@@ -308,9 +309,10 @@ export default function StorePage() {
       customer: {
         name: shippingDetails.fullName,
         phone: shippingDetails.phone,
-        address: shippingDetails.paymentMethod === 'COURT_PICKUP' ? 'Self-Pickup at Court Venue' : shippingDetails.address,
-        city: shippingDetails.paymentMethod === 'COURT_PICKUP' ? 'Lahore Court' : shippingDetails.city
+        address: fulfillment === 'PICKUP' ? ELITE_COURTS_ADDRESS : shippingDetails.address,
+        city: fulfillment === 'PICKUP' ? 'Lahore' : shippingDetails.city
       },
+      fulfillmentType: fulfillment,
       items: cart.map((item: CartItem) => ({
         name: item.product.name,
         category: item.product.category,
@@ -604,101 +606,102 @@ export default function StorePage() {
               <form onSubmit={handlePlaceOrder} className="space-y-6">
                 <div>
                   <h2 className="text-xl font-black uppercase tracking-tight text-white">Elite System Checkout</h2>
-                  <p className="text-zinc-500 text-xs mt-1">Provide routing instructions to generate your digital database invoice.</p>
+                  <p className="text-zinc-500 text-xs mt-1">Configure your fulfillment strategy and tracking rules to process payments details.</p>
                 </div>
 
-                <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800 space-y-2">
-                  <span className="text-[10px] uppercase font-black tracking-wider text-zinc-500">Order Summary</span>
-                  {cart.map((item: CartItem, i: number) => (
-                    <div key={i} className="flex justify-between text-xs text-zinc-300">
-                      <span className="truncate max-w-[70%]">{item.product.name} <span className="text-zinc-500 font-mono">x{item.quantity}</span></span>
-                      <span className="font-bold text-emerald-400">{item.product.elitePrice}</span>
-                    </div>
-                  ))}
-                  <div className="border-t border-zinc-800 pt-2 mt-2 flex justify-between text-sm font-bold">
-                    <span className="text-white">Payable Balance:</span>
-                    <span className="text-emerald-400 font-black">{getCartTotal().toLocaleString()} PKR</span>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-[10px] uppercase font-black text-zinc-400 tracking-wider mb-1">Full Name</label>
-                    <input 
-                      required 
-                      type="text" 
-                      value={shippingDetails.fullName} 
-                      onChange={e => setShippingDetails({...shippingDetails, fullName: e.target.value})}
-                      className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm text-white outline-none focus:border-emerald-500 transition-colors"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-[10px] uppercase font-black text-zinc-400 tracking-wider mb-1">Phone</label>
-                      <input 
-                        required 
-                        type="tel" 
-                        value={shippingDetails.phone} 
-                        onChange={e => setShippingDetails({...shippingDetails, phone: e.target.value})} 
-                        className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm text-white outline-none focus:border-emerald-500 transition-colors"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] uppercase font-black text-zinc-400 tracking-wider mb-1">City</label>
-                      <input 
-                        required 
-                        type="text" 
-                        value={shippingDetails.city} 
-                        onChange={e => setShippingDetails({...shippingDetails, city: e.target.value})} 
-                        className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm text-white outline-none focus:border-emerald-500 transition-colors"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] uppercase font-black text-zinc-400 tracking-wider mb-1">Delivery Address</label>
-                    <textarea 
-                      required 
-                      value={shippingDetails.address} 
-                      onChange={e => setShippingDetails({...shippingDetails, address: e.target.value})} 
-                      rows={3} 
-                      className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm text-white outline-none focus:border-emerald-500 transition-colors"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] uppercase font-black text-zinc-400 tracking-wider mb-1">Payment Method</label>
-                    <select 
-                      value={shippingDetails.paymentMethod} 
-                      onChange={e => setShippingDetails({...shippingDetails, paymentMethod: e.target.value})} 
-                      className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm text-white outline-none focus:border-emerald-500 transition-colors"
-                    >
-                      <option value="FULL_PAYMENT">Full Payment</option>
-                      <option value="COURT_PICKUP">Court Pickup</option>
-                    </select>
+                {/* Fulfillment Selection */}
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Order Method</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button type="button" onClick={() => handleFulfillmentChange('DELIVERY')} className={`p-3.5 rounded-xl border text-xs font-bold transition-all ${fulfillment === 'DELIVERY' ? 'border-emerald-500 bg-emerald-950/20 text-emerald-400' : 'border-zinc-800 bg-zinc-950 text-zinc-400'}`}>
+                      🚚 Home Delivery
+                    </button>
+                    <button type="button" onClick={() => handleFulfillmentChange('PICKUP')} className={`p-3.5 rounded-xl border text-xs font-bold transition-all ${fulfillment === 'PICKUP' ? 'border-emerald-500 bg-emerald-950/20 text-emerald-400' : 'border-zinc-800 bg-zinc-950 text-zinc-400'}`}>
+                      🏬 Venue PickUp
+                    </button>
                   </div>
                 </div>
 
-                <button 
-                  type="submit" 
-                  className="w-full bg-emerald-500 hover:bg-emerald-400 text-black font-black py-4 rounded-xl text-center text-xs uppercase tracking-wider block transition-all mt-6"
-                >
-                  Confirm & Place Order
-                </button>
+                {/* Conditional Payment Selection */}
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Payment Strategy</label>
+                  <div className="space-y-2">
+                    {fulfillment === 'DELIVERY' ? (
+                      <>
+                        <label className="flex items-center p-3 bg-zinc-950 rounded-xl border border-zinc-800 cursor-pointer text-xs font-semibold">
+                          <input type="radio" name="payment" value="FULL_PAYMENT" checked={shippingDetails.paymentMethod === 'FULL_PAYMENT'} onChange={(e) => setShippingDetails({...shippingDetails, paymentMethod: e.target.value})} className="accent-emerald-500 mr-3" />
+                          Online Card Settlement (Full Prepayment)
+                        </label>
+                        <label className="flex items-center p-3 bg-zinc-950 rounded-xl border border-zinc-800 cursor-pointer text-xs font-semibold">
+                          <input type="radio" name="payment" value="COD" checked={shippingDetails.paymentMethod === 'COD'} onChange={(e) => setShippingDetails({...shippingDetails, paymentMethod: e.target.value})} className="accent-emerald-500 mr-3" />
+                          Cash on Delivery (COD)
+                        </label>
+                      </>
+                    ) : (
+                      <label className="flex items-center p-3 bg-zinc-950 rounded-xl border border-emerald-500/30 bg-emerald-950/10 text-xs font-bold text-emerald-400">
+                        <input type="radio" name="payment" value="COURT_PICKUP" checked readOnly className="accent-emerald-500 mr-3" />
+                        Settle Invoice at Court Desk / Counter Desk Pay
+                      </label>
+                    )}
+                  </div>
+                </div>
+
+                {/* Common Fields */}
+                <div className="space-y-4 pt-2 border-t border-zinc-800/60">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-400">Client Information</h3>
+                  <div>
+                    <label className="text-[11px] text-zinc-400 block mb-1">Full Name</label>
+                    <input type="text" required value={shippingDetails.fullName} onChange={(e) => setShippingDetails({...shippingDetails, fullName: e.target.value})} className="w-full p-3 bg-zinc-950 rounded-xl border border-zinc-800 text-xs text-zinc-200 focus:border-zinc-700 outline-none" />
+                  </div>
+                  <div>
+                    <label className="text-[11px] text-zinc-400 block mb-1">Contact Phone Number</label>
+                    <input type="tel" required value={shippingDetails.phone} onChange={(e) => setShippingDetails({...shippingDetails, phone: e.target.value})} className="w-full p-3 bg-zinc-950 rounded-xl border border-zinc-800 text-xs text-zinc-200 focus:border-zinc-700 outline-none" />
+                  </div>
+                </div>
+
+                {/* Conditional Destination Form Parameters */}
+                <div className="space-y-4 pt-2 border-t border-zinc-800/60">
+                  {fulfillment === 'DELIVERY' ? (
+                    <>
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-400">Shipping Destination</h3>
+                      <div>
+                        <label className="text-[11px] text-zinc-400 block mb-1">Street Address</label>
+                        <input type="text" required={fulfillment === 'DELIVERY'} value={shippingDetails.address} onChange={(e) => setShippingDetails({...shippingDetails, address: e.target.value})} className="w-full p-3 bg-zinc-950 rounded-xl border border-zinc-800 text-xs text-zinc-200 focus:border-zinc-700 outline-none" />
+                      </div>
+                      <div>
+                        <label className="text-[11px] text-zinc-400 block mb-1">City</label>
+                        <input type="text" required={fulfillment === 'DELIVERY'} value={shippingDetails.city} onChange={(e) => setShippingDetails({...shippingDetails, city: e.target.value})} className="w-full p-3 bg-zinc-950 rounded-xl border border-zinc-800 text-xs text-zinc-200 focus:border-zinc-700 outline-none" />
+                      </div>
+                    </>
+                  ) : (
+                    <div className="p-4 bg-zinc-950 border border-zinc-800 rounded-xl space-y-1 animate-fadeIn">
+                      <h4 className="text-[11px] font-bold text-amber-400 uppercase tracking-wider">Pickup Logistics Center</h4>
+                      <p className="text-xs font-semibold text-zinc-200">{ELITE_COURTS_ADDRESS}</p>
+                      <p className="text-[10px] text-zinc-500">No home address input parameters required. Present invoice snapshot at the desk.</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="pt-4 border-t border-zinc-800 flex items-center justify-between">
+                  <div className="text-left">
+                    <p className="text-[10px] text-zinc-500 uppercase font-bold">Total Billable</p>
+                    <p className="text-lg font-black text-emerald-400">{getCartTotal().toLocaleString()} PKR</p>
+                  </div>
+                  <button type="submit" className="px-6 py-3 bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-md shadow-emerald-500/10">
+                    Confirm Order Routing
+                  </button>
+                </div>
               </form>
             ) : (
               <div className="text-center py-12 space-y-4">
-                <div className="w-16 h-16 bg-emerald-500/20 text-emerald-500 rounded-full flex items-center justify-center mx-auto text-3xl mb-6">✓</div>
-                <h2 className="text-2xl font-black text-white">Order Confirmed</h2>
-                <p className="text-zinc-400 text-sm">Your order has been routed to the database successfully.</p>
-                <p className="text-xs font-mono text-zinc-500 bg-zinc-950 p-2 rounded inline-block">Order ID: {lastOrderId}</p>
-                
-                <div className="pt-6">
-                  <button 
-                    onClick={() => { setIsCheckoutOpen(false); setViewState('Home'); }} 
-                    className="bg-zinc-800 hover:bg-zinc-700 text-white font-bold py-3 px-8 rounded-xl text-xs uppercase tracking-wider transition-all"
-                  >
-                    Return to Store
-                  </button>
-                </div>
+                <div className="text-4xl text-emerald-400">✓</div>
+                <h2 className="text-xl font-black uppercase tracking-tight text-white">Invoice Dispatched Successfully</h2>
+                <p className="text-xs text-zinc-400 max-w-sm mx-auto leading-relaxed">
+                  Your entry node has been pushed down to the datastore stack under log reference ID: <span className="font-mono text-emerald-400 block mt-1 bg-zinc-950 p-2 rounded border border-zinc-800 select-all">{lastOrderId}</span>
+                </p>
+                <button onClick={() => setIsCheckoutOpen(false)} className="mt-4 px-6 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-colors">
+                  Close Dashboard Panel
+                </button>
               </div>
             )}
           </div>
