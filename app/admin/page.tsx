@@ -53,11 +53,14 @@ interface Order {
   fulfillmentType: 'DELIVERY' | 'PICKUP';
   items: OrderItem[];
   financials: {
-    orderTotal: string;
+    orderTotal: string; 
     paymentMethod: string;
+    advancePaid?: string;     // Option to explicitly capture advance in DB
+    remainingBalance?: string; // Option to explicitly capture remaining in DB
   };
   orderStatus: string;
   timestamp: number;
+  paymentScreenshot?: string;
 }
 
 const CATEGORIES = ["Padel", "Pickleball", "Table Tennis", "Cricket", "Badminton"];
@@ -130,11 +133,43 @@ export default function AdminDashboard() {
       statusMessage = `✅ *Your Elite Store Order has been Acknowledged!*\n\nHi ${order.customer.name},\nWe are currently processing your high-performance equipment payload.`;
     } else if (nextStatus === 'DISPATCHED_COMPOUND') {
       statusMessage = `🚚 *Your Elite Store Order is out for Dispatch!*\n\nHi ${order.customer.name},\nYour equipment has been securely packaged and forwarded to logistics handlers.`;
+    } else if (nextStatus === 'PENDING_VERIFICATION') {
+      statusMessage = `⚠️ *Elite Store Notice: Order Returned to Verification Status*\n\nHi ${order.customer.name},\nYour order package assignment has been placed back into evaluation phases.`;
     } else {
       statusMessage = `🏁 *Your Elite Store Order is Complete!*\n\nHi ${order.customer.name},\nYour transaction package has been successfully finalized. Thank you for choosing Elite Courts.`;
     }
 
-    const totalText = `\n\n📦 *Order Reference:* ${order.id}\n🛒 *Manifest Items:*\n${itemsText}\n\n💰 *Total Payable:* ${order.financials.orderTotal}\n📍 *Fulfillment:* ${order.fulfillmentType === 'PICKUP' ? 'Complex Pickup HQ' : 'Home Delivery'}`;
+    // --- FINANCIAL CALCULATOR SEGMENT ---
+    // Extract raw numbers from string totals (e.g. "45,000 PKR" -> 45000)
+    const totalAmountNum = parseInt(order.financials.orderTotal.replace(/[^0-9]/g, '')) || 0;
+    
+    let advanceNum = 0;
+    let remainingNum = totalAmountNum;
+
+    if (order.financials.advancePaid) {
+      advanceNum = parseInt(order.financials.advancePaid.replace(/[^0-9]/g, '')) || 0;
+      remainingNum = totalAmountNum - advanceNum;
+    } else {
+      // Automatic fallback safety check: if customer paid partial advance, compute 20% automated baseline
+      const isPartialChannel = order.financials.paymentMethod.toLowerCase().includes('pickup') || 
+                               order.financials.paymentMethod.toLowerCase().includes('advance') ||
+                               order.financials.paymentMethod.toLowerCase().includes('partial');
+      if (isPartialChannel) {
+        advanceNum = Math.round(totalAmountNum * 0.20);
+        remainingNum = totalAmountNum - advanceNum;
+      }
+    }
+
+    let financialSummaryBlock = `• Total Amount: ${totalAmountNum.toLocaleString()} PKR`;
+    if (advanceNum > 0 && advanceNum < totalAmountNum) {
+      financialSummaryBlock += `\n• Advance Paid: ${advanceNum.toLocaleString()} PKR\n• Remaining Balance: ${remainingNum.toLocaleString()} PKR`;
+    } else if (advanceNum === totalAmountNum) {
+      financialSummaryBlock += `\n• Status: Fully Pre-Paid`;
+    } else {
+      financialSummaryBlock += `\n• Remaining Balance: ${totalAmountNum.toLocaleString()} PKR`;
+    }
+
+    const totalText = `\n\n📦 *Order Reference:* ${order.id}\n🛒 *Manifest Items:*\n${itemsText}\n\n💰 *Financial Summary:*\n${financialSummaryBlock}\n\n📍 *Fulfillment:* ${order.fulfillmentType === 'PICKUP' ? 'Complex Pickup HQ' : 'Home Delivery'}`;
     const closingText = `\n\nIf you have any instant queries, feel free to reply directly to this thread.`;
 
     const fullMessage = encodeURIComponent(`${statusMessage}${totalText}${closingText}`);
@@ -186,7 +221,6 @@ export default function AdminDashboard() {
     const enteredUrl = (newProduct.images?.[0] || newProduct.image || '').trim();
     const cleanImages = enteredUrl !== "" ? [enteredUrl] : [];
 
-    // Complete numeric sanitization protection layer
     const parsedMarket = parseInt(newProduct.marketPrice?.replace(/[^0-9]/g, '') || '0').toLocaleString();
     const parsedElite = parseInt(newProduct.elitePrice?.replace(/[^0-9]/g, '') || '0').toLocaleString();
 
@@ -239,7 +273,9 @@ export default function AdminDashboard() {
       "PROCESSING": "DISPATCHED_COMPOUND",
       "DISPATCHED_COMPOUND": "COMPLETED_DELIVERY"
     };
-    const targetNext = nextStatusMap[order.orderStatus] || "COMPLETED_DELIVERY";
+    const targetNext = nextStatusMap[order.orderStatus];
+    if (!targetNext) return;
+
     const db = getDatabase(app);
     const statusRef = ref(db, `store/orders/${order.id}/orderStatus`);
     
@@ -247,7 +283,29 @@ export default function AdminDashboard() {
       await set(statusRef, targetNext);
       triggerWhatsAppNotification(order, targetNext);
     } catch (err) {
-      console.error("Failed to cycle processing step:", err);
+      console.error("Failed to cycle processing step forward:", err);
+    }
+  };
+
+  const handleRevertOrderStatus = async (order: Order) => {
+    const prevStatusMap: Record<string, string> = {
+      "PROCESSING": "PENDING_VERIFICATION",
+      "DISPATCHED_COMPOUND": "PROCESSING",
+      "COMPLETED_DELIVERY": "DISPATCHED_COMPOUND"
+    };
+    const targetPrev = prevStatusMap[order.orderStatus];
+    if (!targetPrev) return;
+
+    if (!confirm(`Are you sure you want to revert this order status back to ${targetPrev}?`)) return;
+
+    const db = getDatabase(app);
+    const statusRef = ref(db, `store/orders/${order.id}/orderStatus`);
+    
+    try {
+      await set(statusRef, targetPrev);
+      triggerWhatsAppNotification(order, targetPrev);
+    } catch (err) {
+      console.error("Failed to cycle processing step backward:", err);
     }
   };
 
@@ -349,7 +407,6 @@ export default function AdminDashboard() {
               </button>
             </form>
 
-            {/* Inventory Table Viewer Grid */}
             <div className="lg:col-span-7 bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4">
               <h3 className="text-sm font-black uppercase tracking-wider text-zinc-400">Current Inventory Registry</h3>
               <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-2">
@@ -378,21 +435,27 @@ export default function AdminDashboard() {
             </div>
           </div>
         ) : (
-          /* Incoming Orders System Management Dashboard Panel View */
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4">
             <h3 className="text-sm font-black uppercase tracking-wider text-zinc-400">Live Orders Pipeline Matrix</h3>
             <div className="space-y-4 max-h-[75vh] overflow-y-auto pr-2">
               {orders.map((order) => (
                 <div key={order.id} className="bg-zinc-950 border border-zinc-850 p-6 rounded-xl space-y-4">
-                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2 border-b border-zinc-900 pb-3">
+                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-zinc-900 pb-3">
                     <div>
                       <span className="text-[10px] font-mono font-bold text-zinc-500 uppercase">ID: {order.id}</span>
                       <h4 className="text-sm font-black text-zinc-200">{order.customer.name} ({order.customer.city})</h4>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${order.orderStatus === 'COMPLETED_DELIVERY' ? 'bg-zinc-900 text-zinc-500' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'}`}>
                         {order.orderStatus}
                       </span>
+                      
+                      {order.orderStatus !== 'PENDING_VERIFICATION' && (
+                        <button onClick={() => handleRevertOrderStatus(order)} className="px-3 py-2 bg-red-950 hover:bg-red-900 text-red-400 font-black text-[10px] uppercase tracking-wider rounded-lg transition-all border border-red-900/50">
+                          🔀 Revert / Undo
+                        </button>
+                      )}
+
                       {order.orderStatus !== 'COMPLETED_DELIVERY' && (
                         <button onClick={() => handleUpdateOrderStatus(order)} className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-black font-black text-[10px] uppercase tracking-wider rounded-lg transition-all">
                           Cycle Next Status →
@@ -401,12 +464,15 @@ export default function AdminDashboard() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-                    <div>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
+                    <div className="space-y-1">
                       <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block mb-1">Logistics Matrix</span>
                       <p className="text-zinc-300"><span className="text-zinc-500">Phone:</span> {order.customer.phone}</p>
-                      <p className="text-zinc-300 mt-0.5"><span className="text-zinc-500">Route:</span> {order.customer.address}</p>
-                      <p className="text-zinc-400 font-bold mt-1 uppercase text-[10px]">Type: {order.fulfillmentType}</p>
+                      <p className="text-zinc-300 bg-zinc-900/50 border border-zinc-850/80 p-2 rounded-lg mt-1 whitespace-pre-wrap leading-relaxed">
+                        <span className="text-zinc-500 block text-[10px] font-bold uppercase tracking-wide mb-0.5">Delivery Route Address:</span> 
+                        {order.customer.address}
+                      </p>
+                      <p className="text-zinc-400 font-bold pt-1 uppercase text-[10px]">Fulfillment: {order.fulfillmentType}</p>
                     </div>
 
                     <div>
@@ -424,6 +490,35 @@ export default function AdminDashboard() {
                       <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block mb-1">Financial State Summary</span>
                       <p className="text-zinc-300 font-mono"><span className="text-zinc-500">Gross Total:</span> {order.financials.orderTotal}</p>
                       <p className="text-zinc-300 font-mono mt-0.5"><span className="text-zinc-500">Channel Method:</span> {order.financials.paymentMethod}</p>
+                    </div>
+
+                    <div className="border-l md:border-l border-zinc-900 pl-0 md:pl-4">
+                      <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block mb-1">Client Transfer Verification</span>
+                      {order.paymentScreenshot ? (
+                        <div className="space-y-2">
+                          <div className="relative group w-32 h-36 bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden cursor-zoom-in">
+                            <img 
+                              src={order.paymentScreenshot} 
+                              alt="Receipt Proof Payload" 
+                              className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                            />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                              <span className="text-[9px] uppercase tracking-wider bg-zinc-950/90 text-white px-2 py-1 rounded border border-zinc-800">View Full Image</span>
+                            </div>
+                          </div>
+                          <button 
+                            type="button" 
+                            onClick={() => window.open(order.paymentScreenshot, '_blank')}
+                            className="text-[10px] font-bold text-emerald-400 hover:underline block"
+                          >
+                            Open attachment in separate window ↗
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="bg-zinc-900/30 border border-zinc-850/60 rounded-xl p-3 text-center text-zinc-600 font-mono text-[10px]">
+                          No screenshot payload uploaded. (Standard Cash / Pre-verified processing channel)
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
