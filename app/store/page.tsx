@@ -292,7 +292,7 @@ export default function StorePage() {
                   }} 
                   className="bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-300 font-bold px-6 py-3 rounded-xl text-xs uppercase tracking-wider transition-all"
                 >
-                  View Trending Repertoire
+                  View Trending Equipment
                 </button>
               </div>
             </div>
