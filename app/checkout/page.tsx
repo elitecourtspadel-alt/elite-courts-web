@@ -113,7 +113,7 @@ export default function CheckoutPage() {
     <div className="bg-zinc-950 min-h-screen text-white px-6 py-12 flex items-center justify-center">
       <div className="w-full max-w-4xl space-y-6">
         <Link href="/store" className="text-zinc-400 hover:text-emerald-400 text-xs uppercase tracking-wider font-bold transition-colors">
-          &larr; Return to Shopping Hub
+          ← Return to Shopping Hub
         </Link>
 
         <h1 className="text-3xl font-black uppercase tracking-tight border-b border-zinc-900 pb-4">
@@ -137,7 +137,7 @@ export default function CheckoutPage() {
               <div className="space-y-4 pt-2">
                 <div>
                   <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-2">Customer Full Name</label>
-                  <input type="text" required value={shippingDetails.fullName} onChange={e => setShippingDetails(prev => ({ ...prev, fullName: e.target.value }))} className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-4 py-3 text-sm text-white outline-none transition-all" placeholder="e.g. Shahrukh Khan" />
+                  <input type="text" required value={shippingDetails.fullName} onChange={e => setShippingDetails(prev => ({ ...prev, fullName: e.target.value }))} className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-4 py-3 text-sm text-white outline-none transition-all" placeholder="e.g. Customer Name" />
                 </div>
 
                 <div>
@@ -149,7 +149,7 @@ export default function CheckoutPage() {
                   <>
                     <div>
                       <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-2">Destination Dropoff Address</label>
-                      <input type="text" value={shippingDetails.address} onChange={e => setShippingDetails(prev => ({ ...prev, address: e.target.value }))} className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-4 py-3 text-sm text-white outline-none transition-all" placeholder="Street configuration, House layout" />
+                      <input type="text" value={shippingDetails.address} onChange={e => setShippingDetails(prev => ({ ...prev, address: e.target.value }))} className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-4 py-3 text-sm text-white outline-none transition-all" placeholder="Street layout" />
                     </div>
                     <div>
                       <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-2">City Profile</label>
