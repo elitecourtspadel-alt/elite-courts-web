@@ -77,7 +77,7 @@ function ProductDetailView({ product, onBack, onAddToCart, onBuyNow }: { product
       document.head.appendChild(script);
     }
     setActiveImg(imageList[0] || '/placeholder.jpg');
-    setDetailQuantity(1); // Reset counter on focus swap
+    setDetailQuantity(1);
   }, [product]);
 
   const rawPrice = parseInt(product.elitePrice.replace(/[^0-9]/g, '')) || 0;
@@ -122,7 +122,6 @@ function ProductDetailView({ product, onBack, onAddToCart, onBuyNow }: { product
 
           <p className="text-zinc-400 text-sm">{product.description || "High-end configuration optimized for competitive play."}</p>
 
-          {/* Real-time Order Multiplier Interface */}
           <div className="space-y-2 border-t border-zinc-900 pt-4">
             <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400">Select Purchase Quantity</label>
             <div className="flex items-center gap-4">
@@ -211,7 +210,6 @@ export default function StorePage() {
       } else {
         newCart.push({ product, quantity: quantityToBuy });
       }
-      // Instantly pass current mutation payload onward
       handleForwardToCheckout(newCart);
       return newCart;
     });
@@ -243,6 +241,7 @@ export default function StorePage() {
 
   return (
     <div className="bg-zinc-950 min-h-screen text-white relative">
+      {/* Top Sticky Header */}
       <div className="bg-zinc-900 border-b border-zinc-800 px-6 py-4 sticky top-0 z-40">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <span onClick={() => { setViewState("Home"); setSelectedProduct(null); }} className="text-xl font-black cursor-pointer">ELITE<span className="text-emerald-400">STORE</span></span>
@@ -264,6 +263,54 @@ export default function StorePage() {
         </div>
       ) : viewState === "Home" ? (
         <div className="max-w-6xl mx-auto px-6 py-8 space-y-12">
+          
+          {/* ================= HERO SECTION BANNER ================= */}
+          <div className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-zinc-900 via-zinc-950 to-zinc-900 border border-zinc-800/80 p-8 md:p-12 flex flex-col md:flex-row items-center justify-between gap-8 min-h-[360px] animate-fadeIn">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-emerald-500/10 via-transparent to-transparent pointer-events-none" />
+            
+            <div className="space-y-4 max-w-xl relative z-10 text-center md:text-left">
+              <span className="text-[10px] font-black tracking-widest text-emerald-400 uppercase bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
+                Premium Engineered Athletics
+              </span>
+              <h1 className="text-4xl md:text-5xl font-black tracking-tight text-zinc-100 leading-tight">
+                GEAR UP WITH <br className="hidden md:inline" /><span className="text-emerald-400">ELITE</span> PRECISION
+              </h1>
+              <p className="text-zinc-400 text-sm md:text-base max-w-md font-medium leading-relaxed">
+                Discover high-end configurations, advanced computational setups, and pro-grade sports gear optimized for peak competitive dominance.
+              </p>
+              <div className="pt-2 flex flex-wrap gap-3 justify-center md:justify-start">
+                <button 
+                  onClick={() => setViewState("Padel")} 
+                  className="bg-emerald-500 hover:bg-emerald-400 text-black font-black px-6 py-3 rounded-xl text-xs uppercase tracking-wider transition-all transform hover:-translate-y-0.5"
+                >
+                  Explore Padel Equipment
+                </button>
+                <button 
+                  onClick={() => {
+                    const el = document.getElementById('trending-rep');
+                    el?.scrollIntoView({ behavior: 'smooth' });
+                  }} 
+                  className="bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-300 font-bold px-6 py-3 rounded-xl text-xs uppercase tracking-wider transition-all"
+                >
+                  View Trending Repertoire
+                </button>
+              </div>
+            </div>
+            
+            {/* Interactive/Decorative Hero Card Visual */}
+            <div className="relative w-48 h-48 md:w-64 md:h-64 flex items-center justify-center opacity-90 group mt-4 md:mt-0">
+              <div className="absolute inset-0 bg-emerald-500/20 blur-3xl rounded-full group-hover:bg-emerald-500/30 transition-all duration-500" />
+              <img 
+                src={padelCategory.img} 
+                alt="Elite Premium Gear" 
+                className="w-full h-full object-cover rounded-2xl rotate-3 border border-zinc-800 shadow-2xl relative z-10 transition-transform duration-500 group-hover:rotate-0"
+                onError={(e) => { (e.target as HTMLImageElement).src = padelCategory.fallback; }}
+              />
+            </div>
+          </div>
+          {/* ======================================================= */}
+
+          {/* Categories Grid Split */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
             <div onClick={() => { setViewState(padelCategory.name); }} className="lg:col-span-7 relative h-80 rounded-2xl overflow-hidden cursor-pointer bg-zinc-900 border border-zinc-800 p-8 flex flex-col justify-end group">
               <img src={padelCategory.img} className="absolute inset-0 w-full h-full object-cover opacity-40 transition-transform duration-500 group-hover:scale-105" alt="" onError={(e) => { (e.target as HTMLImageElement).src = padelCategory.fallback; }} />
@@ -279,7 +326,8 @@ export default function StorePage() {
             </div>
           </div>
 
-          <div className="space-y-4">
+          {/* Trending Repertoire */}
+          <div id="trending-rep" className="space-y-4 pt-4">
             <h2 className="text-lg font-bold uppercase tracking-wider text-zinc-300">Trending Repertoire</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {products.slice(0, 8).map((p, idx) => (
@@ -295,6 +343,7 @@ export default function StorePage() {
           </div>
         </div>
       ) : (
+        /* Categorized Explorer view */
         <div className="max-w-6xl mx-auto px-6 py-8">
           <h2 className="text-2xl font-black uppercase tracking-tight text-emerald-400 mb-6">{viewState} Repertoire</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
@@ -311,7 +360,7 @@ export default function StorePage() {
         </div>
       )}
 
-      {/* Slide-out Drawer Panel */}
+      {/* Slide-out Drawer Panel (Cart) */}
       {isCartOpen && (
         <div className="fixed inset-0 bg-black/80 z-50 flex justify-end animate-fadeIn">
           <div className="w-full max-w-md bg-zinc-900 border-l border-zinc-800 p-6 flex flex-col justify-between">
