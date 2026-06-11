@@ -75,6 +75,9 @@ export default function AdminDashboard() {
   const [specWeight, setSpecWeight] = useState('');
   const [specBalance, setSpecBalance] = useState('');
   const [specThickness, setSpecThickness] = useState('');
+  
+  // Modification System Mode State Flag
+  const [editingProductId, setEditingProductId] = useState<string | null>(null);
 
   useEffect(() => {
     const db = getDatabase(app);
@@ -117,7 +120,6 @@ export default function AdminDashboard() {
 
   // Secure WhatsApp Notification Parser Matrix
   const triggerWhatsAppNotification = (order: Order, nextStatus: string) => {
-    // Sanitize the phone number string format cleanly
     let cleanPhone = order.customer.phone.replace(/[^0-9]/g, '');
     if (cleanPhone.startsWith('0')) {
       cleanPhone = '92' + cleanPhone.substring(1);
@@ -126,7 +128,6 @@ export default function AdminDashboard() {
       cleanPhone = '92' + cleanPhone;
     }
 
-    // Build the structural manifest layout text
     const itemsText = order.items.map(it => `• ${it.name} (x${it.quantity})`).join('\n');
     
     let statusMessage = '';
@@ -144,18 +145,54 @@ export default function AdminDashboard() {
     const fullMessage = encodeURIComponent(`${statusMessage}${totalText}${closingText}`);
     const whatsappUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${fullMessage}`;
     
-    // Launch secure child thread window cleanly
     window.open(whatsappUrl, '_blank');
   };
 
-  const handleCreateProduct = async (e: React.FormEvent) => {
+  // Triggers when entering Update state configuration node
+  const handleEditSelect = (product: Product) => {
+    if (!product.id) return;
+    setEditingProductId(product.id);
+    
+    // Fallbacks to parse pricing patterns uniformly
+    const rawMarket = product.marketPrice ? product.marketPrice.replace(' PKR', '') : '';
+    const rawElite = product.elitePrice ? product.elitePrice.replace(' PKR', '') : '';
+    const initialImgUrl = Array.isArray(product.images) ? product.images[0] : (product.image || '');
+
+    setNewProduct({
+      name: product.name,
+      category: product.category,
+      subcategory: product.subcategory || '',
+      marketPrice: rawMarket,
+      elitePrice: rawElite,
+      description: product.description || '',
+      model3d: product.model3d || '',
+      image: initialImgUrl,
+      images: [initialImgUrl]
+    });
+
+    setSpecWeight(product.specs?.weight || '');
+    setSpecBalance(product.specs?.balance || '');
+    setSpecThickness(product.specs?.thickness || '');
+  };
+
+  // Resets layout entry fields cleanly
+  const resetProductForm = () => {
+    setEditingProductId(null);
+    setNewProduct({
+      name: '', category: 'Padel', subcategory: '', marketPrice: '', elitePrice: '',
+      description: '', model3d: '', image: '', images: ['']
+    });
+    setSpecWeight('');
+    setSpecBalance('');
+    setSpecThickness('');
+  };
+
+  const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     const db = getDatabase(app);
-    const productsRef = ref(db, 'store/products');
 
-    const cleanImages = (newProduct.images || [])
-      .map(url => url.trim())
-      .filter(url => url !== "");
+    const enteredUrl = (newProduct.images?.[0] || newProduct.image || '').trim();
+    const cleanImages = enteredUrl !== "" ? [enteredUrl] : [];
 
     const productPayload: Product = {
       name: newProduct.name || 'Unnamed Equipment',
@@ -165,7 +202,7 @@ export default function AdminDashboard() {
       elitePrice: newProduct.elitePrice?.endsWith(' PKR') ? newProduct.elitePrice : `${newProduct.elitePrice} PKR`,
       description: newProduct.description || '',
       model3d: newProduct.model3d || '',
-      image: cleanImages[0] || '',
+      image: enteredUrl,
       images: cleanImages,
       specs: {
         weight: specWeight || undefined,
@@ -175,17 +212,20 @@ export default function AdminDashboard() {
     };
 
     try {
-      await push(productsRef, productPayload);
-      setNewProduct({
-        name: '', category: 'Padel', subcategory: '', marketPrice: '', elitePrice: '',
-        description: '', model3d: '', image: '', images: ['']
-      });
-      setSpecWeight('');
-      setSpecBalance('');
-      setSpecThickness('');
-      alert("Inventory catalog node expanded cleanly.");
+      if (editingProductId) {
+        // Run update write operation over exact record matching state ID
+        const targetRef = ref(db, `store/products/${editingProductId}`);
+        await set(targetRef, productPayload);
+        alert("Inventory dataset node synchronized successfully.");
+      } else {
+        // Normal generation expansion behavior routing node
+        const productsRef = ref(db, 'store/products');
+        await push(productsRef, productPayload);
+        alert("Inventory catalog node expanded cleanly.");
+      }
+      resetProductForm();
     } catch (err) {
-      console.error("Database structural push failure:", err);
+      console.error("Database persistence operations failure:", err);
     }
   };
 
@@ -194,6 +234,9 @@ export default function AdminDashboard() {
     const db = getDatabase(app);
     const targetRef = ref(db, `store/products/${id}`);
     await remove(targetRef);
+    if (editingProductId === id) {
+      resetProductForm();
+    }
   };
 
   const handleUpdateOrderStatus = async (order: Order) => {
@@ -208,7 +251,6 @@ export default function AdminDashboard() {
     
     try {
       await set(statusRef, targetNext);
-      // Automatically generate up-to-date message layout to buyer
       triggerWhatsAppNotification(order, targetNext);
     } catch (err) {
       console.error("Failed to cycle processing step:", err);
@@ -216,7 +258,7 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="bg-zinc-950 min-h-screen text-white p-6 md:p-12">
+    <div className="bg-zinc-950 min-h-screen text-white p-6 md:p-12 font-sans selection:bg-emerald-500 selection:text-black">
       <div className="max-w-7xl mx-auto space-y-8">
         
         {/* Header Console Elements */}
@@ -239,25 +281,34 @@ export default function AdminDashboard() {
         {activeTab === 'PRODUCTS' ? (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             
-            {/* New Asset Form Layout */}
-            <form onSubmit={handleCreateProduct} className="lg:col-span-5 bg-zinc-900 border border-zinc-800 p-6 rounded-2xl space-y-4">
-              <h3 className="text-sm font-bold uppercase tracking-wider text-emerald-400 mb-2">Append New Equipment Data</h3>
+            {/* New / Modification Asset Form Layout */}
+            <form onSubmit={handleSaveProduct} className="lg:col-span-5 bg-zinc-900 border border-zinc-800 p-6 rounded-2xl space-y-4">
+              <div className="flex items-center justify-between border-b border-zinc-850 pb-2 mb-2">
+                <h3 className="text-sm font-black uppercase tracking-wider text-emerald-400">
+                  {editingProductId ? "Modify Active Equipment Node" : "Append New Equipment Data"}
+                </h3>
+                {editingProductId && (
+                  <button type="button" onClick={resetProductForm} className="text-[10px] font-black tracking-widest text-zinc-500 hover:text-zinc-300 uppercase">
+                    Cancel Edit
+                  </button>
+                )}
+              </div>
               
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">Equipment Variant Title</label>
-                <input type="text" required value={newProduct.name} onChange={e => setNewProduct(prev => ({ ...prev, name: e.target.value }))} className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-4 py-2.5 text-xs text-white outline-none transition-all" placeholder="e.g. Elite Pro Carbon Padel Racket" />
+                <input type="text" required value={newProduct.name} onChange={e => setNewProduct(prev => ({ ...prev, name: e.target.value }))} className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-4 py-2.5 text-xs text-white outline-none transition-all font-medium" placeholder="e.g. Elite Pro Carbon Padel Racket" />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">Primary Category</label>
-                  <select value={newProduct.category} onChange={e => setNewProduct(prev => ({ ...prev, category: e.target.value }))} className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-4 py-2.5 text-xs text-white outline-none transition-all">
+                  <select value={newProduct.category} onChange={e => setNewProduct(prev => ({ ...prev, category: e.target.value }))} className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-4 py-2.5 text-xs text-white outline-none transition-all font-bold">
                     {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">Subcategory Node</label>
-                  <input type="text" value={newProduct.subcategory} onChange={e => setNewProduct(prev => ({ ...prev, subcategory: e.target.value }))} className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-4 py-2.5 text-xs text-white outline-none transition-all" placeholder="e.g. Bats / Rackets" />
+                  <input type="text" value={newProduct.subcategory} onChange={e => setNewProduct(prev => ({ ...prev, subcategory: e.target.value }))} className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-4 py-2.5 text-xs text-white outline-none transition-all font-medium" placeholder="e.g. Bats / Rackets" />
                 </div>
               </div>
 
@@ -265,47 +316,47 @@ export default function AdminDashboard() {
               <div className="grid grid-cols-2 gap-4 bg-zinc-950/60 p-3 border border-zinc-850 rounded-xl">
                 <div>
                   <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">Standard Market Rate</label>
-                  <input type="text" required value={newProduct.marketPrice} onChange={e => setNewProduct(prev => ({ ...prev, marketPrice: e.target.value }))} className="w-full bg-zinc-950 border border-zinc-850 focus:border-red-500 rounded-xl px-3 py-2 text-xs text-zinc-300 outline-none transition-all" placeholder="e.g. 45,000" />
+                  <input type="text" required value={newProduct.marketPrice} onChange={e => setNewProduct(prev => ({ ...prev, marketPrice: e.target.value }))} className="w-full bg-zinc-950 border border-zinc-850 focus:border-red-500 rounded-xl px-3 py-2 text-xs text-zinc-300 outline-none transition-all font-mono" placeholder="e.g. 45,000" />
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold uppercase tracking-widest text-emerald-400/80 mb-1">Discounted Elite Price</label>
-                  <input type="text" required value={newProduct.elitePrice} onChange={e => setNewProduct(prev => ({ ...prev, elitePrice: e.target.value }))} className="w-full bg-zinc-950 border border-zinc-850 focus:border-emerald-500 rounded-xl px-3 py-2 text-xs text-emerald-400 font-bold outline-none transition-all" placeholder="e.g. 38,500" />
+                  <input type="text" required value={newProduct.elitePrice} onChange={e => setNewProduct(prev => ({ ...prev, elitePrice: e.target.value }))} className="w-full bg-zinc-950 border border-zinc-850 focus:border-emerald-500 rounded-xl px-3 py-2 text-xs text-emerald-400 font-bold outline-none transition-all font-mono" placeholder="e.g. 38,500" />
                 </div>
               </div>
 
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">Media Source URL (Image Primary)</label>
-                <input type="text" required value={newProduct.images?.[0] || ''} onChange={e => setNewProduct(prev => ({ ...prev, images: [e.target.value] }))} className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-4 py-2.5 text-xs text-white outline-none transition-all" placeholder="https://..." />
+                <input type="text" required value={newProduct.images?.[0] || newProduct.image || ''} onChange={e => setNewProduct(prev => ({ ...prev, image: e.target.value, images: [e.target.value] }))} className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-4 py-2.5 text-xs text-white outline-none transition-all font-mono" placeholder="https://..." />
               </div>
 
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">Engine GLTF Vector Resource Path (3D Model)</label>
-                <input type="text" value={newProduct.model3d} onChange={e => setNewProduct(prev => ({ ...prev, model3d: e.target.value }))} className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-4 py-2.5 text-xs text-white outline-none transition-all" placeholder="/models/equipment.gltf" />
+                <input type="text" value={newProduct.model3d} onChange={e => setNewProduct(prev => ({ ...prev, model3d: e.target.value }))} className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-4 py-2.5 text-xs text-white outline-none transition-all font-mono" placeholder="/models/equipment.gltf" />
               </div>
 
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">Performance Description Manifest</label>
-                <textarea rows={3} value={newProduct.description} onChange={e => setNewProduct(prev => ({ ...prev, description: e.target.value }))} className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-4 py-2.5 text-xs text-white outline-none transition-all resize-none" placeholder="Provide specification log layout summary..." />
+                <textarea rows={3} value={newProduct.description} onChange={e => setNewProduct(prev => ({ ...prev, description: e.target.value }))} className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-4 py-2.5 text-xs text-white outline-none transition-all resize-none font-medium leading-relaxed" placeholder="Provide specification log layout summary..." />
               </div>
 
               {/* Performance Specifications Configuration */}
               <div className="border-t border-zinc-800 pt-3 grid grid-cols-3 gap-2">
                 <div>
                   <label className="block text-[9px] font-bold uppercase text-zinc-500 mb-1">Total Weight</label>
-                  <input type="text" value={specWeight} onChange={e => setSpecWeight(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-emerald-500" placeholder="365g" />
+                  <input type="text" value={specWeight} onChange={e => setSpecWeight(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-emerald-500 font-mono text-center" placeholder="365g" />
                 </div>
                 <div>
                   <label className="block text-[9px] font-bold uppercase text-zinc-500 mb-1">Balance Point</label>
-                  <input type="text" value={specBalance} onChange={e => setSpecBalance(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-emerald-500" placeholder="265mm" />
+                  <input type="text" value={specBalance} onChange={e => setSpecBalance(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-emerald-500 font-mono text-center" placeholder="265mm" />
                 </div>
                 <div>
                   <label className="block text-[9px] font-bold uppercase text-zinc-500 mb-1">Thickness</label>
-                  <input type="text" value={specThickness} onChange={e => setSpecThickness(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-emerald-500" placeholder="38mm" />
+                  <input type="text" value={specThickness} onChange={e => setSpecThickness(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-emerald-500 font-mono text-center" placeholder="38mm" />
                 </div>
               </div>
 
-              <button type="submit" className="w-full bg-emerald-500 hover:bg-emerald-400 text-black font-black py-3.5 rounded-xl text-xs uppercase tracking-wider transition-all mt-2">
-                Inject into Active Database
+              <button type="submit" className={`w-full text-black font-black py-3.5 rounded-xl text-xs uppercase tracking-wider transition-all mt-2 ${editingProductId ? 'bg-amber-400 hover:bg-amber-300' : 'bg-emerald-500 hover:bg-emerald-400'}`}>
+                {editingProductId ? "Update Existing Record Node" : "Inject into Active Database"}
               </button>
             </form>
 
@@ -313,28 +364,41 @@ export default function AdminDashboard() {
             <div className="lg:col-span-7 space-y-3 max-h-[75vh] overflow-y-auto pr-2">
               <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-400">Current Production Registry ({products.length})</h3>
               {products.length === 0 ? (
-                <div className="p-8 border border-dashed border-zinc-800 rounded-xl text-center text-xs text-zinc-500">No storage indices populated currently.</div>
+                <div className="p-8 border border-dashed border-zinc-800 rounded-xl text-center text-xs text-zinc-500 font-bold uppercase tracking-widest">No storage indices populated currently.</div>
               ) : (
-                products.map((p) => (
-                  <div key={p.id} className="bg-zinc-900 border border-zinc-800 p-4 rounded-xl flex items-center justify-between gap-4 animate-fadeIn">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-zinc-950 rounded-lg border border-zinc-800 p-1 flex items-center justify-center">
-                        <img src={Array.isArray(p.images) ? p.images[0] : p.image} className="max-h-full max-w-full object-contain" alt="" />
-                      </div>
-                      <div>
-                        <h4 className="text-xs font-bold text-zinc-100">{p.name}</h4>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-[10px] bg-zinc-950 text-zinc-400 border border-zinc-800 px-1.5 py-0.5 rounded font-bold uppercase">{p.category}</span>
-                          <span className="text-[11px] text-zinc-500 line-through">{p.marketPrice}</span>
-                          <span className="text-[11px] text-emerald-400 font-extrabold">{p.elitePrice}</span>
+                products.map((p) => {
+                  const itemImg = Array.isArray(p.images) ? p.images[0] : p.image;
+                  return (
+                    <div key={p.id} className="bg-zinc-900 border border-zinc-800 p-4 rounded-xl flex items-center justify-between gap-4 transition-all hover:border-zinc-700">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-white rounded-lg border border-zinc-800 p-1 flex items-center justify-center overflow-hidden">
+                          {itemImg ? (
+                            <img src={itemImg} className="max-h-full max-w-full object-contain" alt="" />
+                          ) : (
+                            <span className="text-[8px] font-black text-zinc-400 uppercase">Empty</span>
+                          )}
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-bold text-zinc-100">{p.name}</h4>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-[9px] bg-zinc-950 text-zinc-400 border border-zinc-850 px-1.5 py-0.5 rounded font-black uppercase tracking-wider">{p.category}</span>
+                            <span className="text-[11px] text-zinc-500 line-through font-mono">{p.marketPrice}</span>
+                            <span className="text-[11px] text-emerald-400 font-extrabold font-mono">{p.elitePrice}</span>
+                          </div>
                         </div>
                       </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <button type="button" onClick={() => handleEditSelect(p)} className="text-[10px] font-black uppercase text-amber-400 hover:text-amber-300 bg-zinc-950 border border-zinc-850 hover:border-zinc-750 px-3 py-1.5 rounded-lg transition-all tracking-wider">
+                          Edit
+                        </button>
+                        <button type="button" onClick={() => p.id && handleDeleteProduct(p.id)} className="text-[10px] font-black uppercase text-red-500 hover:text-red-400 bg-zinc-950 border border-zinc-850 hover:border-zinc-750 px-3 py-1.5 rounded-lg transition-all tracking-wider">
+                          Purge
+                        </button>
+                      </div>
                     </div>
-                    <button type="button" onClick={() => p.id && handleDeleteProduct(p.id)} className="text-xs font-bold uppercase text-red-500 hover:text-red-400 px-3 py-1.5 transition-colors">
-                      Purge
-                    </button>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
 
@@ -345,7 +409,7 @@ export default function AdminDashboard() {
           <div className="space-y-4">
             <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-400">Live Client Transaction Streams</h3>
             {orders.length === 0 ? (
-              <div className="p-12 border border-dashed border-zinc-800 rounded-2xl text-center text-xs text-zinc-500">No client ledger requests received via backend router.</div>
+              <div className="p-12 border border-dashed border-zinc-800 rounded-2xl text-center text-xs text-zinc-500 font-bold uppercase tracking-widest">No client ledger requests received via backend router.</div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {orders.map((ord) => (
