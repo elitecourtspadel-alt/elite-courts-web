@@ -201,8 +201,8 @@ export default function CheckoutPage() {
               <span className="text-[10px] font-black uppercase text-zinc-400 tracking-wider block">Elite Accounts Remittance Target</span>
               <div className="text-xs space-y-1 text-zinc-300">
                 <p><span className="text-zinc-500 font-medium">Bank Name:</span> Meezan Bank</p>
-                <p><span className="text-zinc-500 font-medium">Account Title:</span> Elite Courts Pakistan</p>
-                <p><span className="text-zinc-500 font-medium">Account Number / IBAN:</span> PK64MEZN0031094827163</p>
+                <p><span className="text-zinc-500 font-medium">Account Title:</span> Elite Enterprises</p>
+                <p><span className="text-zinc-500 font-medium">Account Number:</span> 11580113772152</p>
                 <p className="pt-2 text-[11px] text-amber-400 font-bold">⚠️ Required Payment Transfer Amount: <span className="underline font-mono text-xs">{requiredPaymentAmount.toLocaleString()} PKR</span></p>
               </div>
             </div>
