@@ -66,12 +66,25 @@ export default function ProductPage() {
     router.push('/checkout');
   };
 
-  // HELPER: Safely cleans commas/letters from strings before turning them into numbers
   const formatPrice = (priceVal: any) => {
     if (!priceVal) return "0";
     const cleanString = String(priceVal).replace(/[^0-9]/g, ''); 
     const parsed = parseInt(cleanString, 10);
     return isNaN(parsed) ? "0" : parsed.toLocaleString();
+  };
+
+  // Converts standard ImgBB viewer links into raw image assets automatically
+  const cleanImageUrl = (url: string) => {
+    if (!url) return "";
+    let trimmed = url.trim();
+    if (trimmed.includes("ibb.co/") && !trimmed.includes("i.ibb.co/")) {
+      const parts = trimmed.split("ibb.co/");
+      if (parts[1]) {
+        const id = parts[1].split("/")[0];
+        return `https://i.ibb.co/${id}/image.png`;
+      }
+    }
+    return trimmed;
   };
 
   if (loading) {
@@ -91,8 +104,8 @@ export default function ProductPage() {
     );
   }
 
-  // Account for potential naming mismatches from the Admin Panel
-  const displayImage = product.mediaUrl || product.imageUrl || product.image || "";
+  const rawImage = product.mediaUrl || product.imageUrl || product.image || "";
+  const displayImage = cleanImageUrl(rawImage);
   const marketPrice = product.marketPrice || product.marketRate || product.standardRate;
   const elitePrice = product.elitePrice || product.discountPrice || product.salePrice;
 
