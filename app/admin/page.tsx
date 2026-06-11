@@ -67,7 +67,6 @@ export default function AdminDashboard() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [activeTab, setActiveTab] = useState<'PRODUCTS' | 'ORDERS'>('PRODUCTS');
   
-  // Product Form Management State
   const [newProduct, setNewProduct] = useState<Partial<Product>>({
     name: '', category: 'Padel', subcategory: '', marketPrice: '', elitePrice: '',
     description: '', model3d: '', image: '', images: ['']
@@ -76,13 +75,11 @@ export default function AdminDashboard() {
   const [specBalance, setSpecBalance] = useState('');
   const [specThickness, setSpecThickness] = useState('');
   
-  // Modification System Mode State Flag
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
 
   useEffect(() => {
     const db = getDatabase(app);
     
-    // Listen to Products Node
     const productsRef = ref(db, 'store/products');
     const unsubProducts = onValue(productsRef, (snapshot) => {
       const data = snapshot.val();
@@ -97,7 +94,6 @@ export default function AdminDashboard() {
       }
     });
 
-    // Listen to Orders Node
     const ordersRef = ref(db, 'store/orders');
     const unsubOrders = onValue(ordersRef, (snapshot) => {
       const data = snapshot.val();
@@ -118,7 +114,6 @@ export default function AdminDashboard() {
     };
   }, []);
 
-  // Secure WhatsApp Notification Parser Matrix
   const triggerWhatsAppNotification = (order: Order, nextStatus: string) => {
     let cleanPhone = order.customer.phone.replace(/[^0-9]/g, '');
     if (cleanPhone.startsWith('0')) {
@@ -148,14 +143,12 @@ export default function AdminDashboard() {
     window.open(whatsappUrl, '_blank');
   };
 
-  // Triggers when entering Update state configuration node
   const handleEditSelect = (product: Product) => {
     if (!product.id) return;
     setEditingProductId(product.id);
     
-    // Fallbacks to parse pricing patterns uniformly
-    const rawMarket = product.marketPrice ? product.marketPrice.replace(' PKR', '') : '';
-    const rawElite = product.elitePrice ? product.elitePrice.replace(' PKR', '') : '';
+    const rawMarket = product.marketPrice ? product.marketPrice.replace(/[^0-9]/g, '') : '';
+    const rawElite = product.elitePrice ? product.elitePrice.replace(/[^0-9]/g, '') : '';
     const initialImgUrl = Array.isArray(product.images) ? product.images[0] : (product.image || '');
 
     setNewProduct({
@@ -175,7 +168,6 @@ export default function AdminDashboard() {
     setSpecThickness(product.specs?.thickness || '');
   };
 
-  // Resets layout entry fields cleanly
   const resetProductForm = () => {
     setEditingProductId(null);
     setNewProduct({
@@ -194,12 +186,16 @@ export default function AdminDashboard() {
     const enteredUrl = (newProduct.images?.[0] || newProduct.image || '').trim();
     const cleanImages = enteredUrl !== "" ? [enteredUrl] : [];
 
+    // Complete numeric sanitization protection layer
+    const parsedMarket = parseInt(newProduct.marketPrice?.replace(/[^0-9]/g, '') || '0').toLocaleString();
+    const parsedElite = parseInt(newProduct.elitePrice?.replace(/[^0-9]/g, '') || '0').toLocaleString();
+
     const productPayload: Product = {
       name: newProduct.name || 'Unnamed Equipment',
       category: newProduct.category || 'Padel',
       subcategory: newProduct.subcategory || 'Standard',
-      marketPrice: newProduct.marketPrice?.endsWith(' PKR') ? newProduct.marketPrice : `${newProduct.marketPrice} PKR`,
-      elitePrice: newProduct.elitePrice?.endsWith(' PKR') ? newProduct.elitePrice : `${newProduct.elitePrice} PKR`,
+      marketPrice: `${parsedMarket} PKR`,
+      elitePrice: `${parsedElite} PKR`,
       description: newProduct.description || '',
       model3d: newProduct.model3d || '',
       image: enteredUrl,
@@ -213,12 +209,10 @@ export default function AdminDashboard() {
 
     try {
       if (editingProductId) {
-        // Run update write operation over exact record matching state ID
         const targetRef = ref(db, `store/products/${editingProductId}`);
         await set(targetRef, productPayload);
         alert("Inventory dataset node synchronized successfully.");
       } else {
-        // Normal generation expansion behavior routing node
         const productsRef = ref(db, 'store/products');
         await push(productsRef, productPayload);
         alert("Inventory catalog node expanded cleanly.");
@@ -261,7 +255,6 @@ export default function AdminDashboard() {
     <div className="bg-zinc-950 min-h-screen text-white p-6 md:p-12 font-sans selection:bg-emerald-500 selection:text-black">
       <div className="max-w-7xl mx-auto space-y-8">
         
-        {/* Header Console Elements */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-900 pb-6">
           <div>
             <h1 className="text-3xl font-black uppercase tracking-tight">System Control Matrix</h1>
@@ -280,8 +273,6 @@ export default function AdminDashboard() {
 
         {activeTab === 'PRODUCTS' ? (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            
-            {/* New / Modification Asset Form Layout */}
             <form onSubmit={handleSaveProduct} className="lg:col-span-5 bg-zinc-900 border border-zinc-800 p-6 rounded-2xl space-y-4">
               <div className="flex items-center justify-between border-b border-zinc-850 pb-2 mb-2">
                 <h3 className="text-sm font-black uppercase tracking-wider text-emerald-400">
@@ -312,7 +303,6 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {/* Secure Dual Pricing Form Framework */}
               <div className="grid grid-cols-2 gap-4 bg-zinc-950/60 p-3 border border-zinc-850 rounded-xl">
                 <div>
                   <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">Standard Market Rate</label>
@@ -330,7 +320,7 @@ export default function AdminDashboard() {
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">Engine GLTF Vector Resource Path (3D Model)</label>
+                <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">Engine GLTF Vector Resource Path</label>
                 <input type="text" value={newProduct.model3d} onChange={e => setNewProduct(prev => ({ ...prev, model3d: e.target.value }))} className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-4 py-2.5 text-xs text-white outline-none transition-all font-mono" placeholder="/models/equipment.gltf" />
               </div>
 
@@ -339,135 +329,108 @@ export default function AdminDashboard() {
                 <textarea rows={3} value={newProduct.description} onChange={e => setNewProduct(prev => ({ ...prev, description: e.target.value }))} className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-4 py-2.5 text-xs text-white outline-none transition-all resize-none font-medium leading-relaxed" placeholder="Provide specification log layout summary..." />
               </div>
 
-              {/* Performance Specifications Configuration */}
               <div className="border-t border-zinc-800 pt-3 grid grid-cols-3 gap-2">
                 <div>
                   <label className="block text-[9px] font-bold uppercase text-zinc-500 mb-1">Total Weight</label>
-                  <input type="text" value={specWeight} onChange={e => setSpecWeight(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-emerald-500 font-mono text-center" placeholder="365g" />
+                  <input type="text" value={specWeight} onChange={e => setSpecWeight(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-emerald-500" placeholder="e.g. 365g" />
                 </div>
                 <div>
-                  <label className="block text-[9px] font-bold uppercase text-zinc-500 mb-1">Balance Point</label>
-                  <input type="text" value={specBalance} onChange={e => setSpecBalance(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-emerald-500 font-mono text-center" placeholder="265mm" />
+                  <label className="block text-[9px] font-bold uppercase text-zinc-500 mb-1">Balance Matrix</label>
+                  <input type="text" value={specBalance} onChange={e => setSpecBalance(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-emerald-500" placeholder="e.g. Medium" />
                 </div>
                 <div>
                   <label className="block text-[9px] font-bold uppercase text-zinc-500 mb-1">Thickness</label>
-                  <input type="text" value={specThickness} onChange={e => setSpecThickness(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-emerald-500 font-mono text-center" placeholder="38mm" />
+                  <input type="text" value={specThickness} onChange={e => setSpecThickness(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-emerald-500" placeholder="e.g. 38mm" />
                 </div>
               </div>
 
-              <button type="submit" className={`w-full text-black font-black py-3.5 rounded-xl text-xs uppercase tracking-wider transition-all mt-2 ${editingProductId ? 'bg-amber-400 hover:bg-amber-300' : 'bg-emerald-500 hover:bg-emerald-400'}`}>
-                {editingProductId ? "Update Existing Record Node" : "Inject into Active Database"}
+              <button type="submit" className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-black font-black uppercase text-xs rounded-xl tracking-wider transition-all mt-2">
+                {editingProductId ? "Synchronize System Changes" : "Save Node Entry"}
               </button>
             </form>
 
-            {/* Catalog Grid View */}
-            <div className="lg:col-span-7 space-y-3 max-h-[75vh] overflow-y-auto pr-2">
-              <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-400">Current Production Registry ({products.length})</h3>
-              {products.length === 0 ? (
-                <div className="p-8 border border-dashed border-zinc-800 rounded-xl text-center text-xs text-zinc-500 font-bold uppercase tracking-widest">No storage indices populated currently.</div>
-              ) : (
-                products.map((p) => {
-                  const itemImg = Array.isArray(p.images) ? p.images[0] : p.image;
-                  return (
-                    <div key={p.id} className="bg-zinc-900 border border-zinc-800 p-4 rounded-xl flex items-center justify-between gap-4 transition-all hover:border-zinc-700">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-white rounded-lg border border-zinc-800 p-1 flex items-center justify-center overflow-hidden">
-                          {itemImg ? (
-                            <img src={itemImg} className="max-h-full max-w-full object-contain" alt="" />
-                          ) : (
-                            <span className="text-[8px] font-black text-zinc-400 uppercase">Empty</span>
-                          )}
-                        </div>
-                        <div>
-                          <h4 className="text-xs font-bold text-zinc-100">{p.name}</h4>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-[9px] bg-zinc-950 text-zinc-400 border border-zinc-850 px-1.5 py-0.5 rounded font-black uppercase tracking-wider">{p.category}</span>
-                            <span className="text-[11px] text-zinc-500 line-through font-mono">{p.marketPrice}</span>
-                            <span className="text-[11px] text-emerald-400 font-extrabold font-mono">{p.elitePrice}</span>
-                          </div>
-                        </div>
+            {/* Inventory Table Viewer Grid */}
+            <div className="lg:col-span-7 bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4">
+              <h3 className="text-sm font-black uppercase tracking-wider text-zinc-400">Current Inventory Registry</h3>
+              <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-2">
+                {products.map((product) => (
+                  <div key={product.id} className="flex bg-zinc-950 border border-zinc-850 p-4 rounded-xl justify-between items-center gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 bg-zinc-900 border border-zinc-850 rounded-lg flex items-center justify-center p-1">
+                        <img src={Array.isArray(product.images) ? product.images[0] : product.image} className="max-h-full object-contain" alt="" />
                       </div>
-                      
-                      <div className="flex items-center gap-2">
-                        <button type="button" onClick={() => handleEditSelect(p)} className="text-[10px] font-black uppercase text-amber-400 hover:text-amber-300 bg-zinc-950 border border-zinc-850 hover:border-zinc-750 px-3 py-1.5 rounded-lg transition-all tracking-wider">
-                          Edit
-                        </button>
-                        <button type="button" onClick={() => p.id && handleDeleteProduct(p.id)} className="text-[10px] font-black uppercase text-red-500 hover:text-red-400 bg-zinc-950 border border-zinc-850 hover:border-zinc-750 px-3 py-1.5 rounded-lg transition-all tracking-wider">
-                          Purge
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-
-          </div>
-        ) : (
-          
-          /* Orders Inbound Processing Management */
-          <div className="space-y-4">
-            <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-400">Live Client Transaction Streams</h3>
-            {orders.length === 0 ? (
-              <div className="p-12 border border-dashed border-zinc-800 rounded-2xl text-center text-xs text-zinc-500 font-bold uppercase tracking-widest">No client ledger requests received via backend router.</div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {orders.map((ord) => (
-                  <div key={ord.id} className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl space-y-4 flex flex-col justify-between">
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between border-b border-zinc-850 pb-3">
-                        <div>
-                          <span className="text-[9px] font-mono text-zinc-500 tracking-tight block">{ord.id}</span>
-                          <span className="text-xs font-bold text-zinc-200 mt-0.5 block">{ord.customer.name}</span>
-                        </div>
-                        <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full border ${
-                          ord.orderStatus === 'PENDING_VERIFICATION' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
-                          ord.orderStatus === 'PROCESSING' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
-                          'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                        }`}>
-                          {ord.orderStatus.replace('_', ' ')}
-                        </span>
-                      </div>
-
-                      <div className="text-xs space-y-1 text-zinc-400">
-                        <p><span className="text-zinc-500">Phone:</span> {ord.customer.phone}</p>
-                        <p><span className="text-zinc-500">Logistics Type:</span> {ord.fulfillmentType === 'PICKUP' ? '🏢 Complex Collection' : '🚚 Home Dispatch'}</p>
-                        <p><span className="text-zinc-500">Destination:</span> {ord.customer.address}, {ord.customer.city}</p>
-                      </div>
-
-                      <div className="bg-zinc-950 p-3 rounded-xl border border-zinc-850 space-y-2">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 block">Manifest Items</span>
-                        <div className="divide-y divide-zinc-900 space-y-1">
-                          {ord.items?.map((it, idx) => (
-                            <div key={idx} className="text-xs flex justify-between pt-1">
-                              <span className="text-zinc-300 font-medium">{it.name} <span className="text-zinc-500 font-mono">x{it.quantity}</span></span>
-                              <span className="font-mono text-zinc-400">{(it.totalItemCost || 0).toLocaleString()} PKR</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="border-t border-zinc-850 pt-4 flex items-center justify-between gap-4">
                       <div>
-                        <span className="text-[10px] text-zinc-500 uppercase font-medium block">Total Payable Invoice</span>
-                        <span className="text-base font-black text-emerald-400 font-mono">{ord.financials.orderTotal}</span>
+                        <h4 className="text-xs font-bold text-zinc-200">{product.name}</h4>
+                        <span className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold">{product.category} ({product.subcategory})</span>
+                        <div className="flex gap-2 text-[11px] font-mono mt-1">
+                          <span className="text-zinc-500 line-through">{product.marketPrice}</span>
+                          <span className="text-emerald-400 font-bold">{product.elitePrice}</span>
+                        </div>
                       </div>
-
-                      {ord.orderStatus !== 'COMPLETED_DELIVERY' && (
-                        <button onClick={() => handleUpdateOrderStatus(ord)} className="bg-zinc-950 border border-zinc-800 hover:border-zinc-700 text-white font-bold text-xs uppercase px-4 py-2.5 rounded-xl transition-all">
-                          {ord.orderStatus === 'PENDING_VERIFICATION' ? 'Acknowledge Order' :
-                           ord.orderStatus === 'PROCESSING' ? 'Dispatch Payload' : 'Finalize Delivery'}
-                        </button>
-                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <button onClick={() => handleEditSelect(product)} className="px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-lg text-[10px] font-black uppercase tracking-wider hover:text-emerald-400 transition-colors">Edit</button>
+                      <button onClick={() => product.id && handleDeleteProduct(product.id)} className="px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-lg text-[10px] font-black uppercase tracking-wider hover:text-red-400 transition-colors">Purge</button>
                     </div>
                   </div>
                 ))}
               </div>
-            )}
+            </div>
+          </div>
+        ) : (
+          /* Incoming Orders System Management Dashboard Panel View */
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4">
+            <h3 className="text-sm font-black uppercase tracking-wider text-zinc-400">Live Orders Pipeline Matrix</h3>
+            <div className="space-y-4 max-h-[75vh] overflow-y-auto pr-2">
+              {orders.map((order) => (
+                <div key={order.id} className="bg-zinc-950 border border-zinc-850 p-6 rounded-xl space-y-4">
+                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2 border-b border-zinc-900 pb-3">
+                    <div>
+                      <span className="text-[10px] font-mono font-bold text-zinc-500 uppercase">ID: {order.id}</span>
+                      <h4 className="text-sm font-black text-zinc-200">{order.customer.name} ({order.customer.city})</h4>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${order.orderStatus === 'COMPLETED_DELIVERY' ? 'bg-zinc-900 text-zinc-500' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'}`}>
+                        {order.orderStatus}
+                      </span>
+                      {order.orderStatus !== 'COMPLETED_DELIVERY' && (
+                        <button onClick={() => handleUpdateOrderStatus(order)} className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-black font-black text-[10px] uppercase tracking-wider rounded-lg transition-all">
+                          Cycle Next Status →
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                    <div>
+                      <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block mb-1">Logistics Matrix</span>
+                      <p className="text-zinc-300"><span className="text-zinc-500">Phone:</span> {order.customer.phone}</p>
+                      <p className="text-zinc-300 mt-0.5"><span className="text-zinc-500">Route:</span> {order.customer.address}</p>
+                      <p className="text-zinc-400 font-bold mt-1 uppercase text-[10px]">Type: {order.fulfillmentType}</p>
+                    </div>
+
+                    <div>
+                      <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block mb-1">Manifest Items Bundle</span>
+                      <div className="space-y-1">
+                        {order.items?.map((it, idx) => (
+                          <p key={idx} className="text-zinc-300 font-medium">
+                            • {it.name} <span className="text-zinc-500 font-mono">x{it.quantity}</span> @ <span className="text-emerald-400 font-mono">{it.unitPrice}</span>
+                          </p>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block mb-1">Financial State Summary</span>
+                      <p className="text-zinc-300 font-mono"><span className="text-zinc-500">Gross Total:</span> {order.financials.orderTotal}</p>
+                      <p className="text-zinc-300 font-mono mt-0.5"><span className="text-zinc-500">Channel Method:</span> {order.financials.paymentMethod}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
-
       </div>
     </div>
   );
