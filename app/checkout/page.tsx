@@ -17,12 +17,21 @@ const firebaseConfig = {
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
 const ELITE_COURTS_ADDRESS = "Elite Courts Complex, Phase 5, DHA, Lahore, Pakistan";
 
+interface Product {
+  name: string;
+  category: string;
+  subcategory: string;
+  marketPrice: string;
+  elitePrice: string;
+  images?: string[];
+  image?: string;
+  model3d?: string; 
+  description?: string;
+  specs?: Record<string, string>;
+}
+
 interface CartItem {
-  product: {
-    name: string;
-    category: string;
-    elitePrice: string;
-  };
+  product: Product;
   quantity: number;
 }
 
@@ -127,10 +136,10 @@ export default function CheckoutPage() {
               
               <div className="grid grid-cols-2 gap-4">
                 <button type="button" onClick={() => handleFulfillmentChange('DELIVERY')} className={`py-3.5 rounded-xl text-xs font-black uppercase tracking-wider border transition-all ${fulfillment === 'DELIVERY' ? 'bg-emerald-500 text-black border-emerald-500' : 'bg-zinc-950 text-zinc-400 border-zinc-800'}`}>
-                  🚚 Home Delivery
+                  <span className="mr-1">🚚</span> Home Delivery
                 </button>
                 <button type="button" onClick={() => handleFulfillmentChange('PICKUP')} className={`py-3.5 rounded-xl text-xs font-black uppercase tracking-wider border transition-all ${fulfillment === 'PICKUP' ? 'bg-emerald-500 text-black border-emerald-500' : 'bg-zinc-950 text-zinc-400 border-zinc-800'}`}>
-                  🏢 Complex Pickup
+                  <span className="mr-1">🏢</span> Complex Pickup
                 </button>
               </div>
 
@@ -176,21 +185,24 @@ export default function CheckoutPage() {
               ) : (
                 <>
                   <div className="divide-y divide-zinc-800 max-h-[240px] overflow-y-auto pr-1">
-                    {cart.map((item, idx) => (
-                      <div key={idx} className="py-3 flex justify-between text-xs">
-                        <div>
-                          <p className="font-bold text-zinc-300">{item.product.name}</p>
-                          <p className="text-zinc-500">Qty: {item.quantity} × {item.product.elitePrice}</p>
+                    {cart.map((item, idx) => {
+                      const basePrice = parseInt(item.product.elitePrice.replace(/[^0-9]/g, '')) || 0;
+                      return (
+                        <div key={idx} className="py-3 flex justify-between text-xs animate-fadeIn">
+                          <div>
+                            <p className="font-bold text-zinc-300">{item.product.name}</p>
+                            <p className="text-zinc-500">Qty: {item.quantity} × {item.product.elitePrice}</p>
+                          </div>
+                          <span className="font-mono text-emerald-400 font-bold">
+                            {(basePrice * item.quantity).toLocaleString()} PKR
+                          </span>
                         </div>
-                        <span className="font-mono text-emerald-400 font-bold">
-                          {((parseInt(item.product.elitePrice.replace(/[^0-9]/g, '')) || 0) * item.quantity).toLocaleString()} PKR
-                        </span>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                   <div className="border-t border-zinc-800 pt-4 flex justify-between items-center">
                     <span className="text-xs uppercase font-bold text-zinc-400">Total Invoice Amount:</span>
-                    <span className="text-xl font-black text-emerald-400">{getCartTotal().toLocaleString()} PKR</span>
+                    <span className="text-xl font-black text-emerald-400 font-mono">{getCartTotal().toLocaleString()} PKR</span>
                   </div>
                 </>
               )}
