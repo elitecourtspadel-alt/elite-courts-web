@@ -241,6 +241,7 @@ export default function StorePage() {
 
   return (
     <div className="bg-zinc-950 min-h-screen text-white relative">
+      {/* Navigation Header */}
       <div className="bg-zinc-900 border-b border-zinc-800 px-6 py-4 sticky top-0 z-40">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <span onClick={() => { setViewState("Home"); setSelectedProduct(null); }} className="text-xl font-black cursor-pointer tracking-tight">ELITE<span className="text-emerald-400">STORE</span></span>
@@ -267,46 +268,56 @@ export default function StorePage() {
       ) : viewState === "Home" ? (
         <div className="max-w-6xl mx-auto px-6 py-8 space-y-12">
           
-          {/* Main Hero Banner with custom positioning alignment shifts to safe-zone graphics */}
-          <div className="relative w-full h-[420px] rounded-2xl overflow-hidden border border-zinc-800 bg-zinc-900 shadow-2xl flex flex-col justify-end p-8 md:p-12 group">
+          {/* Main Hero Banner with Correct Action Shot Background Image */}
+          <div className="relative w-full h-[440px] rounded-2xl overflow-hidden border border-zinc-800/80 bg-zinc-900 shadow-2xl flex flex-col justify-end p-8 md:p-12 group">
             <img 
-              src={padelCategory.img} 
-              className="absolute inset-0 w-full h-full object-cover object-[65%_center] opacity-55 transition-transform duration-700 group-hover:scale-102" 
-              alt="Elite Performance Court Landscape View" 
+              src="/images/sports/padel-img.webp" 
+              className="absolute inset-0 w-full h-full object-cover object-[75%_center] opacity-65 transition-transform duration-700 group-hover:scale-101" 
+              alt="Elite Precision Court Action" 
               onError={(e) => { (e.target as HTMLImageElement).src = padelCategory.fallback; }} 
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/40 to-transparent z-10" />
+            {/* Softened gradient overlay scrim - blocks left text background, fades completely out on the right to keep players clear */}
+            <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/50 to-transparent z-10" />
             
             <div className="relative z-20 space-y-4 max-w-xl">
               <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-md border border-emerald-500/20">
                 System Authorization Confirmed
               </span>
               <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tight text-white leading-tight">
-                Equip Your <span className="text-emerald-400 block sm:inline">Performance</span>
+                Gear Up With <br /><span className="text-emerald-400">Elite Precision</span>
               </h2>
-              <p className="text-zinc-300 text-sm md:text-base leading-relaxed">
-                Explore premium high-tier gear optimized for Padel, Pickleball, Badminton, and Cricket. Built for players who control the speed of the court.
+              <p className="text-zinc-300 text-sm md:text-base leading-relaxed max-w-md">
+                Discover high-end configurations, advanced computational setups, and pro-grade sports gear optimized for peak competitive dominance. Built for players who control the speed of the court.
               </p>
-              <div className="pt-2">
+              <div className="pt-2 flex gap-3">
                 <button 
                   onClick={() => setViewState(padelCategory.name)}
                   className="bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-black uppercase tracking-wider px-6 py-3 rounded-xl transition-all transform hover:-translate-y-0.5"
                 >
                   Explore Padel Equipment
                 </button>
+                <button 
+                  onClick={() => {
+                    const el = document.getElementById('trending-section');
+                    el?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  className="bg-zinc-900/80 hover:bg-zinc-850 border border-zinc-800 text-zinc-300 text-xs font-bold uppercase tracking-wider px-6 py-3 rounded-xl transition-all"
+                >
+                  View Trending Repertoire
+                </button>
               </div>
             </div>
           </div>
 
-          {/* Integrated Sport Collections Secondary Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4">
-            {/* Re-established Padel Category Main Block */}
+          {/* Correct Categories Block Grid Section Layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+            {/* Primary Column Feature Card: Padel */}
             <div onClick={() => { setViewState(padelCategory.name); }} className="lg:col-span-7 relative h-80 rounded-2xl overflow-hidden cursor-pointer bg-zinc-900 border border-zinc-800 p-8 flex flex-col justify-end group">
               <img src={padelCategory.img} className="absolute inset-0 w-full h-full object-cover opacity-40 transition-transform duration-500 group-hover:scale-105" alt="" onError={(e) => { (e.target as HTMLImageElement).src = padelCategory.fallback; }} />
               <h3 className="text-3xl font-black relative z-10 uppercase tracking-tight text-white">{padelCategory.name} Gear</h3>
             </div>
             
-            {/* Secondary Categories Quadrant */}
+            {/* Secondary Rows Category Quadrant (Pickleball, Table Tennis, Cricket, Badminton) */}
             <div className="lg:col-span-5 grid grid-cols-2 gap-4">
               {rightGridCategories.map(sport => (
                 <div key={sport.name} onClick={() => { setViewState(sport.name); }} className="relative h-36 rounded-2xl overflow-hidden cursor-pointer bg-zinc-900 border border-zinc-800 p-4 flex flex-col justify-end group">
@@ -317,8 +328,8 @@ export default function StorePage() {
             </div>
           </div>
 
-          {/* Catalog Repertoire Streams Container */}
-          <div className="space-y-4">
+          {/* Catalog Streams Container */}
+          <div id="trending-section" className="space-y-4">
             <h2 className="text-xs font-black uppercase tracking-widest text-zinc-400">Trending Repertoire</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {products.slice(0, 8).map((p, idx) => (
