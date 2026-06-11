@@ -55,7 +55,6 @@ export default function CheckoutPage() {
   const depositAmount = Math.round(totalAmount * 0.20);
   const requiredPaymentAmount = paymentType === 'DEPOSIT_20' ? depositAmount : totalAmount;
 
-  // Converts the screenshot image stream natively to Base64
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -93,13 +92,16 @@ export default function CheckoutPage() {
     const orderPayload = {
       customer: { name, phone, address: fulfillment === 'PICKUP' ? 'Store Pickup Collection HQ' : address, city },
       fulfillmentType: fulfillment,
-      items: cart.map(item => ({
-        name: item.product.name,
-        category: item.product.category,
-        quantity: item.quantity,
-        unitPrice: item.product.elitePrice,
-        totalItemCost: (parseInt(item.product.elitePrice.replace(/[^0-9]/g, '')) || 0) * item.quantity
-      })),
+      items: cart.map(item => {
+        const cleanedPrice = parseInt(item.product.elitePrice.replace(/[^0-9]/g, '')) || 0;
+        return {
+          name: item.product.name,
+          category: item.product.category,
+          quantity: item.quantity,
+          unitPrice: `${cleanedPrice} PKR`, // Standardized tracking structure
+          totalItemCost: cleanedPrice * item.quantity
+        };
+      }),
       financials: {
         orderTotal: `${totalAmount.toLocaleString()} PKR`,
         paymentMethod: fulfillment === 'PICKUP' ? 'Store Pickup Pre-Paid' : 'COD Balance Remaining',
@@ -115,7 +117,7 @@ export default function CheckoutPage() {
       await push(ordersRef, orderPayload);
       localStorage.removeItem('elite_store_active_cart');
       alert("Order package logged successfully! Verifying payment payload via stream router.");
-      window.location.href = '/'; // Returns home securely
+      window.location.href = '/'; 
     } catch (err) {
       console.error("Database storage rejection:", err);
       alert("Critical error handling structural transmission update.");
@@ -135,14 +137,12 @@ export default function CheckoutPage() {
     <div className="bg-zinc-950 min-h-screen text-white p-6 md:p-12 font-sans">
       <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
-        {/* Checkout Shipping/Fulfillment Forms */}
         <form onSubmit={handlePlaceOrder} className="lg:col-span-7 bg-zinc-900 border border-zinc-800 p-6 rounded-2xl space-y-6">
           <div>
             <h2 className="text-xl font-black uppercase tracking-tight">Fulfillment Manifest</h2>
             <p className="text-zinc-500 text-[10px] uppercase font-bold tracking-widest mt-0.5">Provide secure customer logistics records</p>
           </div>
 
-          {/* Fulfillment Toggle Selector */}
           <div className="grid grid-cols-2 bg-zinc-950 p-1 border border-zinc-850 rounded-xl">
             <button type="button" onClick={() => setFulfillment('DELIVERY')} className={`py-2.5 text-xs font-bold uppercase tracking-wider rounded-lg transition-all ${fulfillment === 'DELIVERY' ? 'bg-emerald-500 text-black' : 'text-zinc-400'}`}>
               Home Delivery
@@ -178,14 +178,12 @@ export default function CheckoutPage() {
             </div>
           </div>
 
-          {/* Secure Screenshot Deposit Module */}
           <div className="border-t border-zinc-850 pt-6 space-y-4">
             <div>
               <h3 className="text-sm font-black uppercase tracking-wider text-emerald-400">Secure Pre-Paid Remittance</h3>
               <p className="text-zinc-500 text-[10px] uppercase font-bold tracking-widest mt-0.5">Select pricing allocation strategy to unlock verification gateway</p>
             </div>
 
-            {/* Strategy Select Toggle Buttons */}
             <div className="grid grid-cols-2 gap-4">
               <div onClick={() => setPaymentType('DEPOSIT_20')} className={`p-4 rounded-xl border cursor-pointer transition-all ${paymentType === 'DEPOSIT_20' ? 'bg-zinc-950 border-emerald-500' : 'bg-zinc-950/40 border-zinc-850 opacity-60'}`}>
                 <span className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400">Pay 20% Deposit</span>
@@ -199,7 +197,6 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            {/* Explicit Bank Wire Parameters Display box */}
             <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-850 space-y-2">
               <span className="text-[10px] font-black uppercase text-zinc-400 tracking-wider block">Elite Accounts Remittance Target</span>
               <div className="text-xs space-y-1 text-zinc-300">
@@ -210,7 +207,6 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            {/* Dynamic Screenshot File Input Node */}
             <div className="space-y-1.5">
               <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400">Attach Transaction Receipt Screenshot</label>
               <div className="bg-zinc-950 border border-zinc-850 rounded-xl p-4 flex flex-col items-center justify-center relative hover:border-zinc-700 transition-colors">
@@ -240,7 +236,6 @@ export default function CheckoutPage() {
           </button>
         </form>
 
-        {/* Floating Manifest Aggregate Invoice Panel */}
         <div className="lg:col-span-5 bg-zinc-900 border border-zinc-800 p-6 rounded-2xl space-y-4 sticky top-28">
           <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-400">Order Manifest Aggregate</h3>
           
