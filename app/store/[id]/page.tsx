@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { initializeApp, getApps } from "firebase/app";
 import { getDatabase, ref, onValue } from "firebase/database";
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 
 const firebaseConfig = {
   apiKey: "AizasyD4bPvYwRjOAGfiwoVPbG_4hj6QEbgdc9A",
@@ -28,19 +28,25 @@ interface Product {
   description?: string;
 }
 
-export default function ProductPage({ params }: { params: { id: string } }) {
+export default function ProductPage() {
   const router = useRouter();
+  // We use the hook here instead of passing params through the function arguments
+  const params = useParams(); 
+  const productId = params?.id as string;
+
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // If Next.js hasn't loaded the ID from the URL yet, wait for it
+    if (!productId) return;
+
     const db = getDatabase(app);
-    // Fetch specifically the product ID from the URL
-    const productRef = ref(db, `store/products/${params.id}`);
+    const productRef = ref(db, `store/products/${productId}`);
 
     const unsubscribe = onValue(productRef, (snapshot) => {
       if (snapshot.exists()) {
-        setProduct({ id: params.id, ...snapshot.val() });
+        setProduct({ id: productId, ...snapshot.val() });
       } else {
         setProduct(null);
       }
@@ -48,16 +54,14 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     });
 
     return () => unsubscribe();
-  }, [params.id]);
+  }, [productId]);
 
   const handleAddToCart = () => {
     if (!product) return;
     
-    // Grab existing cart from localStorage
     const existingCart = localStorage.getItem('elite_store_active_cart');
     let cart = existingCart ? JSON.parse(existingCart) : [];
     
-    // Check if item already exists
     const existingItemIndex = cart.findIndex((item: any) => item.product.id === product.id);
     
     if (existingItemIndex >= 0) {
@@ -87,7 +91,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     return (
       <div className="bg-zinc-950 min-h-screen text-white flex flex-col items-center justify-center space-y-4">
         <h1 className="text-2xl font-black uppercase text-zinc-500">Asset Not Found</h1>
-        <Link href="/store" className="bg-emerald-500 text-black px-6 py-2 rounded-lg font-bold uppercase text-xs tracking-wider">Return to Store</Link>
+        <Link href="/store" className="bg-emerald-500 hover:bg-emerald-400 transition-colors text-black px-6 py-2 rounded-lg font-bold uppercase text-xs tracking-wider">Return to Store</Link>
       </div>
     );
   }
@@ -102,7 +106,6 @@ export default function ProductPage({ params }: { params: { id: string } }) {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-start">
           
-          {/* Left: Product Image Box */}
           <div className="bg-white rounded-3xl p-12 relative flex items-center justify-center aspect-square border-4 border-zinc-900">
             <span className="absolute top-6 right-6 bg-emerald-500 text-black text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-md">
               SALE
@@ -114,7 +117,6 @@ export default function ProductPage({ params }: { params: { id: string } }) {
             )}
           </div>
 
-          {/* Right: Product Details */}
           <div className="space-y-8">
             <div>
               <span className="text-emerald-400 text-[10px] font-black uppercase tracking-widest block mb-2">
@@ -128,7 +130,6 @@ export default function ProductPage({ params }: { params: { id: string } }) {
               </div>
             </div>
 
-            {/* Pricing Matrix Layout */}
             <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-6 flex items-center gap-12">
               <div>
                 <span className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Market Standard</span>
@@ -151,7 +152,6 @@ export default function ProductPage({ params }: { params: { id: string } }) {
               </p>
             </div>
 
-            {/* Action Buttons */}
             <div className="grid grid-cols-2 gap-4 pt-4 border-t border-zinc-850">
               <button onClick={handleAddToCart} className="py-4 border-2 border-zinc-800 hover:border-emerald-500 text-zinc-300 hover:text-emerald-400 font-black uppercase tracking-widest text-xs rounded-xl transition-all">
                 Add to Cart
