@@ -51,7 +51,7 @@ interface CartItem {
 }
 
 const SPORT_COLLECTIONS = [
-  { name: "Padel", img: "/images/padel-img.webp", fallback: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800" },
+  { name: "Padel", img: "/images/sports/elite_courts_padel_card.jpg", fallback: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800" },
   { name: "Pickleball", img: "/images/sports/elite_courts_pickleball_card.jpg", fallback: "https://images.unsplash.com/photo-1613564834644-a170d10b2720?w=600" },
   { name: "Table Tennis", img: "/images/sports/elite_courts_table_tennis.jpg", fallback: "https://images.unsplash.com/photo-1609710223199-14b5d5b1f8f7?w=600" },
   { name: "Cricket", img: "/images/sports/elite_courts_cricket_.webp", fallback: "https://images.unsplash.com/photo-1607734834519-d8576ae60ea6?w=600" },
@@ -267,15 +267,15 @@ export default function StorePage() {
       ) : viewState === "Home" ? (
         <div className="max-w-6xl mx-auto px-6 py-8 space-y-12">
           
-          {/* Complete Full-Width Landscape Hero Banner Box Layout */}
+          {/* Main Hero Banner with custom positioning alignment shifts to safe-zone graphics */}
           <div className="relative w-full h-[420px] rounded-2xl overflow-hidden border border-zinc-800 bg-zinc-900 shadow-2xl flex flex-col justify-end p-8 md:p-12 group">
             <img 
               src={padelCategory.img} 
-              className="absolute inset-0 w-full h-full object-cover opacity-40 transition-transform duration-700 group-hover:scale-102" 
-              alt="Elite Landscape Hero View" 
+              className="absolute inset-0 w-full h-full object-cover object-[65%_center] opacity-55 transition-transform duration-700 group-hover:scale-102" 
+              alt="Elite Performance Court Landscape View" 
               onError={(e) => { (e.target as HTMLImageElement).src = padelCategory.fallback; }} 
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/50 to-transparent z-10" />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/40 to-transparent z-10" />
             
             <div className="relative z-20 space-y-4 max-w-xl">
               <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-md border border-emerald-500/20">
@@ -284,7 +284,7 @@ export default function StorePage() {
               <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tight text-white leading-tight">
                 Equip Your <span className="text-emerald-400 block sm:inline">Performance</span>
               </h2>
-              <p className="text-zinc-400 text-sm md:text-base leading-relaxed">
+              <p className="text-zinc-300 text-sm md:text-base leading-relaxed">
                 Explore premium high-tier gear optimized for Padel, Pickleball, Badminton, and Cricket. Built for players who control the speed of the court.
               </p>
               <div className="pt-2">
@@ -292,22 +292,32 @@ export default function StorePage() {
                   onClick={() => setViewState(padelCategory.name)}
                   className="bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-black uppercase tracking-wider px-6 py-3 rounded-xl transition-all transform hover:-translate-y-0.5"
                 >
-                  View Trending Repertoire
+                  Explore Padel Equipment
                 </button>
               </div>
             </div>
           </div>
 
-          {/* Lower Categories Selection Carousel / Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {rightGridCategories.map(sport => (
-              <div key={sport.name} onClick={() => { setViewState(sport.name); }} className="relative h-36 rounded-2xl overflow-hidden cursor-pointer bg-zinc-900 border border-zinc-800 p-4 flex flex-col justify-end group">
-                <img src={sport.img} className="absolute inset-0 w-full h-full object-cover opacity-30 transition-transform duration-500 group-hover:scale-105" alt="" onError={(e) => { (e.target as HTMLImageElement).src = sport.fallback; }} />
-                <h4 className="text-sm font-bold relative z-10 uppercase tracking-wider">{sport.name}</h4>
-              </div>
-            ))}
+          {/* Integrated Sport Collections Secondary Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4">
+            {/* Re-established Padel Category Main Block */}
+            <div onClick={() => { setViewState(padelCategory.name); }} className="lg:col-span-7 relative h-80 rounded-2xl overflow-hidden cursor-pointer bg-zinc-900 border border-zinc-800 p-8 flex flex-col justify-end group">
+              <img src={padelCategory.img} className="absolute inset-0 w-full h-full object-cover opacity-40 transition-transform duration-500 group-hover:scale-105" alt="" onError={(e) => { (e.target as HTMLImageElement).src = padelCategory.fallback; }} />
+              <h3 className="text-3xl font-black relative z-10 uppercase tracking-tight text-white">{padelCategory.name} Gear</h3>
+            </div>
+            
+            {/* Secondary Categories Quadrant */}
+            <div className="lg:col-span-5 grid grid-cols-2 gap-4">
+              {rightGridCategories.map(sport => (
+                <div key={sport.name} onClick={() => { setViewState(sport.name); }} className="relative h-36 rounded-2xl overflow-hidden cursor-pointer bg-zinc-900 border border-zinc-800 p-4 flex flex-col justify-end group">
+                  <img src={sport.img} className="absolute inset-0 w-full h-full object-cover opacity-30 transition-transform duration-500 group-hover:scale-105" alt="" onError={(e) => { (e.target as HTMLImageElement).src = sport.fallback; }} />
+                  <h4 className="text-sm font-bold relative z-10 uppercase tracking-wider text-white">{sport.name}</h4>
+                </div>
+              ))}
+            </div>
           </div>
 
+          {/* Catalog Repertoire Streams Container */}
           <div className="space-y-4">
             <h2 className="text-xs font-black uppercase tracking-widest text-zinc-400">Trending Repertoire</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
