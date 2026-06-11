@@ -17,28 +17,15 @@ const firebaseConfig = {
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
 
-interface Product {
-  id: string;
-  name: string;
-  category: string;
-  subcategory?: string;
-  marketPrice: string;
-  elitePrice: string;
-  mediaUrl: string;
-  description?: string;
-}
-
 export default function ProductPage() {
   const router = useRouter();
-  // We use the hook here instead of passing params through the function arguments
   const params = useParams(); 
   const productId = params?.id as string;
 
-  const [product, setProduct] = useState<Product | null>(null);
+  const [product, setProduct] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // If Next.js hasn't loaded the ID from the URL yet, wait for it
     if (!productId) return;
 
     const db = getDatabase(app);
@@ -79,6 +66,14 @@ export default function ProductPage() {
     router.push('/checkout');
   };
 
+  // HELPER: Safely cleans commas/letters from strings before turning them into numbers
+  const formatPrice = (priceVal: any) => {
+    if (!priceVal) return "0";
+    const cleanString = String(priceVal).replace(/[^0-9]/g, ''); 
+    const parsed = parseInt(cleanString, 10);
+    return isNaN(parsed) ? "0" : parsed.toLocaleString();
+  };
+
   if (loading) {
     return (
       <div className="bg-zinc-950 min-h-screen text-white flex items-center justify-center">
@@ -96,6 +91,11 @@ export default function ProductPage() {
     );
   }
 
+  // Account for potential naming mismatches from the Admin Panel
+  const displayImage = product.mediaUrl || product.imageUrl || product.image || "";
+  const marketPrice = product.marketPrice || product.marketRate || product.standardRate;
+  const elitePrice = product.elitePrice || product.discountPrice || product.salePrice;
+
   return (
     <div className="bg-zinc-950 min-h-screen text-white font-sans selection:bg-emerald-500 selection:text-black pt-12 px-6">
       <div className="max-w-6xl mx-auto space-y-8">
@@ -110,8 +110,8 @@ export default function ProductPage() {
             <span className="absolute top-6 right-6 bg-emerald-500 text-black text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-md">
               SALE
             </span>
-            {product.mediaUrl ? (
-              <img src={product.mediaUrl} alt={product.name} className="max-h-full max-w-full object-contain" />
+            {displayImage ? (
+              <img src={displayImage} alt={product.name} className="max-h-full max-w-full object-contain" />
             ) : (
               <span className="text-zinc-400 font-bold uppercase tracking-wider text-xs">No Visual Asset</span>
             )}
@@ -134,13 +134,13 @@ export default function ProductPage() {
               <div>
                 <span className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Market Standard</span>
                 <span className="text-lg text-zinc-400 line-through font-mono">
-                  Rs {parseInt(product.marketPrice).toLocaleString()}
+                  Rs {formatPrice(marketPrice)}
                 </span>
               </div>
               <div>
                 <span className="block text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-1">Elite Deal Rate</span>
                 <span className="text-4xl font-black text-emerald-400 font-mono">
-                  Rs {parseInt(product.elitePrice).toLocaleString()}
+                  Rs {formatPrice(elitePrice)}
                 </span>
               </div>
             </div>
