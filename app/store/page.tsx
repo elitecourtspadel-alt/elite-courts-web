@@ -271,7 +271,7 @@ export default function StorePage() {
           {/* Main Hero Banner with Correct Action Shot Background Image */}
           <div className="relative w-full h-[440px] rounded-2xl overflow-hidden border border-zinc-800/80 bg-zinc-900 shadow-2xl flex flex-col justify-end p-8 md:p-12 group">
             <img 
-              src="/images/sports/padel-img.webp" 
+              src="/images/padel-img.webp" 
               className="absolute inset-0 w-full h-full object-cover object-[75%_center] opacity-65 transition-transform duration-700 group-hover:scale-101" 
               alt="Elite Precision Court Action" 
               onError={(e) => { (e.target as HTMLImageElement).src = padelCategory.fallback; }} 
