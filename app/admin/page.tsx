@@ -1,7 +1,7 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { initializeApp, getApps } from "firebase/app";
-import { getDatabase, ref, push, set, onValue } from "firebase/database";
+import { getDatabase, ref, push, set, onValue, onChildAdded } from "firebase/database";
 
 const firebaseConfig = {
   apiKey: "AizasyD4bPvYwRjOAGfiwoVPbG_4hj6QEbgdc9A",
@@ -34,6 +34,13 @@ interface ProductForm {
   specPower: string;
 }
 
+interface OrderNotification {
+  id: string;
+  customerName?: string;
+  total?: string;
+  timestamp: number;
+}
+
 const CATEGORIES: string[] = ["Padel", "Pickleball", "Table Tennis", "Cricket", "Badminton"];
 const SUBCATEGORIES: Record<string, string[]> = {
   "Padel": ["Rackets", "Balls", "Padel Grips", "Bags", "Accessories"],
@@ -48,6 +55,10 @@ export default function AdminPage() {
   const [dbProducts, setDbProducts] = useState<Record<string, any>>({});
   const [selectedProductKey, setSelectedProductKey] = useState<string>("NEW_ASSET");
   
+  // Real-time active alerts state
+  const [notifications, setNotifications] = useState<OrderNotification[]>([]);
+  const pageLoadTime = useRef<number>(Date.now());
+
   const [newProduct, setNewProduct] = useState<ProductForm>({ 
     name: "", marketPrice: "", elitePrice: "", imagesInput: "",
     category: "Padel", subcategory: "Rackets", description: "",
@@ -55,12 +66,50 @@ export default function AdminPage() {
     specWeight: "", specBalance: "", specBracket: "", specControl: "", specPower: ""
   });
 
+  // Listener for inventory profiles
   useEffect(() => {
     const db = getDatabase(app);
     const productsRef = ref(db, 'store/products');
     const unsubscribe = onValue(productsRef, (snapshot) => {
       setDbProducts(snapshot.val() || {});
     });
+    return () => unsubscribe();
+  }, []);
+
+  // Real-time Order Watcher Listener
+  useEffect(() => {
+    const db = getDatabase(app);
+    const ordersRef = ref(db, 'orders');
+
+    const unsubscribe = onChildAdded(ordersRef, (snapshot) => {
+      const orderData = snapshot.val();
+      if (!orderData) return;
+
+      // Ensure the order is genuinely fresh and not legacy historical database data
+      const orderTime = orderData.timestamp || Date.now();
+      if (orderTime >= pageLoadTime.current) {
+        
+        // Trigger a subtle browser system chime 
+        const alertAudio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-84.wav');
+        alertAudio.play().catch(() => console.log("Audio waiting for a user gesture initialization."));
+
+        // Append to active ui toast alerts array
+        const systemAlert: OrderNotification = {
+          id: snapshot.key || 'Unknown ID',
+          customerName: orderData.customerName || orderData.name || 'Guest User',
+          total: orderData.totalAmount || orderData.totalPrice || orderData.elitePrice || '0.00',
+          timestamp: Date.now()
+        };
+
+        setNotifications((prev) => [systemAlert, ...prev]);
+
+        // Auto-clean alert after 6 seconds
+        setTimeout(() => {
+          setNotifications((prev) => prev.filter(n => n.timestamp !== systemAlert.timestamp));
+        }, 6000);
+      }
+    });
+
     return () => unsubscribe();
   }, []);
 
@@ -180,7 +229,25 @@ export default function AdminPage() {
   const isBallMode = isBall(newProduct.subcategory);
 
   return (
-    <div className="p-6 md:p-12 bg-zinc-950 min-h-screen text-white flex flex-col items-center">
+    <div className="p-6 md:p-12 bg-zinc-950 min-h-screen text-white flex flex-col items-center relative">
+      
+      {/* Real-time Toast Notification HUD Wrapper */}
+      <div className="fixed top-5 right-5 z-50 flex flex-col gap-3 max-w-sm w-full">
+        {notifications.map((notif) => (
+          <div key={notif.timestamp} className="bg-zinc-900 border border-emerald-500/40 shadow-2xl p-4 rounded-xl flex flex-col gap-1 text-xs animate-in slide-in-from-right-8 fade-in duration-300">
+            <div className="flex items-center justify-between text-emerald-400 font-black tracking-wider uppercase">
+              <span>🛒 New Order Incoming</span>
+              <button onClick={() => setNotifications(prev => prev.filter(n => n.timestamp !== notif.timestamp))} className="text-zinc-500 hover:text-white text-sm">×</button>
+            </div>
+            <p className="font-semibold text-zinc-100 mt-1">Client: <span className="text-zinc-300 font-normal">{notif.customerName}</span></p>
+            <div className="flex justify-between items-center text-[11px] text-zinc-400 mt-0.5">
+              <span>ID: {notif.id.slice(0, 8)}...</span>
+              <span className="bg-zinc-950 px-2 py-0.5 rounded border border-zinc-800 text-emerald-400 font-mono font-bold">{notif.total}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
       <div className="w-full max-w-2xl">
         <header className="mb-8 border-b border-zinc-900 pb-4">
           <h1 className="text-2xl font-black uppercase tracking-tight">Elite Matrix Inventory Control</h1>
@@ -253,7 +320,7 @@ export default function AdminPage() {
               {!isBallMode && (
                 <input placeholder={isHWMode ? "Weight Parameters" : "Thickness"} value={newProduct.specWeight} onChange={(e) => setNewProduct({...newProduct, specWeight: e.target.value})} className="p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 text-xs text-white" />
               )}
-              <input placeholder={isHWMode ? "Balance Profile" : "Pack Size / Qty"} value={newProduct.specBalance} onChange={(e) => setNewProduct({...newProduct, specBalance: e.target.value})} className="p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 text-xs text-white" />
+              <input placeholder={isHWMode ? "Balance Profile" : "Pack Size / Qty"} value={notif => {} ? "" : newProduct.specBalance} onChange={(e) => setNewProduct({...newProduct, specBalance: e.target.value})} className="p-2.5 bg-zinc-950 rounded-lg border border-zinc-800 text-xs text-white" />
             </div>
 
             <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-400 pt-2">
