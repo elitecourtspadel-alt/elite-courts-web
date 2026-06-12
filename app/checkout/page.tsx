@@ -8,7 +8,7 @@ const firebaseConfig = {
   apiKey: "AizasyD4bPvYwRjOAGfiwoVPbG_4hj6QEbgdc9A",
   authDomain: "elitecourtsapp.firebaseapp.com",
   projectId: "elitecourtsapp",
-  storageBucket: "elitecourtsapp.appspot.com",
+  storageBucket: "gs://elitecourtsapp.firebasestorage.app",
   messagingSenderId: "409782502952",
   appId: "1:409782502952:web:64dbbd439a740a312c571d",
   databaseURL: "https://elitecourtsapp-default-rtdb.asia-southeast1.firebasedatabase.app"
