@@ -20,6 +20,7 @@ interface Product {
   name: string;
   category: string;
   subcategory: string;
+  materialFace?: string; // Glass Fiber, 3K, 12K, 24K Carbon Fiber
   marketPrice: string;
   elitePrice: string;
   images?: string[];
@@ -30,8 +31,8 @@ interface Product {
     weight?: string;
     balance?: string;
     thickness?: string;
-    shape?: string;        // Added field
-    characters?: string;   // Added field
+    shape?: string;        
+    characters?: string;   
     [key: string]: string | undefined;
   };
 }
@@ -66,21 +67,28 @@ interface Order {
 }
 
 const CATEGORIES = ["Padel", "Pickleball", "Table Tennis", "Cricket", "Badminton"];
+const SUBCATEGORIES = ["Rackets", "Balls", "Grips", "Bags", "Footwear", "Accessories"];
+const MATERIALS = ["None / Standard", "Glass Fiber", "3K Carbon Fiber", "12K Carbon Fiber", "24K Carbon Fiber"];
 
 export default function AdminDashboard() {
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [activeTab, setActiveTab] = useState<'PRODUCTS' | 'ORDERS'>('PRODUCTS');
   
+  // Filtering states for active management views
+  const [adminCategoryFilter, setAdminCategoryFilter] = useState<string>('ALL');
+  const [adminMaterialFilter, setAdminMaterialFilter] = useState<string>('ALL');
+  
   const [newProduct, setNewProduct] = useState<Partial<Product>>({
-    name: '', category: 'Padel', subcategory: '', marketPrice: '', elitePrice: '',
-    description: '', model3d: '', image: '', images: ['']
+    name: '', category: 'Padel', subcategory: 'Rackets', materialFace: 'None / Standard', 
+    marketPrice: '', elitePrice: '', description: '', model3d: '', image: '', images: ['']
   });
+  
   const [specWeight, setSpecWeight] = useState('');
   const [specBalance, setSpecBalance] = useState('');
   const [specThickness, setSpecThickness] = useState('');
-  const [specShape, setSpecShape] = useState('');          // Added state
-  const [specCharacters, setSpecCharacters] = useState(''); // Added state
+  const [specShape, setSpecShape] = useState('');         
+  const [specCharacters, setSpecCharacters] = useState(''); 
   
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
 
@@ -144,21 +152,12 @@ export default function AdminDashboard() {
     }
 
     const totalAmountNum = parseInt(order.financials.orderTotal.replace(/[^0-9]/g, '')) || 0;
-    
     let advanceNum = 0;
     let remainingNum = totalAmountNum;
 
     if (order.financials.advancePaid) {
       advanceNum = parseInt(order.financials.advancePaid.replace(/[^0-9]/g, '')) || 0;
       remainingNum = totalAmountNum - advanceNum;
-    } else {
-      const isPartialChannel = order.financials.paymentMethod.toLowerCase().includes('pickup') || 
-                               order.financials.paymentMethod.toLowerCase().includes('advance') ||
-                               order.financials.paymentMethod.toLowerCase().includes('partial');
-      if (isPartialChannel) {
-        advanceNum = Math.round(totalAmountNum * 0.20);
-        remainingNum = totalAmountNum - advanceNum;
-      }
     }
 
     let financialSummaryBlock = `• Total Amount: ${totalAmountNum.toLocaleString()} PKR`;
@@ -190,7 +189,8 @@ export default function AdminDashboard() {
     setNewProduct({
       name: product.name,
       category: product.category,
-      subcategory: product.subcategory || '',
+      subcategory: product.subcategory || 'Rackets',
+      materialFace: product.materialFace || 'None / Standard',
       marketPrice: rawMarket,
       elitePrice: rawElite,
       description: product.description || '',
@@ -202,15 +202,15 @@ export default function AdminDashboard() {
     setSpecWeight(product.specs?.weight || '');
     setSpecBalance(product.specs?.balance || '');
     setSpecThickness(product.specs?.thickness || '');
-    setSpecShape(product.specs?.shape || '');               // Load field values
-    setSpecCharacters(product.specs?.characters || '');       // Load field values
+    setSpecShape(product.specs?.shape || '');               
+    setSpecCharacters(product.specs?.characters || '');       
   };
 
   const resetProductForm = () => {
     setEditingProductId(null);
     setNewProduct({
-      name: '', category: 'Padel', subcategory: '', marketPrice: '', elitePrice: '',
-      description: '', model3d: '', image: '', images: ['']
+      name: '', category: 'Padel', subcategory: 'Rackets', materialFace: 'None / Standard', 
+      marketPrice: '', elitePrice: '', description: '', model3d: '', image: '', images: ['']
     });
     setSpecWeight('');
     setSpecBalance('');
@@ -232,7 +232,8 @@ export default function AdminDashboard() {
     const productPayload: Product = {
       name: newProduct.name || 'Unnamed Equipment',
       category: newProduct.category || 'Padel',
-      subcategory: newProduct.subcategory || 'Standard',
+      subcategory: newProduct.subcategory || 'Rackets',
+      materialFace: newProduct.materialFace || 'None / Standard',
       marketPrice: `${parsedMarket} PKR`,
       elitePrice: `${parsedElite} PKR`,
       description: newProduct.description || '',
@@ -243,8 +244,8 @@ export default function AdminDashboard() {
         weight: specWeight || undefined,
         balance: specBalance || undefined,
         thickness: specThickness || undefined,
-        shape: specShape || undefined,            // Append field to payload
-        characters: specCharacters || undefined    // Append field to payload
+        shape: specShape || undefined,            
+        characters: specCharacters || undefined    
       }
     };
 
@@ -320,23 +321,28 @@ export default function AdminDashboard() {
     if (!confirm(`⚠️ CRITICAL COMMAND: Are you completely certain you want to cancel and delete Order #${orderId} from the master database? This action cannot be reversed.`)) {
       return;
     }
-
     const db = getDatabase(app);
     const orderRef = ref(db, `store/orders/${orderId}`);
-
     try {
       await remove(orderRef);
-      alert("Order entry purged from database reference layout cleanly.");
+      alert("Order entry purged cleanly.");
     } catch (err) {
       console.error("Failed to eliminate targeted order payload record:", err);
-      alert("Error: Failed to process order cancellation node request.");
     }
   };
+
+  // Safe Multi-tier pipeline filter configuration logic
+  const filteredProductsList = products.filter(product => {
+    const matchesCategory = adminCategoryFilter === 'ALL' || product.category === adminCategoryFilter;
+    const matchesMaterial = adminMaterialFilter === 'ALL' || product.materialFace === adminMaterialFilter;
+    return matchesCategory && matchesMaterial;
+  });
 
   return (
     <div className="bg-zinc-950 min-h-screen text-white p-6 md:p-12 font-sans selection:bg-emerald-500 selection:text-black">
       <div className="max-w-7xl mx-auto space-y-8">
         
+        {/* Header Control Workspace Tab Controller */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-900 pb-6">
           <div>
             <h1 className="text-3xl font-black uppercase tracking-tight">System Control Matrix</h1>
@@ -355,6 +361,8 @@ export default function AdminDashboard() {
 
         {activeTab === 'PRODUCTS' ? (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            
+            {/* Input Form Module Context Block */}
             <form onSubmit={handleSaveProduct} className="lg:col-span-5 bg-zinc-900 border border-zinc-800 p-6 rounded-2xl space-y-4">
               <div className="flex items-center justify-between border-b border-zinc-850 pb-2 mb-2">
                 <h3 className="text-sm font-black uppercase tracking-wider text-emerald-400">
@@ -369,19 +377,43 @@ export default function AdminDashboard() {
               
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">Equipment Variant Title</label>
-                <input type="text" required value={newProduct.name} onChange={e => setNewProduct(prev => ({ ...prev, name: e.target.value }))} className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-4 py-2.5 text-xs text-white outline-none transition-all font-medium" placeholder="e.g. Elite Pro Carbon Padel Racket" />
+                <input type="text" required value={newProduct.name} onChange={e => setNewProduct(prev => ({ ...prev, name: e.target.value }))} className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-4 py-2.5 text-xs text-white outline-none transition-all font-medium" placeholder="e.g. Pro Air 12K Edition" />
               </div>
 
+              {/* SEPARATED CATEGORY AND SUBCATEGORY SELECTORS */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">Primary Category</label>
-                  <select value={newProduct.category} onChange={e => setNewProduct(prev => ({ ...prev, category: e.target.value }))} className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-4 py-2.5 text-xs text-white outline-none transition-all font-bold">
+                  <select value={newProduct.category} onChange={e => setNewProduct(prev => ({ ...prev, category: e.target.value }))} className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-3 py-2.5 text-xs text-white outline-none transition-all font-bold">
                     {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">Subcategory Node</label>
-                  <input type="text" value={newProduct.subcategory} onChange={e => setNewProduct(prev => ({ ...prev, subcategory: e.target.value }))} className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-4 py-2.5 text-xs text-white outline-none transition-all font-medium" placeholder="e.g. Bats / Rackets" />
+                  <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">Equipment Subcategory</label>
+                  <select value={newProduct.subcategory} onChange={e => setNewProduct(prev => ({ ...prev, subcategory: e.target.value }))} className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-3 py-2.5 text-xs text-white outline-none transition-all font-bold">
+                    {SUBCATEGORIES.map(sub => <option key={sub} value={sub}>{sub}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              {/* MATERIAL SELECTOR COMPONENT BLOCK */}
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1.5">Material Composition Matrix</label>
+                <div className="grid grid-cols-2 gap-2 font-mono">
+                  {MATERIALS.map((mat) => (
+                    <button
+                      key={mat}
+                      type="button"
+                      onClick={() => setNewProduct(prev => ({ ...prev, materialFace: mat }))}
+                      className={`py-2 px-3 border rounded-xl text-left text-[11px] font-bold transition-all ${
+                        newProduct.materialFace === mat
+                          ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400'
+                          : 'bg-zinc-950 border-zinc-850 text-zinc-400 hover:border-zinc-700'
+                      }`}
+                    >
+                      {newProduct.materialFace === mat ? '◈ ' : '◇ '} {mat}
+                    </button>
+                  ))}
                 </div>
               </div>
 
@@ -411,33 +443,30 @@ export default function AdminDashboard() {
                 <textarea rows={2} value={newProduct.description} onChange={e => setNewProduct(prev => ({ ...prev, description: e.target.value }))} className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-4 py-2.5 text-xs text-white outline-none transition-all resize-none font-medium leading-relaxed" placeholder="Provide specification log layout summary..." />
               </div>
 
-              {/* --- EXTENDED TECHNICAL ATTRIBUTES REGISTRY SECTION --- */}
               <div className="border-t border-zinc-800 pt-3 space-y-3">
                 <span className="block text-[10px] font-black uppercase tracking-wider text-emerald-400/80">Key Feature Metrics</span>
-                
                 <div className="grid grid-cols-3 gap-2">
                   <div>
                     <label className="block text-[9px] font-bold uppercase text-zinc-500 mb-1">Total Weight</label>
-                    <input type="text" value={specWeight} onChange={e => setSpecWeight(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-emerald-500 text-white" placeholder="e.g. 365g" />
+                    <input type="text" value={specWeight} onChange={e => setSpecWeight(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-emerald-500 text-white" placeholder="365g" />
                   </div>
                   <div>
                     <label className="block text-[9px] font-bold uppercase text-zinc-500 mb-1">Balance Matrix</label>
-                    <input type="text" value={specBalance} onChange={e => setSpecBalance(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-emerald-500 text-white" placeholder="e.g. Medium" />
+                    <input type="text" value={specBalance} onChange={e => setSpecBalance(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-emerald-500 text-white" placeholder="Medium" />
                   </div>
                   <div>
                     <label className="block text-[9px] font-bold uppercase text-zinc-500 mb-1">Thickness</label>
-                    <input type="text" value={specThickness} onChange={e => setSpecThickness(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-emerald-500 text-white" placeholder="e.g. 38mm" />
+                    <input type="text" value={specThickness} onChange={e => setSpecThickness(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-emerald-500 text-white" placeholder="38mm" />
                   </div>
                 </div>
-
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <label className="block text-[9px] font-bold uppercase text-zinc-500 mb-1">Structural Shape</label>
-                    <input type="text" value={specShape} onChange={e => setSpecShape(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-emerald-500 text-white" placeholder="e.g. Diamond / Round" />
+                    <input type="text" value={specShape} onChange={e => setSpecShape(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-emerald-500 text-white" placeholder="Diamond" />
                   </div>
                   <div>
                     <label className="block text-[9px] font-bold uppercase text-zinc-500 mb-1">Characteristics / Fit</label>
-                    <input type="text" value={specCharacters} onChange={e => setSpecCharacters(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-emerald-500 text-white" placeholder="e.g. Power / Control / Speed" />
+                    <input type="text" value={specCharacters} onChange={e => setSpecCharacters(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-emerald-500 text-white" placeholder="Power / Control" />
                   </div>
                 </div>
               </div>
@@ -447,43 +476,84 @@ export default function AdminDashboard() {
               </button>
             </form>
 
-            <div className="lg:col-span-7 bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4">
-              <h3 className="text-sm font-black uppercase tracking-wider text-zinc-400">Current Inventory Registry</h3>
-              <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-2">
-                {products.map((product) => (
-                  <div key={product.id} className="flex bg-zinc-950 border border-zinc-850 p-4 rounded-xl justify-between items-center gap-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-zinc-900 border border-zinc-850 rounded-lg flex items-center justify-center p-1">
-                        <img src={Array.isArray(product.images) ? product.images[0] : product.image} className="max-h-full object-contain" alt="" />
-                      </div>
-                      <div>
-                        <h4 className="text-xs font-bold text-zinc-200">{product.name}</h4>
-                        <span className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold">{product.category} ({product.subcategory})</span>
-                        
-                        {/* Interactive Frontend Preview for Verification */}
-                        {(product.specs?.shape || product.specs?.characters) && (
-                          <div className="flex gap-2 text-[9px] text-zinc-400 uppercase tracking-wider mt-0.5 font-semibold">
-                            {product.specs.shape && <span>⬡ {product.specs.shape}</span>}
-                            {product.specs.characters && <span>⚡ {product.specs.characters}</span>}
-                          </div>
-                        )}
+            {/* Live Interactive Column Pipeline Preview Dashboard Layout */}
+            <div className="lg:col-span-7 bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-5">
+              
+              {/* ADVANCED MULTI-LEVEL FILTER MATRIX COMPONENT */}
+              <div className="space-y-3 border-b border-zinc-850 pb-4 font-mono">
+                <div>
+                  <span className="block text-[9px] font-bold uppercase text-zinc-500 tracking-wider mb-1">Sort Category:</span>
+                  <div className="flex flex-wrap gap-1">
+                    {['ALL', ...CATEGORIES].map((cat) => (
+                      <button key={cat} type="button" onClick={() => setAdminCategoryFilter(cat)} className={`px-2.5 py-1 text-[10px] uppercase font-black tracking-wider rounded border ${adminCategoryFilter === cat ? 'bg-zinc-800 text-emerald-400 border-zinc-700' : 'bg-zinc-950 text-zinc-500 border-zinc-900 hover:text-zinc-300'}`}>
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <span className="block text-[9px] font-bold uppercase text-zinc-500 tracking-wider mb-1">Sort Composition Matrix:</span>
+                  <div className="flex flex-wrap gap-1">
+                    {['ALL', ...MATERIALS.filter(m => m !== "None / Standard")].map((mat) => (
+                      <button key={mat} type="button" onClick={() => setAdminMaterialFilter(mat === 'ALL' ? 'ALL' : mat)} className={`px-2.5 py-1 text-[10px] uppercase font-black tracking-wider rounded border ${adminMaterialFilter === mat ? 'bg-zinc-800 text-emerald-400 border-zinc-700' : 'bg-zinc-950 text-zinc-500 border-zinc-900 hover:text-zinc-300'}`}>
+                        {mat}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
 
-                        <div className="flex gap-2 text-[11px] font-mono mt-1">
-                          <span className="text-zinc-500 line-through">{product.marketPrice}</span>
-                          <span className="text-emerald-400 font-bold">{product.elitePrice}</span>
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-black uppercase tracking-wider text-zinc-400">Current Inventory Registry</h3>
+                <span className="text-[10px] font-mono text-zinc-500 uppercase font-bold">{filteredProductsList.length} Nodes Rendered</span>
+              </div>
+
+              <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
+                {filteredProductsList.length === 0 ? (
+                  <div className="py-12 border border-dashed border-zinc-800 rounded-xl text-center font-mono text-zinc-600 text-xs uppercase tracking-wider">
+                    No records found matching current configuration parameters.
+                  </div>
+                ) : (
+                  filteredProductsList.map((product) => (
+                    <div key={product.id} className="flex bg-zinc-950 border border-zinc-850 p-4 rounded-xl justify-between items-center gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 bg-zinc-900 border border-zinc-850 rounded-lg flex items-center justify-center p-1">
+                          <img src={Array.isArray(product.images) ? product.images[0] : product.image} className="max-h-full object-contain" alt="" />
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-bold text-zinc-200">{product.name}</h4>
+                          <div className="flex flex-wrap gap-1.5 items-center mt-0.5">
+                            <span className="text-[9px] uppercase tracking-widest text-zinc-400 bg-zinc-900 px-1.5 py-0.5 rounded border border-zinc-800 font-bold">{product.category} ({product.subcategory})</span>
+                            {product.materialFace && product.materialFace !== 'None / Standard' && (
+                              <span className="text-[9px] uppercase tracking-widest text-emerald-400 bg-emerald-950/40 px-1.5 py-0.5 rounded border border-emerald-900/40 font-mono font-bold">⌺ {product.materialFace}</span>
+                            )}
+                          </div>
+                          
+                          {(product.specs?.shape || product.specs?.characters) && (
+                            <div className="flex gap-2 text-[9px] text-zinc-500 uppercase tracking-wider mt-1 font-semibold">
+                              {product.specs.shape && <span>⬡ {product.specs.shape}</span>}
+                              {product.specs.characters && <span>⚡ {product.specs.characters}</span>}
+                            </div>
+                          )}
+
+                          <div className="flex gap-2 text-[11px] font-mono mt-1">
+                            <span className="text-zinc-500 line-through">{product.marketPrice}</span>
+                            <span className="text-emerald-400 font-bold">{product.elitePrice}</span>
+                          </div>
                         </div>
                       </div>
+                      <div className="flex gap-2">
+                        <button onClick={() => handleEditSelect(product)} className="px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-lg text-[10px] font-black uppercase tracking-wider hover:text-emerald-400 transition-colors">Edit</button>
+                        <button onClick={() => product.id && handleDeleteProduct(product.id)} className="px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-lg text-[10px] font-black uppercase tracking-wider hover:text-red-400 transition-colors">Purge</button>
+                      </div>
                     </div>
-                    <div className="flex gap-2">
-                      <button onClick={() => handleEditSelect(product)} className="px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-lg text-[10px] font-black uppercase tracking-wider hover:text-emerald-400 transition-colors">Edit</button>
-                      <button onClick={() => product.id && handleDeleteProduct(product.id)} className="px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-lg text-[10px] font-black uppercase tracking-wider hover:text-red-400 transition-colors">Purge</button>
-                    </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
           </div>
         ) : (
+          /* Live Orders Pipeline Matrix Block Module Layout Map */
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4">
             <h3 className="text-sm font-black uppercase tracking-wider text-zinc-400">Live Orders Pipeline Matrix</h3>
             <div className="space-y-4 max-h-[75vh] overflow-y-auto pr-2">
@@ -498,24 +568,17 @@ export default function AdminDashboard() {
                       <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${order.orderStatus === 'COMPLETED_DELIVERY' ? 'bg-zinc-900 text-zinc-500' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'}`}>
                         {order.orderStatus}
                       </span>
-                      
                       {order.orderStatus !== 'PENDING_VERIFICATION' && (
                         <button onClick={() => handleRevertOrderStatus(order)} className="px-3 py-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 font-black text-[10px] uppercase tracking-wider rounded-lg transition-all border border-zinc-800">
                           🔀 Revert / Undo
                         </button>
                       )}
-
                       {order.orderStatus !== 'COMPLETED_DELIVERY' && (
                         <button onClick={() => handleUpdateOrderStatus(order)} className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-black font-black text-[10px] uppercase tracking-wider rounded-lg transition-all">
                           Cycle Next Status →
                         </button>
                       )}
-
-                      <button 
-                        onClick={() => handleCancelOrder(order.id)} 
-                        className="px-3 py-2 bg-red-950/60 hover:bg-red-900 text-red-400 font-black text-[10px] uppercase tracking-wider rounded-lg transition-all border border-red-900/40"
-                        title="Cancel and delete this order node"
-                      >
+                      <button onClick={() => handleCancelOrder(order.id)} className="px-3 py-2 bg-red-950/60 hover:bg-red-900 text-red-400 font-black text-[10px] uppercase tracking-wider rounded-lg transition-all border border-red-900/40">
                         🗑️ Cancel Order
                       </button>
                     </div>
@@ -526,12 +589,10 @@ export default function AdminDashboard() {
                       <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block mb-1">Logistics Matrix</span>
                       <p className="text-zinc-300"><span className="text-zinc-500">Phone:</span> {order.customer.phone}</p>
                       <p className="text-zinc-300 bg-zinc-900/50 border border-zinc-850/80 p-2 rounded-lg mt-1 whitespace-pre-wrap leading-relaxed">
-                        <span className="text-zinc-500 block text-[10px] font-bold uppercase tracking-wide mb-0.5">Delivery Route Address:</span> 
                         {order.customer.address}
                       </p>
                       <p className="text-zinc-400 font-bold pt-1 uppercase text-[10px]">Fulfillment: {order.fulfillmentType}</p>
                     </div>
-
                     <div>
                       <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block mb-1">Manifest Items Bundle</span>
                       <div className="space-y-1">
@@ -542,39 +603,22 @@ export default function AdminDashboard() {
                         ))}
                       </div>
                     </div>
-
                     <div>
                       <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block mb-1">Financial State Summary</span>
                       <p className="text-zinc-300 font-mono"><span className="text-zinc-500">Gross Total:</span> {order.financials.orderTotal}</p>
                       <p className="text-zinc-300 font-mono mt-0.5"><span className="text-zinc-500">Channel Method:</span> {order.financials.paymentMethod}</p>
                     </div>
-
-                    <div className="border-l md:border-l border-zinc-900 pl-0 md:pl-4">
+                    <div className="border-l border-zinc-900 pl-0 md:pl-4">
                       <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block mb-1">Client Transfer Verification</span>
                       {order.paymentScreenshot ? (
                         <div className="space-y-2">
                           <div className="relative group w-32 h-36 bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden cursor-zoom-in">
-                            <img 
-                              src={order.paymentScreenshot} 
-                              alt="Receipt Proof Payload" 
-                              className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                            />
-                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                              <span className="text-[9px] uppercase tracking-wider bg-zinc-950/90 text-white px-2 py-1 rounded border border-zinc-800">View Full Image</span>
-                            </div>
+                            <img src={order.paymentScreenshot} alt="Receipt Proof Payload" className="w-full h-full object-cover transition-transform group-hover:scale-105" />
                           </div>
-                          <button 
-                            type="button" 
-                            onClick={() => window.open(order.paymentScreenshot, '_blank')}
-                            className="text-[10px] font-bold text-emerald-400 hover:underline block"
-                          >
-                            Open attachment in separate window ↗
-                          </button>
+                          <button type="button" onClick={() => window.open(order.paymentScreenshot, '_blank')} className="text-[10px] font-bold text-emerald-400 hover:underline block">Open attachment ↗</button>
                         </div>
                       ) : (
-                        <div className="bg-zinc-900/30 border border-zinc-850/60 rounded-xl p-3 text-center text-zinc-600 font-mono text-[10px]">
-                          No screenshot payload uploaded. (Standard Cash / Pre-verified processing channel)
-                        </div>
+                        <div className="bg-zinc-900/30 border border-zinc-850/60 rounded-xl p-3 text-center text-zinc-600 font-mono text-[10px]">No screenshot payload uploaded.</div>
                       )}
                     </div>
                   </div>
