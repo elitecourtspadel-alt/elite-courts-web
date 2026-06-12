@@ -58,6 +58,9 @@ export default function ProductPage() {
     }
     
     localStorage.setItem('elite_store_active_cart', JSON.stringify(cart));
+    
+    // Optional: Trigger global event if your navbar has a cart indicator
+    window.dispatchEvent(new Event('storage'));
     alert(`${product.name} added to cart!`);
   };
 
@@ -103,16 +106,13 @@ export default function ProductPage() {
     );
   }
 
-  const rawImage = product.mediaUrl || product.imageUrl || product.image || "";
-  const displayImage = cleanImageUrl(rawImage);
+  const displayImage = cleanImageUrl(product.mediaUrl || product.imageUrl || product.image || "");
   const marketPrice = product.marketPrice || product.marketRate || product.standardRate;
   const elitePrice = product.elitePrice || product.discountPrice || product.salePrice;
-
-  // FIX 1: Safely read description strings from potential database variation keys
   const productDescription = product.performanceDescriptionManifest || product.description || product.performanceDescription;
-
-  // FIX 2: Safely read the feature specs object node structure from Firebase
-  const specs = product.keyFeatureMetrics || {};
+  
+  // Safely fallback to internal fields if root object keys differ
+  const specs = product.keyFeatureMetrics || product.specifications || product.specs || {};
 
   return (
     <div className="bg-zinc-950 min-h-screen text-white font-sans selection:bg-emerald-500 selection:text-black pt-12 px-6">
@@ -138,7 +138,7 @@ export default function ProductPage() {
           <div className="space-y-8">
             <div>
               <span className="text-emerald-400 text-[10px] font-black uppercase tracking-widest block mb-2">
-                {product.category} {product.subcategory ? `/ {product.subcategory}` : 'PORTFOLIO'}
+                {product.category || 'EQUIPMENT'} {product.subcategory ? `/ ${product.subcategory}` : ' / PORTFOLIO'}
               </span>
               <h1 className="text-4xl md:text-5xl font-black tracking-tight text-white mb-2 leading-none">
                 {product.name}
@@ -170,17 +170,16 @@ export default function ProductPage() {
               </p>
             </div>
 
-            {/* FIX 3: Dynamic Parameters Specifications Layout Block Display */}
             <div className="mt-6 border-t border-zinc-850 pt-5 space-y-3">
               <h3 className="text-xs font-black uppercase tracking-wider text-emerald-400">Technical Specifications Matrix</h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 font-mono">
                 <div className="bg-zinc-900/40 p-3 border border-zinc-850 rounded-xl">
                   <span className="text-[9px] font-sans font-bold text-zinc-500 uppercase block mb-0.5">Total Weight</span>
-                  <span className="text-xs text-white font-semibold">{specs.totalWeight || 'N/A'}</span>
+                  <span className="text-xs text-white font-semibold">{specs.totalWeight || specs.weight || 'N/A'}</span>
                 </div>
                 <div className="bg-zinc-900/40 p-3 border border-zinc-850 rounded-xl">
                   <span className="text-[9px] font-sans font-bold text-zinc-500 uppercase block mb-0.5">Balance Matrix</span>
-                  <span className="text-xs text-white font-semibold">{specs.balanceMatrix || 'N/A'}</span>
+                  <span className="text-xs text-white font-semibold">{specs.balanceMatrix || specs.balance || 'N/A'}</span>
                 </div>
                 <div className="bg-zinc-900/40 p-3 border border-zinc-850 rounded-xl">
                   <span className="text-[9px] font-sans font-bold text-zinc-500 uppercase block mb-0.5">Thickness</span>
@@ -188,11 +187,11 @@ export default function ProductPage() {
                 </div>
                 <div className="bg-zinc-900/40 p-3 border border-zinc-850 rounded-xl col-span-2 sm:col-span-1">
                   <span className="text-[9px] font-sans font-bold text-zinc-500 uppercase block mb-0.5">Structural Shape</span>
-                  <span className="text-xs text-white font-semibold">{specs.structuralShape || 'N/A'}</span>
+                  <span className="text-xs text-white font-semibold">{specs.structuralShape || specs.shape || 'N/A'}</span>
                 </div>
                 <div className="bg-zinc-900/40 p-3 border border-zinc-850 rounded-xl col-span-2">
                   <span className="text-[9px] font-sans font-bold text-zinc-500 uppercase block mb-0.5">Characteristics / Fit</span>
-                  <span className="text-xs text-zinc-300 font-medium leading-tight block">{specs.characteristics || 'N/A'}</span>
+                  <span className="text-xs text-zinc-300 font-medium leading-tight block">{specs.characteristics || specs.features || 'N/A'}</span>
                 </div>
               </div>
             </div>
