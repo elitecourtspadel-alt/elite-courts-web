@@ -73,7 +73,6 @@ export default function ProductPage() {
     return isNaN(parsed) ? "0" : parsed.toLocaleString();
   };
 
-  // Converts standard ImgBB viewer links into raw image assets automatically
   const cleanImageUrl = (url: string) => {
     if (!url) return "";
     let trimmed = url.trim();
@@ -109,6 +108,12 @@ export default function ProductPage() {
   const marketPrice = product.marketPrice || product.marketRate || product.standardRate;
   const elitePrice = product.elitePrice || product.discountPrice || product.salePrice;
 
+  // FIX 1: Safely read description strings from potential database variation keys
+  const productDescription = product.performanceDescriptionManifest || product.description || product.performanceDescription;
+
+  // FIX 2: Safely read the feature specs object node structure from Firebase
+  const specs = product.keyFeatureMetrics || {};
+
   return (
     <div className="bg-zinc-950 min-h-screen text-white font-sans selection:bg-emerald-500 selection:text-black pt-12 px-6">
       <div className="max-w-6xl mx-auto space-y-8">
@@ -133,7 +138,7 @@ export default function ProductPage() {
           <div className="space-y-8">
             <div>
               <span className="text-emerald-400 text-[10px] font-black uppercase tracking-widest block mb-2">
-                {product.category} {product.subcategory ? `/ ${product.subcategory}` : 'PORTFOLIO'}
+                {product.category} {product.subcategory ? `/ {product.subcategory}` : 'PORTFOLIO'}
               </span>
               <h1 className="text-4xl md:text-5xl font-black tracking-tight text-white mb-2 leading-none">
                 {product.name}
@@ -161,8 +166,35 @@ export default function ProductPage() {
             <div className="space-y-3">
               <h3 className="text-xs font-bold text-zinc-300 uppercase tracking-widest">Product Overview</h3>
               <p className="text-zinc-400 text-sm leading-relaxed">
-                {product.description || "Take your game to the next level with this premium asset, engineered specifically for players who demand explosive speed, sharp responsiveness, and unyielding consistency."}
+                {productDescription || "Take your game to the next level with this premium asset, engineered specifically for players who demand explosive speed, sharp responsiveness, and unyielding consistency."}
               </p>
+            </div>
+
+            {/* FIX 3: Dynamic Parameters Specifications Layout Block Display */}
+            <div className="mt-6 border-t border-zinc-850 pt-5 space-y-3">
+              <h3 className="text-xs font-black uppercase tracking-wider text-emerald-400">Technical Specifications Matrix</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 font-mono">
+                <div className="bg-zinc-900/40 p-3 border border-zinc-850 rounded-xl">
+                  <span className="text-[9px] font-sans font-bold text-zinc-500 uppercase block mb-0.5">Total Weight</span>
+                  <span className="text-xs text-white font-semibold">{specs.totalWeight || 'N/A'}</span>
+                </div>
+                <div className="bg-zinc-900/40 p-3 border border-zinc-850 rounded-xl">
+                  <span className="text-[9px] font-sans font-bold text-zinc-500 uppercase block mb-0.5">Balance Matrix</span>
+                  <span className="text-xs text-white font-semibold">{specs.balanceMatrix || 'N/A'}</span>
+                </div>
+                <div className="bg-zinc-900/40 p-3 border border-zinc-850 rounded-xl">
+                  <span className="text-[9px] font-sans font-bold text-zinc-500 uppercase block mb-0.5">Thickness</span>
+                  <span className="text-xs text-white font-semibold">{specs.thickness || 'N/A'}</span>
+                </div>
+                <div className="bg-zinc-900/40 p-3 border border-zinc-850 rounded-xl col-span-2 sm:col-span-1">
+                  <span className="text-[9px] font-sans font-bold text-zinc-500 uppercase block mb-0.5">Structural Shape</span>
+                  <span className="text-xs text-white font-semibold">{specs.structuralShape || 'N/A'}</span>
+                </div>
+                <div className="bg-zinc-900/40 p-3 border border-zinc-850 rounded-xl col-span-2">
+                  <span className="text-[9px] font-sans font-bold text-zinc-500 uppercase block mb-0.5">Characteristics / Fit</span>
+                  <span className="text-xs text-zinc-300 font-medium leading-tight block">{specs.characteristics || 'N/A'}</span>
+                </div>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4 pt-4 border-t border-zinc-850">
