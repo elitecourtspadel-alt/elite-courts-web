@@ -32,6 +32,14 @@ const firebaseConfig = {
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
 
+interface KeyFeatureMetrics {
+  totalWeight?: string;
+  balanceMatrix?: string;
+  thickness?: string;
+  structuralShape?: string;
+  characteristics?: string;
+}
+
 interface Product {
   name: string;
   category: string;
@@ -42,7 +50,8 @@ interface Product {
   image?: string;
   model3d?: string; 
   description?: string;
-  specs?: Record<string, string>;
+  performanceDescriptionManifest?: string;
+  keyFeatureMetrics?: KeyFeatureMetrics;
 }
 
 interface CartItem {
@@ -120,7 +129,39 @@ function ProductDetailView({ product, onBack, onAddToCart, onBuyNow }: { product
             </div>
           </div>
 
-          <p className="text-zinc-400 text-sm leading-relaxed">{product.description || "High-end configuration optimized for competitive play."}</p>
+          {/* Combined fallback check for description fields */}
+          <p className="text-zinc-400 text-sm leading-relaxed">
+            {product.performanceDescriptionManifest || product.description || "High-end configuration optimized for competitive play."}
+          </p>
+
+          {/* Technical Specifications Matrix Grid Block */}
+          {product.keyFeatureMetrics && (
+            <div className="mt-6 border-t border-zinc-850 pt-5 space-y-3">
+              <h3 className="text-xs font-black uppercase tracking-wider text-emerald-400">Technical Specifications Matrix</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 font-mono">
+                <div className="bg-zinc-950 p-3 border border-zinc-850 rounded-xl">
+                  <span className="text-[9px] font-sans font-bold text-zinc-500 uppercase block mb-0.5">Total Weight</span>
+                  <span className="text-xs text-white font-semibold">{product.keyFeatureMetrics.totalWeight || 'N/A'}</span>
+                </div>
+                <div className="bg-zinc-950 p-3 border border-zinc-850 rounded-xl">
+                  <span className="text-[9px] font-sans font-bold text-zinc-500 uppercase block mb-0.5">Balance Matrix</span>
+                  <span className="text-xs text-white font-semibold">{product.keyFeatureMetrics.balanceMatrix || 'N/A'}</span>
+                </div>
+                <div className="bg-zinc-950 p-3 border border-zinc-850 rounded-xl">
+                  <span className="text-[9px] font-sans font-bold text-zinc-500 uppercase block mb-0.5">Thickness</span>
+                  <span className="text-xs text-white font-semibold">{product.keyFeatureMetrics.thickness || 'N/A'}</span>
+                </div>
+                <div className="bg-zinc-950 p-3 border border-zinc-850 rounded-xl col-span-2 sm:col-span-1">
+                  <span className="text-[9px] font-sans font-bold text-zinc-500 uppercase block mb-0.5">Structural Shape</span>
+                  <span className="text-xs text-white font-semibold">{product.keyFeatureMetrics.structuralShape || 'N/A'}</span>
+                </div>
+                <div className="bg-zinc-950 p-3 border border-zinc-850 rounded-xl col-span-2">
+                  <span className="text-[9px] font-sans font-bold text-zinc-500 uppercase block mb-0.5">Characteristics / Fit</span>
+                  <span className="text-xs text-zinc-300 font-medium leading-tight block">{product.keyFeatureMetrics.characteristics || 'N/A'}</span>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="space-y-2 border-t border-zinc-900 pt-4">
             <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500">Select Purchase Quantity</label>
@@ -171,7 +212,6 @@ export default function StorePage() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
 
-  // Sync state to Firebase catalog parameters
   useEffect(() => {
     const db = getDatabase(app);
     const productsRef = ref(db, 'store/products');
@@ -180,14 +220,11 @@ export default function StorePage() {
       const loadedProducts = data ? Object.values(data) as Product[] : [];
       setProducts(loadedProducts);
       setLoading(false);
-
-      // Evaluate browser address routing on initial database sync completion
       syncStateFromUrl(loadedProducts);
     });
     return () => unsubscribe();
   }, []);
 
-  // Monitor dynamic history popstate transitions (hardware back buttons click tracking)
   useEffect(() => {
     const handlePopState = () => {
       syncStateFromUrl(products);
@@ -196,7 +233,6 @@ export default function StorePage() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, [products]);
 
-  // Read clean state mappings out of current search address
   const syncStateFromUrl = (availableProducts: Product[]) => {
     if (typeof window === 'undefined') return;
     const params = new URLSearchParams(window.location.search);
@@ -217,7 +253,6 @@ export default function StorePage() {
     setSelectedProduct(null);
   };
 
-  // Internal Router State Push State wrapper configuration
   const navigateTo = (view: string, product: Product | null = null) => {
     if (typeof window === 'undefined') return;
     const params = new URLSearchParams();
@@ -226,7 +261,7 @@ export default function StorePage() {
       params.set('view', view);
     }
     if (product) {
-      if (view === 'Home') params.set('view', product.category); // Preserve parent navigation depth context
+      if (view === 'Home') params.set('view', product.category); 
       params.set('product', product.name.toLowerCase().replace(/[^a-z0-9]/g, '-'));
     }
 
@@ -296,7 +331,7 @@ export default function StorePage() {
   const rightGridCategories = SPORT_COLLECTIONS.filter(s => s.name !== "Padel");
 
   return (
-    <div className="bg-zinc-950 min-h-screen text-white relative">
+    <div className="bg-zinc-950 min-h-screen text-white relative animate-fadeIn">
       {/* Navigation Header */}
       <div className="bg-zinc-900 border-b border-zinc-800 px-6 py-4 sticky top-0 z-40">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
@@ -366,13 +401,11 @@ export default function StorePage() {
 
           {/* Correct Categories Block Grid Section Layout */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-            {/* Primary Column Feature Card: Padel */}
             <div onClick={() => navigateTo(padelCategory.name)} className="lg:col-span-7 relative h-80 rounded-2xl overflow-hidden cursor-pointer bg-zinc-900 border border-zinc-800 p-8 flex flex-col justify-end group">
               <img src={padelCategory.img} className="absolute inset-0 w-full h-full object-cover opacity-40 transition-transform duration-500 group-hover:scale-105" alt="" onError={(e) => { (e.target as HTMLImageElement).src = padelCategory.fallback; }} />
               <h3 className="text-3xl font-black relative z-10 uppercase tracking-tight text-white">{padelCategory.name} Gear</h3>
             </div>
             
-            {/* Secondary Rows Category Quadrant */}
             <div className="lg:col-span-5 grid grid-cols-2 gap-4">
               {rightGridCategories.map(sport => (
                 <div key={sport.name} onClick={() => navigateTo(sport.name)} className="relative h-36 rounded-2xl overflow-hidden cursor-pointer bg-zinc-900 border border-zinc-800 p-4 flex flex-col justify-end group">
@@ -387,20 +420,23 @@ export default function StorePage() {
           <div id="trending-section" className="space-y-4">
             <h2 className="text-xs font-black uppercase tracking-widest text-zinc-400">Trending Repertoire</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {products.slice(0, 8).map((p, idx) => (
-                <div key={idx} onClick={() => navigateTo(p.category, p)} className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 cursor-pointer hover:border-zinc-700 transition-all flex flex-col justify-between group">
-                  <div>
-                    <div className="h-36 bg-zinc-950 rounded-xl mb-3 flex items-center justify-center p-3 border border-zinc-900 overflow-hidden relative">
-                      <img src={Array.isArray(p.images) ? p.images[0] : p.image} className="max-h-full object-contain transition-transform duration-300 group-hover:scale-105" alt="" onError={e => (e.target as HTMLImageElement).src = 'https://placehold.co/150'} />
+              {products.slice(0, 8).map((p, idx) => {
+                const imgSource = Array.isArray(p.images) && p.images.length > 0 ? p.images[0] : (p.image || 'https://placehold.co/150');
+                return (
+                  <div key={idx} onClick={() => navigateTo(p.category, p)} className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 cursor-pointer hover:border-zinc-700 transition-all flex flex-col justify-between group">
+                    <div>
+                      <div className="h-36 bg-zinc-950 rounded-xl mb-3 flex items-center justify-center p-3 border border-zinc-900 overflow-hidden relative">
+                        <img src={imgSource} className="max-h-full object-contain transition-transform duration-300 group-hover:scale-105" alt="" onError={e => (e.target as HTMLImageElement).src = 'https://placehold.co/150'} />
+                      </div>
+                      <h4 className="text-xs font-bold text-zinc-200 line-clamp-1 group-hover:text-emerald-400 transition-colors">{p.name}</h4>
                     </div>
-                    <h4 className="text-xs font-bold text-zinc-200 line-clamp-1 group-hover:text-emerald-400 transition-colors">{p.name}</h4>
+                    <div className="flex items-baseline justify-between mt-2 border-t border-zinc-950 pt-2">
+                      <span className="text-[10px] text-zinc-500 line-through font-mono">{p.marketPrice ? p.marketPrice.split(' ')[0] : 'N/A'}</span>
+                      <span className="text-xs text-emerald-400 font-black font-mono">{p.elitePrice}</span>
+                    </div>
                   </div>
-                  <div className="flex items-baseline justify-between mt-2 border-t border-zinc-950 pt-2">
-                    <span className="text-[10px] text-zinc-500 line-through font-mono">{p.marketPrice.split(' ')[0]}</span>
-                    <span className="text-xs text-emerald-400 font-black font-mono">{p.elitePrice}</span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
@@ -408,20 +444,23 @@ export default function StorePage() {
         <div className="max-w-6xl mx-auto px-6 py-8">
           <h2 className="text-2xl font-black uppercase tracking-tight text-emerald-400 mb-6">{viewState} Repertoire</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-            {filteredProducts.map((p, idx) => (
-              <div key={idx} onClick={() => navigateTo(p.category, p)} className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 cursor-pointer hover:border-zinc-700 transition-all flex flex-col justify-between group">
-                <div>
-                  <div className="h-44 bg-zinc-950 rounded-xl mb-3 flex items-center justify-center p-4 border border-zinc-900 overflow-hidden relative">
-                    <img src={Array.isArray(p.images) ? p.images[0] : p.image} className="max-h-full object-contain transition-transform duration-300 group-hover:scale-105" alt="" />
+            {filteredProducts.map((p, idx) => {
+              const imgSource = Array.isArray(p.images) && p.images.length > 0 ? p.images[0] : (p.image || 'https://placehold.co/150');
+              return (
+                <div key={idx} onClick={() => navigateTo(p.category, p)} className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 cursor-pointer hover:border-zinc-700 transition-all flex flex-col justify-between group">
+                  <div>
+                    <div className="h-44 bg-zinc-950 rounded-xl mb-3 flex items-center justify-center p-4 border border-zinc-900 overflow-hidden relative">
+                      <img src={imgSource} className="max-h-full object-contain transition-transform duration-300 group-hover:scale-105" alt="" onError={e => (e.target as HTMLImageElement).src = 'https://placehold.co/150'} />
+                    </div>
+                    <h4 className="text-sm font-bold truncate text-zinc-200 group-hover:text-emerald-400 transition-colors">{p.name}</h4>
                   </div>
-                  <h4 className="text-sm font-bold truncate text-zinc-200 group-hover:text-emerald-400 transition-colors">{p.name}</h4>
+                  <div className="flex items-baseline justify-between mt-2 border-t border-zinc-950 pt-2">
+                    <span className="text-xs text-zinc-500 line-through font-mono">{p.marketPrice}</span>
+                    <span className="text-sm text-emerald-400 font-black font-mono">{p.elitePrice}</span>
+                  </div>
                 </div>
-                <div className="flex items-baseline justify-between mt-2 border-t border-zinc-950 pt-2">
-                  <span className="text-xs text-zinc-500 line-through font-mono">{p.marketPrice}</span>
-                  <span className="text-sm text-emerald-400 font-black font-mono">{p.elitePrice}</span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
