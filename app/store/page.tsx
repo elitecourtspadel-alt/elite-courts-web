@@ -48,6 +48,8 @@ interface Product {
   elitePrice: string;
   images?: string[];
   image?: string;
+  mediaUrl?: string;
+  imageUrl?: string;
   model3d?: string; 
   description?: string;
   performanceDescriptionManifest?: string;
@@ -72,11 +74,18 @@ const SPORTS = SPORT_COLLECTIONS.map(s => s.name);
 function ProductDetailView({ product, onBack, onAddToCart, onBuyNow }: { product: Product; onBack: () => void; onAddToCart: (p: Product, qty: number) => void; onBuyNow: (p: Product, qty: number) => void }) {
   const [detailQuantity, setDetailQuantity] = useState<number>(1);
   
+  // Safe extraction of all image references inside database object structured profiles
   const imageList: string[] = Array.isArray(product.images) 
     ? product.images.map((url: string) => url.trim()).filter((url: string) => url !== "")
-    : (product.image ? [product.image.trim()] : ['/placeholder.jpg']);
+    : [product.image, product.mediaUrl, product.imageUrl]
+        .filter((url): url is string => typeof url === 'string' && url.trim() !== "")
+        .map(url => url.trim());
+
+  if (imageList.length === 0) {
+    imageList.push('/placeholder.jpg');
+  }
     
-  const [activeImg, setActiveImg] = useState<string>('/placeholder.jpg');
+  const [activeImg, setActiveImg] = useState<string>(imageList[0]);
 
   useEffect(() => {
     if (!document.querySelector('script[src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"]')) {
@@ -85,7 +94,7 @@ function ProductDetailView({ product, onBack, onAddToCart, onBuyNow }: { product
       script.src = 'https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js';
       document.head.appendChild(script);
     }
-    setActiveImg(imageList[0] || '/placeholder.jpg');
+    setActiveImg(imageList[0]);
     setDetailQuantity(1);
   }, [product]);
 
@@ -99,6 +108,7 @@ function ProductDetailView({ product, onBack, onAddToCart, onBuyNow }: { product
       </button>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start mb-12">
+        {/* Left Side: Images Stream Media Column Container */}
         <div className="lg:col-span-5 space-y-4">
           {product.model3d ? (
             <div className="w-full h-[380px] bg-zinc-950 border border-zinc-800 rounded-2xl flex items-center justify-center overflow-hidden relative">
@@ -106,11 +116,30 @@ function ProductDetailView({ product, onBack, onAddToCart, onBuyNow }: { product
             </div>
           ) : (
             <div className="w-full h-[380px] bg-zinc-900 border border-zinc-800 rounded-2xl flex items-center justify-center p-6">
-              <img src={activeImg} className="max-h-full max-w-full object-contain" alt={product.name} />
+              <img src={activeImg} className="max-h-full max-w-full object-contain rounded-lg transition-all duration-300" alt={product.name} />
+            </div>
+          )}
+
+          {/* Dynamic Image Thumbnails Navigation Stream Gallery Bar Block */}
+          {imageList.length > 1 && (
+            <div className="flex flex-wrap gap-2 pt-1 justify-start items-center">
+              {imageList.map((url, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => setActiveImg(url)}
+                  className={`w-20 h-20 bg-zinc-900 border rounded-xl overflow-hidden p-1 flex items-center justify-center transition-all ${
+                    activeImg === url ? 'border-emerald-400 ring-2 ring-emerald-500/20' : 'border-zinc-800 hover:border-zinc-700'
+                  }`}
+                >
+                  <img src={url} alt={`view-${i}`} className="max-h-full max-w-full object-contain rounded-md" />
+                </button>
+              ))}
             </div>
           )}
         </div>
 
+        {/* Right Side Details Column */}
         <div className="lg:col-span-7 space-y-6">
           <div>
             <span className="text-xs uppercase font-bold text-emerald-400 tracking-wider">{product.category} Portfolio</span>
@@ -129,12 +158,10 @@ function ProductDetailView({ product, onBack, onAddToCart, onBuyNow }: { product
             </div>
           </div>
 
-          {/* Combined fallback check for description fields */}
           <p className="text-zinc-400 text-sm leading-relaxed">
             {product.performanceDescriptionManifest || product.description || "High-end configuration optimized for competitive play."}
           </p>
 
-          {/* Technical Specifications Matrix Grid Block */}
           {product.keyFeatureMetrics && (
             <div className="mt-6 border-t border-zinc-850 pt-5 space-y-3">
               <h3 className="text-xs font-black uppercase tracking-wider text-emerald-400">Technical Specifications Matrix</h3>
@@ -421,7 +448,7 @@ export default function StorePage() {
             <h2 className="text-xs font-black uppercase tracking-widest text-zinc-400">Trending Repertoire</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {products.slice(0, 8).map((p, idx) => {
-                const imgSource = Array.isArray(p.images) && p.images.length > 0 ? p.images[0] : (p.image || 'https://placehold.co/150');
+                const imgSource = Array.isArray(p.images) && p.images.length > 0 ? p.images[0] : (p.image || p.mediaUrl || p.imageUrl || 'https://placehold.co/150');
                 return (
                   <div key={idx} onClick={() => navigateTo(p.category, p)} className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 cursor-pointer hover:border-zinc-700 transition-all flex flex-col justify-between group">
                     <div>
@@ -445,7 +472,7 @@ export default function StorePage() {
           <h2 className="text-2xl font-black uppercase tracking-tight text-emerald-400 mb-6">{viewState} Repertoire</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
             {filteredProducts.map((p, idx) => {
-              const imgSource = Array.isArray(p.images) && p.images.length > 0 ? p.images[0] : (p.image || 'https://placehold.co/150');
+              const imgSource = Array.isArray(p.images) && p.images.length > 0 ? p.images[0] : (p.image || p.mediaUrl || p.imageUrl || 'https://placehold.co/150');
               return (
                 <div key={idx} onClick={() => navigateTo(p.category, p)} className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 cursor-pointer hover:border-zinc-700 transition-all flex flex-col justify-between group">
                   <div>
