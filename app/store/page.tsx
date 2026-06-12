@@ -171,16 +171,72 @@ export default function StorePage() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
 
+  // Sync state to Firebase catalog parameters
   useEffect(() => {
     const db = getDatabase(app);
     const productsRef = ref(db, 'store/products');
     const unsubscribe = onValue(productsRef, (snapshot) => {
       const data = snapshot.val();
-      setProducts(data ? Object.values(data) : []);
+      const loadedProducts = data ? Object.values(data) as Product[] : [];
+      setProducts(loadedProducts);
       setLoading(false);
+
+      // Evaluate browser address routing on initial database sync completion
+      syncStateFromUrl(loadedProducts);
     });
     return () => unsubscribe();
   }, []);
+
+  // Monitor dynamic history popstate transitions (hardware back buttons click tracking)
+  useEffect(() => {
+    const handlePopState = () => {
+      syncStateFromUrl(products);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [products]);
+
+  // Read clean state mappings out of current search address
+  const syncStateFromUrl = (availableProducts: Product[]) => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const viewParam = params.get('view') || 'Home';
+    const productParam = params.get('product');
+
+    setViewState(viewParam);
+
+    if (productParam && availableProducts.length > 0) {
+      const matchingProduct = availableProducts.find(
+        p => p.name.toLowerCase().replace(/[^a-z0-9]/g, '-') === productParam
+      );
+      if (matchingProduct) {
+        setSelectedProduct(matchingProduct);
+        return;
+      }
+    }
+    setSelectedProduct(null);
+  };
+
+  // Internal Router State Push State wrapper configuration
+  const navigateTo = (view: string, product: Product | null = null) => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams();
+    
+    if (view !== 'Home') {
+      params.set('view', view);
+    }
+    if (product) {
+      if (view === 'Home') params.set('view', product.category); // Preserve parent navigation depth context
+      params.set('product', product.name.toLowerCase().replace(/[^a-z0-9]/g, '-'));
+    }
+
+    const searchStr = params.toString();
+    const targetUrl = window.location.pathname + (searchStr ? `?${searchStr}` : '');
+    
+    window.history.pushState({ view, productName: product?.name || null }, '', targetUrl);
+    setViewState(product ? product.category : view);
+    setSelectedProduct(product);
+  };
 
   const handleAddToCart = (product: Product, quantityToAdd = 1, openPanel = true) => {
     setCart((prevCart) => {
@@ -244,11 +300,11 @@ export default function StorePage() {
       {/* Navigation Header */}
       <div className="bg-zinc-900 border-b border-zinc-800 px-6 py-4 sticky top-0 z-40">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <span onClick={() => { setViewState("Home"); setSelectedProduct(null); }} className="text-xl font-black cursor-pointer tracking-tight">ELITE<span className="text-emerald-400">STORE</span></span>
+          <span onClick={() => navigateTo("Home")} className="text-xl font-black cursor-pointer tracking-tight">ELITE<span className="text-emerald-400">STORE</span></span>
           <nav className="flex items-center gap-6">
-            <button onClick={() => { setViewState("Home"); setSelectedProduct(null); }} className={`text-xs font-bold uppercase tracking-wider transition-colors ${viewState === 'Home' ? 'text-emerald-400' : 'text-zinc-400 hover:text-white'}`}>Home</button>
+            <button onClick={() => navigateTo("Home")} className={`text-xs font-bold uppercase tracking-wider transition-colors ${viewState === 'Home' && !selectedProduct ? 'text-emerald-400' : 'text-zinc-400 hover:text-white'}`}>Home</button>
             {SPORTS.map(sport => (
-              <button key={sport} onClick={() => { setViewState(sport); setSelectedProduct(null); }} className={`text-xs font-bold uppercase tracking-wider transition-colors ${viewState === sport ? 'text-emerald-400' : 'text-zinc-400 hover:text-white'}`}>
+              <button key={sport} onClick={() => navigateTo(sport)} className={`text-xs font-bold uppercase tracking-wider transition-colors ${(viewState === sport && !selectedProduct) ? 'text-emerald-400' : 'text-zinc-400 hover:text-white'}`}>
                 {sport}
               </button>
             ))}
@@ -263,12 +319,12 @@ export default function StorePage() {
         <div className="flex items-center justify-center py-24 text-zinc-500 text-xs uppercase tracking-widest font-bold animate-pulse">Synchronizing Store Repository...</div>
       ) : selectedProduct ? (
         <div className="max-w-6xl mx-auto p-6">
-          <ProductDetailView product={selectedProduct} onBack={() => setSelectedProduct(null)} onAddToCart={handleAddToCart} onBuyNow={handleBuyNow} />
+          <ProductDetailView product={selectedProduct} onBack={() => navigateTo(viewState)} onAddToCart={handleAddToCart} onBuyNow={handleBuyNow} />
         </div>
       ) : viewState === "Home" ? (
         <div className="max-w-6xl mx-auto px-6 py-8 space-y-12">
           
-          {/* Main Hero Banner with Correct Action Shot Background Image */}
+          {/* Main Hero Banner */}
           <div className="relative w-full h-[440px] rounded-2xl overflow-hidden border border-zinc-800/80 bg-zinc-900 shadow-2xl flex flex-col justify-end p-8 md:p-12 group">
             <img 
               src="/images/padel-img.webp" 
@@ -276,7 +332,6 @@ export default function StorePage() {
               alt="Elite Precision Court Action" 
               onError={(e) => { (e.target as HTMLImageElement).src = padelCategory.fallback; }} 
             />
-            {/* Softened gradient overlay scrim - blocks left text background, fades completely out on the right to keep players clear */}
             <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/50 to-transparent z-10" />
             
             <div className="relative z-20 space-y-4 max-w-xl">
@@ -291,7 +346,7 @@ export default function StorePage() {
               </p>
               <div className="pt-2 flex gap-3">
                 <button 
-                  onClick={() => setViewState(padelCategory.name)}
+                  onClick={() => navigateTo(padelCategory.name)}
                   className="bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-black uppercase tracking-wider px-6 py-3 rounded-xl transition-all transform hover:-translate-y-0.5"
                 >
                   Explore Padel Equipment
@@ -312,15 +367,15 @@ export default function StorePage() {
           {/* Correct Categories Block Grid Section Layout */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
             {/* Primary Column Feature Card: Padel */}
-            <div onClick={() => { setViewState(padelCategory.name); }} className="lg:col-span-7 relative h-80 rounded-2xl overflow-hidden cursor-pointer bg-zinc-900 border border-zinc-800 p-8 flex flex-col justify-end group">
+            <div onClick={() => navigateTo(padelCategory.name)} className="lg:col-span-7 relative h-80 rounded-2xl overflow-hidden cursor-pointer bg-zinc-900 border border-zinc-800 p-8 flex flex-col justify-end group">
               <img src={padelCategory.img} className="absolute inset-0 w-full h-full object-cover opacity-40 transition-transform duration-500 group-hover:scale-105" alt="" onError={(e) => { (e.target as HTMLImageElement).src = padelCategory.fallback; }} />
               <h3 className="text-3xl font-black relative z-10 uppercase tracking-tight text-white">{padelCategory.name} Gear</h3>
             </div>
             
-            {/* Secondary Rows Category Quadrant (Pickleball, Table Tennis, Cricket, Badminton) */}
+            {/* Secondary Rows Category Quadrant */}
             <div className="lg:col-span-5 grid grid-cols-2 gap-4">
               {rightGridCategories.map(sport => (
-                <div key={sport.name} onClick={() => { setViewState(sport.name); }} className="relative h-36 rounded-2xl overflow-hidden cursor-pointer bg-zinc-900 border border-zinc-800 p-4 flex flex-col justify-end group">
+                <div key={sport.name} onClick={() => navigateTo(sport.name)} className="relative h-36 rounded-2xl overflow-hidden cursor-pointer bg-zinc-900 border border-zinc-800 p-4 flex flex-col justify-end group">
                   <img src={sport.img} className="absolute inset-0 w-full h-full object-cover opacity-30 transition-transform duration-500 group-hover:scale-105" alt="" onError={(e) => { (e.target as HTMLImageElement).src = sport.fallback; }} />
                   <h4 className="text-sm font-bold relative z-10 uppercase tracking-wider text-white">{sport.name}</h4>
                 </div>
@@ -333,7 +388,7 @@ export default function StorePage() {
             <h2 className="text-xs font-black uppercase tracking-widest text-zinc-400">Trending Repertoire</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {products.slice(0, 8).map((p, idx) => (
-                <div key={idx} onClick={() => setSelectedProduct(p)} className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 cursor-pointer hover:border-zinc-700 transition-all flex flex-col justify-between group">
+                <div key={idx} onClick={() => navigateTo(p.category, p)} className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 cursor-pointer hover:border-zinc-700 transition-all flex flex-col justify-between group">
                   <div>
                     <div className="h-36 bg-zinc-950 rounded-xl mb-3 flex items-center justify-center p-3 border border-zinc-900 overflow-hidden relative">
                       <img src={Array.isArray(p.images) ? p.images[0] : p.image} className="max-h-full object-contain transition-transform duration-300 group-hover:scale-105" alt="" onError={e => (e.target as HTMLImageElement).src = 'https://placehold.co/150'} />
@@ -354,7 +409,7 @@ export default function StorePage() {
           <h2 className="text-2xl font-black uppercase tracking-tight text-emerald-400 mb-6">{viewState} Repertoire</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
             {filteredProducts.map((p, idx) => (
-              <div key={idx} onClick={() => setSelectedProduct(p)} className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 cursor-pointer hover:border-zinc-700 transition-all flex flex-col justify-between group">
+              <div key={idx} onClick={() => navigateTo(p.category, p)} className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 cursor-pointer hover:border-zinc-700 transition-all flex flex-col justify-between group">
                 <div>
                   <div className="h-44 bg-zinc-950 rounded-xl mb-3 flex items-center justify-center p-4 border border-zinc-900 overflow-hidden relative">
                     <img src={Array.isArray(p.images) ? p.images[0] : p.image} className="max-h-full object-contain transition-transform duration-300 group-hover:scale-105" alt="" />
