@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { initializeApp, getApps } from "firebase/app";
 import { getDatabase, ref, push } from "firebase/database";
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 
 const firebaseConfig = {
   apiKey: "AizasyD4bPvYwRjOAGfiwoVPbG_4hj6QEbgdc9A",
@@ -14,259 +15,171 @@ const firebaseConfig = {
 };
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
+const db = getDatabase(app);
+const storage = getStorage(app);
 
 interface CartItem {
-  product: {
-    name: string;
-    category: string;
-    elitePrice: string;
-  };
+  name: string;
+  category: string;
   quantity: number;
+  unitPrice: string;
+  totalItemCost: number;
 }
 
 export default function CheckoutPage() {
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [address, setAddress] = useState('');
-  const [city, setCity] = useState('');
-  const [fulfillment, setFulfillment] = useState<'DELIVERY' | 'PICKUP'>('DELIVERY');
+  // Mock cart item payload matching your schema requirements
+  const [cartItems, setCartItems] = useState<CartItem[]>([
+    { name: "Elite Pro Carbon Padel Racket", category: "Padel", quantity: 1, unitPrice: "38,500 PKR", totalItemCost: 38500 }
+  ]);
+
+  const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [customerAddress, setCustomerAddress] = useState('');
+  const [customerCity, setCustomerCity] = useState('');
+  const [fulfillmentType, setFulfillmentType] = useState<'DELIVERY' | 'PICKUP'>('DELIVERY');
+  const [paymentMethod, setPaymentMethod] = useState('Bank Transfer / Advance Account');
   
-  // Payment Validation States
-  const [paymentType, setPaymentType] = useState<'DEPOSIT_20' | 'FULL_PAYMENT'>('DEPOSIT_20');
-  const [screenshotBase64, setScreenshotBase64] = useState<string>('');
-  const [uploading, setUploading] = useState<boolean>(false);
+  const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    const cachedCart = localStorage.getItem('elite_store_active_cart');
-    if (cachedCart) {
-      setCart(JSON.parse(cachedCart));
-    }
-  }, []);
-
-  const getCartTotal = () => {
-    return cart.reduce((total, item) => {
-      const priceNum = parseInt(item.product.elitePrice.replace(/[^0-9]/g, '')) || 0;
-      return total + (priceNum * item.quantity);
-    }, 0);
-  };
-
-  const totalAmount = getCartTotal();
-  const depositAmount = Math.round(totalAmount * 0.20);
-  const requiredPaymentAmount = paymentType === 'DEPOSIT_20' ? depositAmount : totalAmount;
+  // Calculate order total sum cleanly
+  const grossTotal = cartItems.reduce((acc, item) => acc + item.totalItemCost, 0);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.size > 2 * 1024 * 1024) {
-      alert("Screenshot size exceeds 2MB limit. Please compress or crop your file.");
-      e.target.value = "";
-      return;
+    if (e.target.files && e.target.files[0]) {
+      setScreenshotFile(e.target.files[0]);
     }
-
-    setUploading(true);
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setScreenshotBase64(reader.result as string);
-      setUploading(false);
-    };
-    reader.onerror = () => {
-      alert("Failed to parse file structural data streams safely.");
-      setUploading(false);
-    };
-    reader.readAsDataURL(file);
   };
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
+    setIsSubmitting(true);
 
-    if (!screenshotBase64) {
-      alert("Please upload your transaction payment screenshot before placing order.");
-      return;
-    }
-
-    const db = getDatabase(app);
-    const ordersRef = ref(db, 'store/orders');
-
-    const orderPayload = {
-      customer: { name, phone, address: fulfillment === 'PICKUP' ? 'Store Pickup Collection HQ' : address, city },
-      fulfillmentType: fulfillment,
-      items: cart.map(item => {
-        const cleanedPrice = parseInt(item.product.elitePrice.replace(/[^0-9]/g, '')) || 0;
-        return {
-          name: item.product.name,
-          category: item.product.category,
-          quantity: item.quantity,
-          unitPrice: `${cleanedPrice} PKR`, // Standardized tracking structure
-          totalItemCost: cleanedPrice * item.quantity
-        };
-      }),
-      financials: {
-        orderTotal: `${totalAmount.toLocaleString()} PKR`,
-        paymentMethod: fulfillment === 'PICKUP' ? 'Store Pickup Pre-Paid' : 'COD Balance Remaining',
-        paymentType: paymentType,
-        requiredPaymentAmount: `${requiredPaymentAmount.toLocaleString()} PKR`,
-        paymentScreenshot: screenshotBase64
-      },
-      orderStatus: 'PENDING_VERIFICATION',
-      timestamp: Date.now()
-    };
+    let uploadedScreenshotUrl = "";
 
     try {
-      await push(ordersRef, orderPayload);
-      localStorage.removeItem('elite_store_active_cart');
-      alert("Order package logged successfully! Verifying payment payload via stream router.");
-      window.location.href = '/'; 
-    } catch (err) {
-      console.error("Database storage rejection:", err);
-      alert("Critical error handling structural transmission update.");
+      // 1. If a screenshot exists, upload it directly to Firebase Storage bucket link
+      if (screenshotFile) {
+        const fileExtension = screenshotFile.name.split('.').pop();
+        const uniqueFileName = `receipts/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExtension}`;
+        const screenshotStorageRef = storageRef(storage, uniqueFileName);
+        
+        // Execute block upload
+        const uploadSnapshot = await uploadBytes(screenshotStorageRef, screenshotFile);
+        // Extract public structural view path URL
+        uploadedScreenshotUrl = await getDownloadURL(uploadSnapshot.ref);
+      }
+
+      // 2. Build out order payload structural record matching your Admin interface signature schema
+      const orderPayload = {
+        customer: {
+          name: customerName,
+          phone: customerPhone,
+          address: fulfillmentType === 'PICKUP' ? 'Complex Pickup HQ' : customerAddress,
+          city: customerCity,
+        },
+        fulfillmentType: fulfillmentType,
+        items: cartItems,
+        financials: {
+          orderTotal: `${grossTotal.toLocaleString()} PKR`,
+          paymentMethod: paymentMethod,
+          advancePaid: `${grossTotal.toLocaleString()} PKR`, // Can adjust if partial
+          remainingBalance: "0 PKR"
+        },
+        orderStatus: "PENDING_VERIFICATION",
+        timestamp: Date.now(),
+        // Pass the uploaded URL straight to your Realtime Database node
+        paymentScreenshot: uploadedScreenshotUrl || null 
+      };
+
+      // 3. Persist order reference node to Database location
+      const ordersDbRef = ref(db, 'store/orders');
+      await push(ordersDbRef, orderPayload);
+
+      alert("Order manifest dispatch successful! Your transfer receipt verification node has been linked.");
+      
+      // Reset form setup state fields cleanly
+      setCustomerName('');
+      setCustomerPhone('');
+      setCustomerAddress('');
+      setCustomerCity('');
+      setScreenshotFile(null);
+    } catch (error) {
+      console.error("Order processing pipeline error execution breakdown:", error);
+      alert("Failed to securely complete order handshakes. Review connection criteria details.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  if (cart.length === 0) {
-    return (
-      <div className="bg-zinc-950 min-h-screen text-white flex flex-col items-center justify-center p-6 text-center">
-        <p className="text-zinc-500 font-bold uppercase tracking-wider text-xs mb-4">No assets found inside your checkout bag</p>
-        <a href="/store" className="bg-emerald-500 text-black font-black text-xs uppercase px-6 py-3 rounded-xl tracking-wider">Return to Store</a>
-      </div>
-    );
-  }
-
   return (
     <div className="bg-zinc-950 min-h-screen text-white p-6 md:p-12 font-sans">
-      <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        
-        <form onSubmit={handlePlaceOrder} className="lg:col-span-7 bg-zinc-900 border border-zinc-800 p-6 rounded-2xl space-y-6">
-          <div>
-            <h2 className="text-xl font-black uppercase tracking-tight">Fulfillment Manifest</h2>
-            <p className="text-zinc-500 text-[10px] uppercase font-bold tracking-widest mt-0.5">Provide secure customer logistics records</p>
-          </div>
-
-          <div className="grid grid-cols-2 bg-zinc-950 p-1 border border-zinc-850 rounded-xl">
-            <button type="button" onClick={() => setFulfillment('DELIVERY')} className={`py-2.5 text-xs font-bold uppercase tracking-wider rounded-lg transition-all ${fulfillment === 'DELIVERY' ? 'bg-emerald-500 text-black' : 'text-zinc-400'}`}>
-              Home Delivery
-            </button>
-            <button type="button" onClick={() => setFulfillment('PICKUP')} className={`py-2.5 text-xs font-bold uppercase tracking-wider rounded-lg transition-all ${fulfillment === 'PICKUP' ? 'bg-emerald-500 text-black' : 'text-zinc-400'}`}>
-              Store Pickup
-            </button>
-          </div>
-
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">Your Full Name</label>
-                <input type="text" required value={name} onChange={e => setName(e.target.value)} className="w-full bg-zinc-950 border border-zinc-850 focus:border-emerald-500 rounded-xl px-4 py-2.5 text-xs text-white outline-none transition-all" placeholder="e.g. Shahrukh Khan" />
-              </div>
-              <div>
-                <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">WhatsApp / Contact Hotline</label>
-                <input type="tel" required value={phone} onChange={e => setPhone(e.target.value)} className="w-full bg-zinc-950 border border-zinc-850 focus:border-emerald-500 rounded-xl px-4 py-2.5 text-xs text-white outline-none transition-all" placeholder="e.g. 03211234567" />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {fulfillment === 'DELIVERY' && (
-                <div className="md:col-span-2">
-                  <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">Street Delivery Address</label>
-                  <input type="text" required={fulfillment === 'DELIVERY'} value={address} onChange={e => setAddress(e.target.value)} className="w-full bg-zinc-950 border border-zinc-850 focus:border-emerald-500 rounded-xl px-4 py-2.5 text-xs text-white outline-none transition-all" placeholder="House/Apartment #, Street name, Sector/Block" />
-                </div>
-              )}
-              <div className={fulfillment === 'PICKUP' ? "md:col-span-2" : "w-full"}>
-                <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">City Location</label>
-                <input type="text" required value={city} onChange={e => setCity(e.target.value)} className="w-full bg-zinc-950 border border-zinc-850 focus:border-emerald-500 rounded-xl px-4 py-2.5 text-xs text-white outline-none transition-all" placeholder="e.g. Lahore" />
-              </div>
-            </div>
-          </div>
-
-          <div className="border-t border-zinc-850 pt-6 space-y-4">
-            <div>
-              <h3 className="text-sm font-black uppercase tracking-wider text-emerald-400">Secure Pre-Paid Remittance</h3>
-              <p className="text-zinc-500 text-[10px] uppercase font-bold tracking-widest mt-0.5">Select pricing allocation strategy to unlock verification gateway</p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div onClick={() => setPaymentType('DEPOSIT_20')} className={`p-4 rounded-xl border cursor-pointer transition-all ${paymentType === 'DEPOSIT_20' ? 'bg-zinc-950 border-emerald-500' : 'bg-zinc-950/40 border-zinc-850 opacity-60'}`}>
-                <span className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400">Pay 20% Deposit</span>
-                <span className="block text-sm font-black text-white mt-1 font-mono">{depositAmount.toLocaleString()} PKR</span>
-                <span className="block text-[9px] text-zinc-500 mt-0.5 font-medium">Pay balance on delivery</span>
-              </div>
-              <div onClick={() => setPaymentType('FULL_PAYMENT')} className={`p-4 rounded-xl border cursor-pointer transition-all ${paymentType === 'FULL_PAYMENT' ? 'bg-zinc-950 border-emerald-500' : 'bg-zinc-950/40 border-zinc-850 opacity-60'}`}>
-                <span className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400">Pay Full Amount</span>
-                <span className="block text-sm font-black text-emerald-400 mt-1 font-mono">{totalAmount.toLocaleString()} PKR</span>
-                <span className="block text-[9px] text-zinc-500 mt-0.5 font-medium">Completely finalize upfront</span>
-              </div>
-            </div>
-
-            <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-850 space-y-2">
-              <span className="text-[10px] font-black uppercase text-zinc-400 tracking-wider block">Elite Accounts Remittance Target</span>
-              <div className="text-xs space-y-1 text-zinc-300">
-                <p><span className="text-zinc-500 font-medium">Bank Name:</span> Meezan Bank</p>
-                <p><span className="text-zinc-500 font-medium">Account Title:</span> Elite Enterprises</p>
-                <p><span className="text-zinc-500 font-medium">Account Number:</span> 11580113772152</p>
-                <p className="pt-2 text-[11px] text-amber-400 font-bold">⚠️ Required Payment Transfer Amount: <span className="underline font-mono text-xs">{requiredPaymentAmount.toLocaleString()} PKR</span></p>
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400">Attach Transaction Receipt Screenshot</label>
-              <div className="bg-zinc-950 border border-zinc-850 rounded-xl p-4 flex flex-col items-center justify-center relative hover:border-zinc-700 transition-colors">
-                <input type="file" accept="image/*" required onChange={handleFileChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
-                {screenshotBase64 ? (
-                  <div className="flex items-center gap-3 w-full">
-                    <div className="w-12 h-12 bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden p-1 flex items-center justify-center">
-                      <img src={screenshotBase64} className="max-h-full max-w-full object-contain" alt="" />
-                    </div>
-                    <div className="text-left">
-                      <span className="text-xs font-bold text-emerald-400 block">✓ Screenshot Loaded Cleanly</span>
-                      <span className="text-[10px] text-zinc-500 block">Click or drag here to swap image template</span>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center space-y-1">
-                    <span className="text-xs text-zinc-400 font-bold block">{uploading ? "Decoding File Arrays..." : "Choose Image or Drop Receipt File"}</span>
-                    <span className="text-[10px] text-zinc-500 block">PNG, JPG formats accepted (Max size 2MB)</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <button type="submit" disabled={!screenshotBase64 || uploading} className="w-full py-4 bg-emerald-500 disabled:bg-zinc-800 disabled:text-zinc-600 disabled:cursor-not-allowed hover:bg-emerald-400 text-black font-black uppercase rounded-xl tracking-wider text-xs transition-all">
-            {uploading ? "Processing Asset Package..." : "Place Verified Equipment Order"}
-          </button>
-        </form>
-
-        <div className="lg:col-span-5 bg-zinc-900 border border-zinc-800 p-6 rounded-2xl space-y-4 sticky top-28">
-          <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-400">Order Manifest Aggregate</h3>
-          
-          <div className="divide-y divide-zinc-850 space-y-2 max-h-[30vh] overflow-y-auto pr-1">
-            {cart.map((item, idx) => (
-              <div key={idx} className="flex justify-between items-start text-xs pt-2">
-                <div>
-                  <h5 className="font-bold text-zinc-200">{item.product.name}</h5>
-                  <span className="text-zinc-500 font-mono text-[11px]">x{item.quantity} @ {item.product.elitePrice}</span>
-                </div>
-                <span className="font-mono font-bold text-zinc-300">{((parseInt(item.product.elitePrice.replace(/[^0-9]/g, '')) || 0) * item.quantity).toLocaleString()} PKR</span>
-              </div>
-            ))}
-          </div>
-
-          <div className="border-t border-zinc-850 pt-4 space-y-1.5">
-            <div className="flex justify-between items-center text-xs text-zinc-400">
-              <span>Gross Basket Value:</span>
-              <span className="font-mono">{totalAmount.toLocaleString()} PKR</span>
-            </div>
-            <div className="flex justify-between items-center text-xs text-zinc-400">
-              <span>Logistics Fee:</span>
-              <span className="font-mono text-emerald-400 uppercase font-black text-[10px]">Free Allocation</span>
-            </div>
-            <div className="border-t border-zinc-850 pt-3 flex justify-between items-center">
-              <span className="text-xs uppercase font-bold text-zinc-300">Net Invoice:</span>
-              <span className="text-lg font-black font-mono text-emerald-400">{totalAmount.toLocaleString()} PKR</span>
-            </div>
-          </div>
+      <div className="max-w-3xl mx-auto bg-zinc-900 border border-zinc-800 p-6 md:p-8 rounded-2xl space-y-6">
+        <div>
+          <h1 className="text-2xl font-black uppercase tracking-tight text-emerald-400">Secure Order Gateway</h1>
+          <p className="text-zinc-500 text-xs uppercase tracking-widest font-bold mt-1">Elite Store Checkout Operations</p>
         </div>
 
+        <form onSubmit={handlePlaceOrder} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">Full Name</label>
+              <input type="text" required value={customerName} onChange={e => setCustomerName(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-4 py-2.5 text-xs outline-none transition-all" placeholder="Muhammad Ali" />
+            </div>
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">Phone Number</label>
+              <input type="text" required value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-4 py-2.5 text-xs outline-none transition-all" placeholder="03001234567" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">Fulfillment Channel</label>
+              <select value={fulfillmentType} onChange={e => setFulfillmentType(e.target.value as 'DELIVERY' | 'PICKUP')} className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-4 py-2.5 text-xs font-bold outline-none transition-all">
+                <option value="DELIVERY">Home Delivery Logistics</option>
+                <option value="PICKUP">Complex Pickup HQ</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">City Location Node</label>
+              <input type="text" required value={customerCity} onChange={e => setCustomerCity(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-4 py-2.5 text-xs outline-none transition-all" placeholder="Lahore" />
+            </div>
+          </div>
+
+          {fulfillmentType === 'DELIVERY' && (
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">Physical Route Mailing Address</label>
+              <textarea rows={2} required value={customerAddress} onChange={e => setCustomerAddress(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-4 py-2.5 text-xs outline-none transition-all resize-none" placeholder="Street layout details, housing segment sector allocation..." />
+            </div>
+          )}
+
+          <div className="border-t border-zinc-800/80 pt-4 bg-zinc-950/40 p-4 border rounded-xl space-y-3">
+            <div>
+              <h3 className="text-xs font-black uppercase tracking-wider text-zinc-400">Payment Authorization Payload</h3>
+              <p className="text-[11px] text-zinc-500 mt-0.5 font-medium">Please wire the total of <span className="text-emerald-400 font-mono font-bold">{grossTotal.toLocaleString()} PKR</span> to our designated structural banking clearing details, then upload your transaction summary image module clear copy below.</p>
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Attach Proof Payment Snapshot</label>
+              <input 
+                type="file" 
+                accept="image/*" 
+                required
+                onChange={handleFileChange} 
+                className="w-full text-xs text-zinc-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-black file:uppercase file:tracking-wider file:bg-zinc-800 file:text-emerald-400 hover:file:bg-zinc-700 cursor-pointer"
+              />
+            </div>
+          </div>
+
+          <button 
+            type="submit" 
+            disabled={isSubmitting}
+            className="w-full py-3.5 bg-emerald-500 hover:bg-emerald-400 text-black font-black uppercase text-xs rounded-xl tracking-wider transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isSubmitting ? "Uploading Credentials & Dispatched Manifest..." : "Submit Completed Package Order"}
+          </button>
+        </form>
       </div>
     </div>
   );
