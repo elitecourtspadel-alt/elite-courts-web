@@ -81,7 +81,7 @@ export default function AdminDashboard() {
   
   const [newProduct, setNewProduct] = useState<Partial<Product>>({
     name: '', category: 'Padel', subcategory: 'Rackets', materialFace: 'None / Standard', 
-    marketPrice: '', elitePrice: '', description: '', model3d: '', image: '', images: ['']
+    marketPrice: '', elitePrice: '', description: '', model3d: '', image: '', images: []
   });
   
   const [specWeight, setSpecWeight] = useState('');
@@ -91,6 +91,14 @@ export default function AdminDashboard() {
   const [specCharacters, setSpecCharacters] = useState(''); 
   
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
+
+  // Helper to convert images field to comma separated text string safely
+  const getImagesStringValue = () => {
+    if (Array.isArray(newProduct.images) && newProduct.images.length > 0) {
+      return newProduct.images.join(', ');
+    }
+    return newProduct.image || '';
+  };
 
   useEffect(() => {
     const db = getDatabase(app);
@@ -184,7 +192,13 @@ export default function AdminDashboard() {
     
     const rawMarket = product.marketPrice ? product.marketPrice.replace(/[^0-9]/g, '') : '';
     const rawElite = product.elitePrice ? product.elitePrice.replace(/[^0-9]/g, '') : '';
-    const initialImgUrl = Array.isArray(product.images) ? product.images[0] : (product.image || '');
+    
+    let assignedImagesArray: string[] = [];
+    if (Array.isArray(product.images)) {
+      assignedImagesArray = product.images;
+    } else if (product.image) {
+      assignedImagesArray = [product.image];
+    }
 
     setNewProduct({
       name: product.name,
@@ -195,8 +209,8 @@ export default function AdminDashboard() {
       elitePrice: rawElite,
       description: product.description || '',
       model3d: product.model3d || '',
-      image: initialImgUrl,
-      images: [initialImgUrl]
+      image: assignedImagesArray[0] || '',
+      images: assignedImagesArray
     });
 
     setSpecWeight(product.specs?.weight || '');
@@ -210,7 +224,7 @@ export default function AdminDashboard() {
     setEditingProductId(null);
     setNewProduct({
       name: '', category: 'Padel', subcategory: 'Rackets', materialFace: 'None / Standard', 
-      marketPrice: '', elitePrice: '', description: '', model3d: '', image: '', images: ['']
+      marketPrice: '', elitePrice: '', description: '', model3d: '', image: '', images: []
     });
     setSpecWeight('');
     setSpecBalance('');
@@ -223,11 +237,11 @@ export default function AdminDashboard() {
     e.preventDefault();
     const db = getDatabase(app);
 
-    const enteredUrl = (newProduct.images?.[0] || newProduct.image || '').trim();
-    const cleanImages = enteredUrl !== "" ? [enteredUrl] : [];
-
     const parsedMarket = parseInt(newProduct.marketPrice?.replace(/[^0-9]/g, '') || '0').toLocaleString();
     const parsedElite = parseInt(newProduct.elitePrice?.replace(/[^0-9]/g, '') || '0').toLocaleString();
+
+    // Configuration fallback setup values
+    const primaryImg = Array.isArray(newProduct.images) && newProduct.images.length > 0 ? newProduct.images[0] : '';
 
     const productPayload: Product = {
       name: newProduct.name || 'Unnamed Equipment',
@@ -238,8 +252,8 @@ export default function AdminDashboard() {
       elitePrice: `${parsedElite} PKR`,
       description: newProduct.description || '',
       model3d: newProduct.model3d || '',
-      image: enteredUrl,
-      images: cleanImages,
+      image: primaryImg,
+      images: newProduct.images || [],
       specs: {
         weight: specWeight || undefined,
         balance: specBalance || undefined,
@@ -331,7 +345,6 @@ export default function AdminDashboard() {
     }
   };
 
-  // Safe Multi-tier pipeline filter configuration logic
   const filteredProductsList = products.filter(product => {
     const matchesCategory = adminCategoryFilter === 'ALL' || product.category === adminCategoryFilter;
     const matchesMaterial = adminMaterialFilter === 'ALL' || product.materialFace === adminMaterialFilter;
@@ -429,8 +442,23 @@ export default function AdminDashboard() {
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">Media Source URL (Image Primary)</label>
-                <input type="text" required value={newProduct.images?.[0] || newProduct.image || ''} onChange={e => setNewProduct(prev => ({ ...prev, image: e.target.value, images: [e.target.value] }))} className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-4 py-2.5 text-xs text-white outline-none transition-all font-mono" placeholder="https://..." />
+                <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">Media Source URLs (Comma-separated for multiple)</label>
+                <input 
+                  type="text" 
+                  required 
+                  value={getImagesStringValue()} 
+                  onChange={e => {
+                    const value = e.target.value;
+                    const parsedUrls = value.split(',').map(url => url.trim()).filter(url => url !== '');
+                    setNewProduct(prev => ({ 
+                      ...prev, 
+                      image: parsedUrls[0] || '', 
+                      images: parsedUrls 
+                    }));
+                  }} 
+                  className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-4 py-2.5 text-xs text-white outline-none transition-all font-mono" 
+                  placeholder="https://link1.com, https://link2.com" 
+                />
               </div>
 
               <div>
@@ -514,40 +542,55 @@ export default function AdminDashboard() {
                     No records found matching current configuration parameters.
                   </div>
                 ) : (
-                  filteredProductsList.map((product) => (
-                    <div key={product.id} className="flex bg-zinc-950 border border-zinc-850 p-4 rounded-xl justify-between items-center gap-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-zinc-900 border border-zinc-850 rounded-lg flex items-center justify-center p-1">
-                          <img src={Array.isArray(product.images) ? product.images[0] : product.image} className="max-h-full object-contain" alt="" />
-                        </div>
-                        <div>
-                          <h4 className="text-xs font-bold text-zinc-200">{product.name}</h4>
-                          <div className="flex flex-wrap gap-1.5 items-center mt-0.5">
-                            <span className="text-[9px] uppercase tracking-widest text-zinc-400 bg-zinc-900 px-1.5 py-0.5 rounded border border-zinc-800 font-bold">{product.category} ({product.subcategory})</span>
-                            {product.materialFace && product.materialFace !== 'None / Standard' && (
-                              <span className="text-[9px] uppercase tracking-widest text-emerald-400 bg-emerald-950/40 px-1.5 py-0.5 rounded border border-emerald-900/40 font-mono font-bold">⌺ {product.materialFace}</span>
+                  filteredProductsList.map((product) => {
+                    const previewImage = Array.isArray(product.images) && product.images.length > 0 
+                      ? product.images[0] 
+                      : (product.image || '');
+
+                    return (
+                      <div key={product.id} className="flex bg-zinc-950 border border-zinc-850 p-4 rounded-xl justify-between items-center gap-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 bg-zinc-900 border border-zinc-850 rounded-lg flex items-center justify-center p-1 relative">
+                            {previewImage ? (
+                              <img src={previewImage} className="max-h-full object-contain" alt="" />
+                            ) : (
+                              <span className="text-[9px] text-zinc-600">No Img</span>
+                            )}
+                            {Array.isArray(product.images) && product.images.length > 1 && (
+                              <span className="absolute -top-1 -right-1 bg-emerald-500 text-black text-[8px] font-black px-1 rounded-full">
+                                +{product.images.length - 1}
+                              </span>
                             )}
                           </div>
-                          
-                          {(product.specs?.shape || product.specs?.characters) && (
-                            <div className="flex gap-2 text-[9px] text-zinc-500 uppercase tracking-wider mt-1 font-semibold">
-                              {product.specs.shape && <span>⬡ {product.specs.shape}</span>}
-                              {product.specs.characters && <span>⚡ {product.specs.characters}</span>}
+                          <div>
+                            <h4 className="text-xs font-bold text-zinc-200">{product.name}</h4>
+                            <div className="flex flex-wrap gap-1.5 items-center mt-0.5">
+                              <span className="text-[9px] uppercase tracking-widest text-zinc-400 bg-zinc-900 px-1.5 py-0.5 rounded border border-zinc-800 font-bold">{product.category} ({product.subcategory})</span>
+                              {product.materialFace && product.materialFace !== 'None / Standard' && (
+                                <span className="text-[9px] uppercase tracking-widest text-emerald-400 bg-emerald-950/40 px-1.5 py-0.5 rounded border border-emerald-900/40 font-mono font-bold">⌺ {product.materialFace}</span>
+                              )}
                             </div>
-                          )}
+                            
+                            {(product.specs?.shape || product.specs?.characters) && (
+                              <div className="flex gap-2 text-[9px] text-zinc-500 uppercase tracking-wider mt-1 font-semibold">
+                                {product.specs.shape && <span>⬡ {product.specs.shape}</span>}
+                                {product.specs.characters && <span>⚡ {product.specs.characters}</span>}
+                              </div>
+                            )}
 
-                          <div className="flex gap-2 text-[11px] font-mono mt-1">
-                            <span className="text-zinc-500 line-through">{product.marketPrice}</span>
-                            <span className="text-emerald-400 font-bold">{product.elitePrice}</span>
+                            <div className="flex gap-2 text-[11px] font-mono mt-1">
+                              <span className="text-zinc-500 line-through">{product.marketPrice}</span>
+                              <span className="text-emerald-400 font-bold">{product.elitePrice}</span>
+                            </div>
                           </div>
                         </div>
+                        <div className="flex gap-2">
+                          <button onClick={() => handleEditSelect(product)} className="px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-lg text-[10px] font-black uppercase tracking-wider hover:text-emerald-400 transition-colors">Edit</button>
+                          <button onClick={() => product.id && handleDeleteProduct(product.id)} className="px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-lg text-[10px] font-black uppercase tracking-wider hover:text-red-400 transition-colors">Purge</button>
+                        </div>
                       </div>
-                      <div className="flex gap-2">
-                        <button onClick={() => handleEditSelect(product)} className="px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-lg text-[10px] font-black uppercase tracking-wider hover:text-emerald-400 transition-colors">Edit</button>
-                        <button onClick={() => product.id && handleDeleteProduct(product.id)} className="px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-lg text-[10px] font-black uppercase tracking-wider hover:text-red-400 transition-colors">Purge</button>
-                      </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </div>
@@ -578,48 +621,7 @@ export default function AdminDashboard() {
                           Cycle Next Status →
                         </button>
                       )}
-                      <button onClick={() => handleCancelOrder(order.id)} className="px-3 py-2 bg-red-950/60 hover:bg-red-900 text-red-400 font-black text-[10px] uppercase tracking-wider rounded-lg transition-all border border-red-900/40">
-                        🗑️ Cancel Order
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
-                    <div className="space-y-1">
-                      <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block mb-1">Logistics Matrix</span>
-                      <p className="text-zinc-300"><span className="text-zinc-500">Phone:</span> {order.customer.phone}</p>
-                      <p className="text-zinc-300 bg-zinc-900/50 border border-zinc-850/80 p-2 rounded-lg mt-1 whitespace-pre-wrap leading-relaxed">
-                        {order.customer.address}
-                      </p>
-                      <p className="text-zinc-400 font-bold pt-1 uppercase text-[10px]">Fulfillment: {order.fulfillmentType}</p>
-                    </div>
-                    <div>
-                      <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block mb-1">Manifest Items Bundle</span>
-                      <div className="space-y-1">
-                        {order.items?.map((it, idx) => (
-                          <p key={idx} className="text-zinc-300 font-medium">
-                            • {it.name} <span className="text-zinc-500 font-mono">x{it.quantity}</span> @ <span className="text-emerald-400 font-mono">{it.unitPrice}</span>
-                          </p>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block mb-1">Financial State Summary</span>
-                      <p className="text-zinc-300 font-mono"><span className="text-zinc-500">Gross Total:</span> {order.financials.orderTotal}</p>
-                      <p className="text-zinc-300 font-mono mt-0.5"><span className="text-zinc-500">Channel Method:</span> {order.financials.paymentMethod}</p>
-                    </div>
-                    <div className="border-l border-zinc-900 pl-0 md:pl-4">
-                      <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block mb-1">Client Transfer Verification</span>
-                      {order.paymentScreenshot ? (
-                        <div className="space-y-2">
-                          <div className="relative group w-32 h-36 bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden cursor-zoom-in">
-                            <img src={order.paymentScreenshot} alt="Receipt Proof Payload" className="w-full h-full object-cover transition-transform group-hover:scale-105" />
-                          </div>
-                          <button type="button" onClick={() => window.open(order.paymentScreenshot, '_blank')} className="text-[10px] font-bold text-emerald-400 hover:underline block">Open attachment ↗</button>
-                        </div>
-                      ) : (
-                        <div className="bg-zinc-900/30 border border-zinc-850/60 rounded-xl p-3 text-center text-zinc-600 font-mono text-[10px]">No screenshot payload uploaded.</div>
-                      )}
+                      <button onClick={() => handleCancelOrder(order.id)} className="px-3 py-2 bg-red-950/60 hover:bg-red-900 text-red-400 font-black text-[10px] uppercase tracking-wider rounded-lg transition-all">Purge Order</button>
                     </div>
                   </div>
                 </div>
