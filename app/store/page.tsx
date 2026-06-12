@@ -70,11 +70,11 @@ const SPORT_COLLECTIONS = [
 ];
 
 const SPORTS = SPORT_COLLECTIONS.map(s => s.name);
+const PADEL_MATERIALS = ["All Rackets", "Glass Fiber", "3K", "12K", "24K"];
 
 function ProductDetailView({ product, onBack, onAddToCart, onBuyNow }: { product: Product; onBack: () => void; onAddToCart: (p: Product, qty: number) => void; onBuyNow: (p: Product, qty: number) => void }) {
   const [detailQuantity, setDetailQuantity] = useState<number>(1);
   
-  // Safe extraction of all image references inside database object structured profiles
   const imageList: string[] = Array.isArray(product.images) 
     ? product.images.map((url: string) => url.trim()).filter((url: string) => url !== "")
     : [product.image, product.mediaUrl, product.imageUrl]
@@ -108,7 +108,6 @@ function ProductDetailView({ product, onBack, onAddToCart, onBuyNow }: { product
       </button>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start mb-12">
-        {/* Left Side: Images Stream Media Column Container */}
         <div className="lg:col-span-5 space-y-4">
           {product.model3d ? (
             <div className="w-full h-[380px] bg-zinc-950 border border-zinc-800 rounded-2xl flex items-center justify-center overflow-hidden relative">
@@ -120,7 +119,6 @@ function ProductDetailView({ product, onBack, onAddToCart, onBuyNow }: { product
             </div>
           )}
 
-          {/* Dynamic Image Thumbnails Navigation Stream Gallery Bar Block */}
           {imageList.length > 1 && (
             <div className="flex flex-wrap gap-2 pt-1 justify-start items-center">
               {imageList.map((url, i) => (
@@ -139,10 +137,11 @@ function ProductDetailView({ product, onBack, onAddToCart, onBuyNow }: { product
           )}
         </div>
 
-        {/* Right Side Details Column */}
         <div className="lg:col-span-7 space-y-6">
           <div>
-            <span className="text-xs uppercase font-bold text-emerald-400 tracking-wider">{product.category} Portfolio</span>
+            <span className="text-xs uppercase font-bold text-emerald-400 tracking-wider">
+              {product.category} {product.subcategory ? `/ ${product.subcategory}` : 'Portfolio'}
+            </span>
             <h1 className="text-2xl md:text-4xl font-extrabold text-zinc-100 mt-1 mb-3">{product.name}</h1>
           </div>
 
@@ -236,6 +235,7 @@ export default function StorePage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [viewState, setViewState] = useState<string>("Home");
+  const [selectedSubcategory, setSelectedSubcategory] = useState<string>("All Rackets");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
 
@@ -264,9 +264,11 @@ export default function StorePage() {
     if (typeof window === 'undefined') return;
     const params = new URLSearchParams(window.location.search);
     const viewParam = params.get('view') || 'Home';
+    const subParam = params.get('subcategory') || 'All Rackets';
     const productParam = params.get('product');
 
     setViewState(viewParam);
+    setSelectedSubcategory(subParam);
 
     if (productParam && availableProducts.length > 0) {
       const matchingProduct = availableProducts.find(
@@ -280,12 +282,15 @@ export default function StorePage() {
     setSelectedProduct(null);
   };
 
-  const navigateTo = (view: string, product: Product | null = null) => {
+  const navigateTo = (view: string, subcat: string = "All Rackets", product: Product | null = null) => {
     if (typeof window === 'undefined') return;
     const params = new URLSearchParams();
     
     if (view !== 'Home') {
       params.set('view', view);
+    }
+    if (view === 'Padel' && subcat !== 'All Rackets') {
+      params.set('subcategory', subcat);
     }
     if (product) {
       if (view === 'Home') params.set('view', product.category); 
@@ -295,8 +300,9 @@ export default function StorePage() {
     const searchStr = params.toString();
     const targetUrl = window.location.pathname + (searchStr ? `?${searchStr}` : '');
     
-    window.history.pushState({ view, productName: product?.name || null }, '', targetUrl);
+    window.history.pushState({ view, subcat, productName: product?.name || null }, '', targetUrl);
     setViewState(product ? product.category : view);
+    setSelectedSubcategory(subcat);
     setSelectedProduct(product);
   };
 
@@ -349,9 +355,17 @@ export default function StorePage() {
     }, 0);
   };
 
+  // Advanced evaluation filtering parsing parent sport categories and localized blade fabrics
   const filteredProducts = products.filter((p) => {
     if (viewState === "Home") return true;
-    return p.category === viewState;
+    if (p.category !== viewState) return false;
+    
+    if (viewState === "Padel" && selectedSubcategory !== "All Rackets") {
+      const normalize = (str: string) => str?.toLowerCase().replace(/[^a-z0-9]/g, '') || '';
+      return normalize(p.subcategory).includes(normalize(selectedSubcategory)) || 
+             normalize(p.name).includes(normalize(selectedSubcategory));
+    }
+    return true;
   });
 
   const padelCategory = SPORT_COLLECTIONS.find(s => s.name === "Padel")!;
@@ -381,7 +395,7 @@ export default function StorePage() {
         <div className="flex items-center justify-center py-24 text-zinc-500 text-xs uppercase tracking-widest font-bold animate-pulse">Synchronizing Store Repository...</div>
       ) : selectedProduct ? (
         <div className="max-w-6xl mx-auto p-6">
-          <ProductDetailView product={selectedProduct} onBack={() => navigateTo(viewState)} onAddToCart={handleAddToCart} onBuyNow={handleBuyNow} />
+          <ProductDetailView product={selectedProduct} onBack={() => navigateTo(viewState, selectedSubcategory)} onAddToCart={handleAddToCart} onBuyNow={handleBuyNow} />
         </div>
       ) : viewState === "Home" ? (
         <div className="max-w-6xl mx-auto px-6 py-8 space-y-12">
@@ -450,7 +464,7 @@ export default function StorePage() {
               {products.slice(0, 8).map((p, idx) => {
                 const imgSource = Array.isArray(p.images) && p.images.length > 0 ? p.images[0] : (p.image || p.mediaUrl || p.imageUrl || 'https://placehold.co/150');
                 return (
-                  <div key={idx} onClick={() => navigateTo(p.category, p)} className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 cursor-pointer hover:border-zinc-700 transition-all flex flex-col justify-between group">
+                  <div key={idx} onClick={() => navigateTo(p.category, "All Rackets", p)} className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 cursor-pointer hover:border-zinc-700 transition-all flex flex-col justify-between group">
                     <div>
                       <div className="h-36 bg-zinc-950 rounded-xl mb-3 flex items-center justify-center p-3 border border-zinc-900 overflow-hidden relative">
                         <img src={imgSource} className="max-h-full object-contain transition-transform duration-300 group-hover:scale-105" alt="" onError={e => (e.target as HTMLImageElement).src = 'https://placehold.co/150'} />
@@ -469,26 +483,54 @@ export default function StorePage() {
         </div>
       ) : (
         <div className="max-w-6xl mx-auto px-6 py-8">
-          <h2 className="text-2xl font-black uppercase tracking-tight text-emerald-400 mb-6">{viewState} Repertoire</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-            {filteredProducts.map((p, idx) => {
-              const imgSource = Array.isArray(p.images) && p.images.length > 0 ? p.images[0] : (p.image || p.mediaUrl || p.imageUrl || 'https://placehold.co/150');
-              return (
-                <div key={idx} onClick={() => navigateTo(p.category, p)} className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 cursor-pointer hover:border-zinc-700 transition-all flex flex-col justify-between group">
-                  <div>
-                    <div className="h-44 bg-zinc-950 rounded-xl mb-3 flex items-center justify-center p-4 border border-zinc-900 overflow-hidden relative">
-                      <img src={imgSource} className="max-h-full object-contain transition-transform duration-300 group-hover:scale-105" alt="" onError={e => (e.target as HTMLImageElement).src = 'https://placehold.co/150'} />
-                    </div>
-                    <h4 className="text-sm font-bold truncate text-zinc-200 group-hover:text-emerald-400 transition-colors">{p.name}</h4>
-                  </div>
-                  <div className="flex items-baseline justify-between mt-2 border-t border-zinc-950 pt-2">
-                    <span className="text-xs text-zinc-500 line-through font-mono">{p.marketPrice}</span>
-                    <span className="text-sm text-emerald-400 font-black font-mono">{p.elitePrice}</span>
-                  </div>
-                </div>
-              );
-            })}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+            <h2 className="text-2xl font-black uppercase tracking-tight text-emerald-400">{viewState} Repertoire</h2>
+            
+            {/* FIX: Contextual Material selection tabs matrix for Padel */}
+            {viewState === "Padel" && (
+              <div className="flex flex-wrap gap-1.5 bg-zinc-900 p-1 rounded-xl border border-zinc-800">
+                {PADEL_MATERIALS.map((material) => (
+                  <button
+                    key={material}
+                    onClick={() => navigateTo("Padel", material)}
+                    className={`px-4 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all ${
+                      selectedSubcategory === material
+                        ? "bg-emerald-500 text-black shadow-md shadow-emerald-500/10"
+                        : "text-zinc-400 hover:text-white hover:bg-zinc-850"
+                    }`}
+                  >
+                    {material}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
+
+          {filteredProducts.length === 0 ? (
+            <div className="py-20 text-center text-zinc-500 text-xs uppercase tracking-widest font-bold border border-dashed border-zinc-800 rounded-2xl">
+              No configurations match this specification variant.
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+              {filteredProducts.map((p, idx) => {
+                const imgSource = Array.isArray(p.images) && p.images.length > 0 ? p.images[0] : (p.image || p.mediaUrl || p.imageUrl || 'https://placehold.co/150');
+                return (
+                  <div key={idx} onClick={() => navigateTo(p.category, selectedSubcategory, p)} className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 cursor-pointer hover:border-zinc-700 transition-all flex flex-col justify-between group">
+                    <div>
+                      <div className="h-44 bg-zinc-950 rounded-xl mb-3 flex items-center justify-center p-4 border border-zinc-900 overflow-hidden relative">
+                        <img src={imgSource} className="max-h-full object-contain transition-transform duration-300 group-hover:scale-105" alt="" onError={e => (e.target as HTMLImageElement).src = 'https://placehold.co/150'} />
+                      </div>
+                      <h4 className="text-sm font-bold truncate text-zinc-200 group-hover:text-emerald-400 transition-colors">{p.name}</h4>
+                    </div>
+                    <div className="flex items-baseline justify-between mt-2 border-t border-zinc-950 pt-2">
+                      <span className="text-xs text-zinc-500 line-through font-mono">{p.marketPrice}</span>
+                      <span className="text-sm text-emerald-400 font-black font-mono">{p.elitePrice}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
