@@ -29,9 +29,7 @@ interface CartItem {
 type CheckoutChannel = 'DELIVERY_FULL' | 'DELIVERY_COD' | 'PICKUP_STORE';
 
 export default function CheckoutPage() {
-  // Start with an empty array so it doesn't default to hardcoded prices
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
-
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerAddress, setCustomerAddress] = useState('');
@@ -41,42 +39,44 @@ export default function CheckoutPage() {
   const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Hydrate cart data directly from LocalStorage on mount
+  // Safe client-side local storage loading
   useEffect(() => {
-    const savedCart = localStorage.getItem('elite_store_active_cart');
-    if (savedCart) {
-      try {
-        const parsedCart = JSON.parse(savedCart);
-        
-        // Transform the StorePage Cart structure into Checkout Schema expectations if necessary
-        const normalizedItems = parsedCart.map((item: any) => {
-          // If the item has a nested 'product' object (from StorePage format)
-          if (item.product) {
-            const priceNum = parseInt(item.product.elitePrice.replace(/[^0-9]/g, '')) || 0;
-            return {
-              name: item.product.name,
-              category: item.product.category,
-              quantity: item.quantity,
-              unitPrice: item.product.elitePrice,
-              totalItemCost: priceNum * item.quantity
-            };
-          }
-          return item;
-        });
+    if (typeof window !== 'undefined') {
+      const savedCart = localStorage.getItem('elite_store_active_cart');
+      if (savedCart) {
+        try {
+          const parsedCart = JSON.parse(savedCart);
+          
+          const normalizedItems = parsedCart.map((item: any) => {
+            if (item.product) {
+              // Strip all commas, letters, spaces to ensure pure integer extraction
+              const cleanPriceString = item.product.elitePrice.replace(/[^0-9]/g, '');
+              const priceNum = parseInt(cleanPriceString, 10) || 0;
+              
+              return {
+                name: item.product.name,
+                category: item.product.category,
+                quantity: item.quantity || 1,
+                unitPrice: item.product.elitePrice,
+                totalItemCost: priceNum * (item.quantity || 1)
+              };
+            }
+            return item;
+          });
 
-        setCartItems(normalizedItems);
-      } catch (e) {
-        console.error("Failed to parse active store cart sequence logs:", e);
+          setCartItems(normalizedItems);
+        } catch (e) {
+          console.error("Cart hydration execution breakdown error:", e);
+        }
       }
     }
   }, []);
 
-  // Calculate order total sum dynamically
-  const grossTotal = cartItems.reduce((acc, item) => acc + item.totalItemCost, 0);
-
+  // Compute values safely with structural fallback limits
+  const grossTotal = cartItems.reduce((acc, item) => acc + (item.totalItemCost || 0), 0);
   const isFullPayment = checkoutChannel === 'DELIVERY_FULL';
   const requiredPaymentAmount = isFullPayment ? grossTotal : Math.round(grossTotal * 0.20);
-  const remainingBalanceAmount = grossTotal - requiredPaymentAmount;
+  const remainingBalanceAmount = Math.max(0, grossTotal - requiredPaymentAmount);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -89,26 +89,27 @@ export default function CheckoutPage() {
     if (isSubmitting) return;
     
     if (cartItems.length === 0) {
-      alert("Your checkout queue is empty. Return to the shop terminal to select gear.");
+      alert("Your active cart node allocation is empty.");
       return;
     }
 
     if (!screenshotFile) {
-      alert("Please attach your payment transaction proof screenshot before proceeding.");
+      alert("Please upload your transfer screenshot payload validation copy first.");
       return;
     }
     
     setIsSubmitting(true);
-    let uploadedScreenshotUrl = "";
 
     try {
-      const fileExtension = screenshotFile.name.split('.').pop();
+      // 1. Process block upload to Storage Bucket reference locations cleanly
+      const fileExtension = screenshotFile.name.split('.').pop() || 'jpg';
       const uniqueFileName = `receipts/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExtension}`;
       const screenshotStorageRef = storageRef(storage, uniqueFileName);
       
       const uploadSnapshot = await uploadBytes(screenshotStorageRef, screenshotFile);
-      uploadedScreenshotUrl = await getDownloadURL(uploadSnapshot.ref);
+      const uploadedScreenshotUrl = await getDownloadURL(uploadSnapshot.ref);
 
+      // 2. Format explicit fulfillment definitions to database strings
       const databaseFulfillment = checkoutChannel === 'PICKUP_STORE' ? 'PICKUP' : 'DELIVERY';
       
       let databasePaymentMethodText = "";
@@ -136,24 +137,27 @@ export default function CheckoutPage() {
         paymentScreenshot: uploadedScreenshotUrl
       };
 
+      // 3. Write data frame explicitly to real-time sync target
       const ordersDbRef = ref(db, 'store/orders');
       await push(ordersDbRef, orderPayload);
 
-      alert("Order package dispatched cleanly. Administration handlers will verify your deposit parameters shortly.");
+      alert("Order package metadata synced successfully!");
       
-      // Clean storage on successful order execution
+      // Reset variables smoothly on structural completion
       localStorage.removeItem('elite_store_active_cart');
-      
       setCustomerName('');
       setCustomerPhone('');
       setCustomerAddress('');
       setCustomerCity('');
       setScreenshotFile(null);
       setCartItems([]);
-    } catch (error) {
-      console.error("Order workflow execution failure context:", error);
-      alert("Failed to pass transaction gateway validation handshake logs.");
+
+    } catch (error: any) {
+      console.error("Critical breakdown details inside deployment pipeline:", error);
+      // Give a clean, detailed prompt response if safety rules or connection failure interrupts execution
+      alert(`Order handshakes transmission failure: ${error?.message || "Check storage bucket connection rules layouts."}`);
     } finally {
+      // Ensure the button unlocked state always executes no matter what happens
       setIsSubmitting(false);
     }
   };
@@ -204,7 +208,6 @@ export default function CheckoutPage() {
             </div>
           )}
 
-          {/* Dynamic Financial Summary Breakdown Component */}
           <div className="border border-zinc-800 bg-zinc-950/60 p-4 rounded-xl space-y-3 font-mono">
             <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 block border-b border-zinc-900 pb-1.5">Financial Summary Breakdown</span>
             <div className="grid grid-cols-3 text-center text-xs gap-2">
@@ -239,6 +242,7 @@ export default function CheckoutPage() {
               </label>
               <input 
                 type="file" 
+                key={screenshotFile ? screenshotFile.name : 'empty-file'}
                 accept="image/*" 
                 required
                 onChange={handleFileChange} 
