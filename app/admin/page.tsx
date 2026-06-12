@@ -30,6 +30,8 @@ interface Product {
     weight?: string;
     balance?: string;
     thickness?: string;
+    shape?: string;        // Added field
+    characters?: string;   // Added field
     [key: string]: string | undefined;
   };
 }
@@ -55,8 +57,8 @@ interface Order {
   financials: {
     orderTotal: string; 
     paymentMethod: string;
-    advancePaid?: string;     // Option to explicitly capture advance in DB
-    remainingBalance?: string; // Option to explicitly capture remaining in DB
+    advancePaid?: string;     
+    remainingBalance?: string; 
   };
   orderStatus: string;
   timestamp: number;
@@ -77,6 +79,8 @@ export default function AdminDashboard() {
   const [specWeight, setSpecWeight] = useState('');
   const [specBalance, setSpecBalance] = useState('');
   const [specThickness, setSpecThickness] = useState('');
+  const [specShape, setSpecShape] = useState('');          // Added state
+  const [specCharacters, setSpecCharacters] = useState(''); // Added state
   
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
 
@@ -139,8 +143,6 @@ export default function AdminDashboard() {
       statusMessage = `🏁 *Your Elite Store Order is Complete!*\n\nHi ${order.customer.name},\nYour transaction package has been successfully finalized. Thank you for choosing Elite Courts.`;
     }
 
-    // --- FINANCIAL CALCULATOR SEGMENT ---
-    // Extract raw numbers from string totals (e.g. "45,000 PKR" -> 45000)
     const totalAmountNum = parseInt(order.financials.orderTotal.replace(/[^0-9]/g, '')) || 0;
     
     let advanceNum = 0;
@@ -150,7 +152,6 @@ export default function AdminDashboard() {
       advanceNum = parseInt(order.financials.advancePaid.replace(/[^0-9]/g, '')) || 0;
       remainingNum = totalAmountNum - advanceNum;
     } else {
-      // Automatic fallback safety check: if customer paid partial advance, compute 20% automated baseline
       const isPartialChannel = order.financials.paymentMethod.toLowerCase().includes('pickup') || 
                                order.financials.paymentMethod.toLowerCase().includes('advance') ||
                                order.financials.paymentMethod.toLowerCase().includes('partial');
@@ -201,6 +202,8 @@ export default function AdminDashboard() {
     setSpecWeight(product.specs?.weight || '');
     setSpecBalance(product.specs?.balance || '');
     setSpecThickness(product.specs?.thickness || '');
+    setSpecShape(product.specs?.shape || '');               // Load field values
+    setSpecCharacters(product.specs?.characters || '');       // Load field values
   };
 
   const resetProductForm = () => {
@@ -212,6 +215,8 @@ export default function AdminDashboard() {
     setSpecWeight('');
     setSpecBalance('');
     setSpecThickness('');
+    setSpecShape('');
+    setSpecCharacters('');
   };
 
   const handleSaveProduct = async (e: React.FormEvent) => {
@@ -237,7 +242,9 @@ export default function AdminDashboard() {
       specs: {
         weight: specWeight || undefined,
         balance: specBalance || undefined,
-        thickness: specThickness || undefined
+        thickness: specThickness || undefined,
+        shape: specShape || undefined,            // Append field to payload
+        characters: specCharacters || undefined    // Append field to payload
       }
     };
 
@@ -306,6 +313,23 @@ export default function AdminDashboard() {
       triggerWhatsAppNotification(order, targetPrev);
     } catch (err) {
       console.error("Failed to cycle processing step backward:", err);
+    }
+  };
+
+  const handleCancelOrder = async (orderId: string) => {
+    if (!confirm(`⚠️ CRITICAL COMMAND: Are you completely certain you want to cancel and delete Order #${orderId} from the master database? This action cannot be reversed.`)) {
+      return;
+    }
+
+    const db = getDatabase(app);
+    const orderRef = ref(db, `store/orders/${orderId}`);
+
+    try {
+      await remove(orderRef);
+      alert("Order entry purged from database reference layout cleanly.");
+    } catch (err) {
+      console.error("Failed to eliminate targeted order payload record:", err);
+      alert("Error: Failed to process order cancellation node request.");
     }
   };
 
@@ -384,21 +408,37 @@ export default function AdminDashboard() {
 
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">Performance Description Manifest</label>
-                <textarea rows={3} value={newProduct.description} onChange={e => setNewProduct(prev => ({ ...prev, description: e.target.value }))} className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-4 py-2.5 text-xs text-white outline-none transition-all resize-none font-medium leading-relaxed" placeholder="Provide specification log layout summary..." />
+                <textarea rows={2} value={newProduct.description} onChange={e => setNewProduct(prev => ({ ...prev, description: e.target.value }))} className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-4 py-2.5 text-xs text-white outline-none transition-all resize-none font-medium leading-relaxed" placeholder="Provide specification log layout summary..." />
               </div>
 
-              <div className="border-t border-zinc-800 pt-3 grid grid-cols-3 gap-2">
-                <div>
-                  <label className="block text-[9px] font-bold uppercase text-zinc-500 mb-1">Total Weight</label>
-                  <input type="text" value={specWeight} onChange={e => setSpecWeight(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-emerald-500" placeholder="e.g. 365g" />
+              {/* --- EXTENDED TECHNICAL ATTRIBUTES REGISTRY SECTION --- */}
+              <div className="border-t border-zinc-800 pt-3 space-y-3">
+                <span className="block text-[10px] font-black uppercase tracking-wider text-emerald-400/80">Key Feature Metrics</span>
+                
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <label className="block text-[9px] font-bold uppercase text-zinc-500 mb-1">Total Weight</label>
+                    <input type="text" value={specWeight} onChange={e => setSpecWeight(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-emerald-500 text-white" placeholder="e.g. 365g" />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] font-bold uppercase text-zinc-500 mb-1">Balance Matrix</label>
+                    <input type="text" value={specBalance} onChange={e => setSpecBalance(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-emerald-500 text-white" placeholder="e.g. Medium" />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] font-bold uppercase text-zinc-500 mb-1">Thickness</label>
+                    <input type="text" value={specThickness} onChange={e => setSpecThickness(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-emerald-500 text-white" placeholder="e.g. 38mm" />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-[9px] font-bold uppercase text-zinc-500 mb-1">Balance Matrix</label>
-                  <input type="text" value={specBalance} onChange={e => setSpecBalance(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-emerald-500" placeholder="e.g. Medium" />
-                </div>
-                <div>
-                  <label className="block text-[9px] font-bold uppercase text-zinc-500 mb-1">Thickness</label>
-                  <input type="text" value={specThickness} onChange={e => setSpecThickness(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-emerald-500" placeholder="e.g. 38mm" />
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-[9px] font-bold uppercase text-zinc-500 mb-1">Structural Shape</label>
+                    <input type="text" value={specShape} onChange={e => setSpecShape(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-emerald-500 text-white" placeholder="e.g. Diamond / Round" />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] font-bold uppercase text-zinc-500 mb-1">Characteristics / Fit</label>
+                    <input type="text" value={specCharacters} onChange={e => setSpecCharacters(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-emerald-500 text-white" placeholder="e.g. Power / Control / Speed" />
+                  </div>
                 </div>
               </div>
 
@@ -419,6 +459,15 @@ export default function AdminDashboard() {
                       <div>
                         <h4 className="text-xs font-bold text-zinc-200">{product.name}</h4>
                         <span className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold">{product.category} ({product.subcategory})</span>
+                        
+                        {/* Interactive Frontend Preview for Verification */}
+                        {(product.specs?.shape || product.specs?.characters) && (
+                          <div className="flex gap-2 text-[9px] text-zinc-400 uppercase tracking-wider mt-0.5 font-semibold">
+                            {product.specs.shape && <span>⬡ {product.specs.shape}</span>}
+                            {product.specs.characters && <span>⚡ {product.specs.characters}</span>}
+                          </div>
+                        )}
+
                         <div className="flex gap-2 text-[11px] font-mono mt-1">
                           <span className="text-zinc-500 line-through">{product.marketPrice}</span>
                           <span className="text-emerald-400 font-bold">{product.elitePrice}</span>
@@ -451,7 +500,7 @@ export default function AdminDashboard() {
                       </span>
                       
                       {order.orderStatus !== 'PENDING_VERIFICATION' && (
-                        <button onClick={() => handleRevertOrderStatus(order)} className="px-3 py-2 bg-red-950 hover:bg-red-900 text-red-400 font-black text-[10px] uppercase tracking-wider rounded-lg transition-all border border-red-900/50">
+                        <button onClick={() => handleRevertOrderStatus(order)} className="px-3 py-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 font-black text-[10px] uppercase tracking-wider rounded-lg transition-all border border-zinc-800">
                           🔀 Revert / Undo
                         </button>
                       )}
@@ -461,6 +510,14 @@ export default function AdminDashboard() {
                           Cycle Next Status →
                         </button>
                       )}
+
+                      <button 
+                        onClick={() => handleCancelOrder(order.id)} 
+                        className="px-3 py-2 bg-red-950/60 hover:bg-red-900 text-red-400 font-black text-[10px] uppercase tracking-wider rounded-lg transition-all border border-red-900/40"
+                        title="Cancel and delete this order node"
+                      >
+                        🗑️ Cancel Order
+                      </button>
                     </div>
                   </div>
 
