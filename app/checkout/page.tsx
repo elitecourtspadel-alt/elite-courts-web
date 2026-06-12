@@ -26,30 +26,54 @@ interface CartItem {
   totalItemCost: number;
 }
 
-// Defining our 3 specific checkout pathways
 type CheckoutChannel = 'DELIVERY_FULL' | 'DELIVERY_COD' | 'PICKUP_STORE';
 
 export default function CheckoutPage() {
-  // Mock cart item payload matching your schema requirements
-  const [cartItems, setCartItems] = useState<CartItem[]>([
-    { name: "Elite Pro Carbon Padel Racket", category: "Padel", quantity: 1, unitPrice: "38,500 PKR", totalItemCost: 38500 }
-  ]);
+  // Start with an empty array so it doesn't default to hardcoded prices
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
 
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerAddress, setCustomerAddress] = useState('');
   const [customerCity, setCustomerCity] = useState('');
   
-  // Track our 3 checkout methods explicitly
   const [checkoutChannel, setCheckoutChannel] = useState<CheckoutChannel>('DELIVERY_FULL');
-  
   const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Calculate order total sum cleanly
+  // Hydrate cart data directly from LocalStorage on mount
+  useEffect(() => {
+    const savedCart = localStorage.getItem('elite_store_active_cart');
+    if (savedCart) {
+      try {
+        const parsedCart = JSON.parse(savedCart);
+        
+        // Transform the StorePage Cart structure into Checkout Schema expectations if necessary
+        const normalizedItems = parsedCart.map((item: any) => {
+          // If the item has a nested 'product' object (from StorePage format)
+          if (item.product) {
+            const priceNum = parseInt(item.product.elitePrice.replace(/[^0-9]/g, '')) || 0;
+            return {
+              name: item.product.name,
+              category: item.product.category,
+              quantity: item.quantity,
+              unitPrice: item.product.elitePrice,
+              totalItemCost: priceNum * item.quantity
+            };
+          }
+          return item;
+        });
+
+        setCartItems(normalizedItems);
+      } catch (e) {
+        console.error("Failed to parse active store cart sequence logs:", e);
+      }
+    }
+  }, []);
+
+  // Calculate order total sum dynamically
   const grossTotal = cartItems.reduce((acc, item) => acc + item.totalItemCost, 0);
 
-  // Compute specific required payment thresholds dynamically
   const isFullPayment = checkoutChannel === 'DELIVERY_FULL';
   const requiredPaymentAmount = isFullPayment ? grossTotal : Math.round(grossTotal * 0.20);
   const remainingBalanceAmount = grossTotal - requiredPaymentAmount;
@@ -64,6 +88,11 @@ export default function CheckoutPage() {
     e.preventDefault();
     if (isSubmitting) return;
     
+    if (cartItems.length === 0) {
+      alert("Your checkout queue is empty. Return to the shop terminal to select gear.");
+      return;
+    }
+
     if (!screenshotFile) {
       alert("Please attach your payment transaction proof screenshot before proceeding.");
       return;
@@ -73,7 +102,6 @@ export default function CheckoutPage() {
     let uploadedScreenshotUrl = "";
 
     try {
-      // 1. Upload the payment receipt snapshot to Firebase Storage
       const fileExtension = screenshotFile.name.split('.').pop();
       const uniqueFileName = `receipts/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExtension}`;
       const screenshotStorageRef = storageRef(storage, uniqueFileName);
@@ -81,7 +109,6 @@ export default function CheckoutPage() {
       const uploadSnapshot = await uploadBytes(screenshotStorageRef, screenshotFile);
       uploadedScreenshotUrl = await getDownloadURL(uploadSnapshot.ref);
 
-      // 2. Map frontend configuration states to match your exact Admin backend schema constraints
       const databaseFulfillment = checkoutChannel === 'PICKUP_STORE' ? 'PICKUP' : 'DELIVERY';
       
       let databasePaymentMethodText = "";
@@ -109,18 +136,20 @@ export default function CheckoutPage() {
         paymentScreenshot: uploadedScreenshotUrl
       };
 
-      // 3. Persist order reference node to Realtime Database
       const ordersDbRef = ref(db, 'store/orders');
       await push(ordersDbRef, orderPayload);
 
       alert("Order package dispatched cleanly. Administration handlers will verify your deposit parameters shortly.");
       
-      // Reset layout processing state 
+      // Clean storage on successful order execution
+      localStorage.removeItem('elite_store_active_cart');
+      
       setCustomerName('');
       setCustomerPhone('');
       setCustomerAddress('');
       setCustomerCity('');
       setScreenshotFile(null);
+      setCartItems([]);
     } catch (error) {
       console.error("Order workflow execution failure context:", error);
       alert("Failed to pass transaction gateway validation handshake logs.");
@@ -138,7 +167,6 @@ export default function CheckoutPage() {
         </div>
 
         <form onSubmit={handlePlaceOrder} className="space-y-5">
-          {/* Identity Parameters Block */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">Full Name</label>
@@ -150,7 +178,6 @@ export default function CheckoutPage() {
             </div>
           </div>
 
-          {/* Fulfillment and Checkout Paths Configuration */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">Order Logistics & Payment Channel</label>
@@ -170,7 +197,6 @@ export default function CheckoutPage() {
             </div>
           </div>
 
-          {/* Conditional Physical Mailing Address Output */}
           {checkoutChannel !== 'PICKUP_STORE' && (
             <div>
               <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">Physical Route Delivery Address</label>
@@ -178,7 +204,7 @@ export default function CheckoutPage() {
             </div>
           )}
 
-          {/* Dynamic Financial Allocation Metrics Block */}
+          {/* Dynamic Financial Summary Breakdown Component */}
           <div className="border border-zinc-800 bg-zinc-950/60 p-4 rounded-xl space-y-3 font-mono">
             <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 block border-b border-zinc-900 pb-1.5">Financial Summary Breakdown</span>
             <div className="grid grid-cols-3 text-center text-xs gap-2">
@@ -197,7 +223,6 @@ export default function CheckoutPage() {
             </div>
           </div>
 
-          {/* Verified Transaction Screenshot Upload UI */}
           <div className="border border-zinc-800 pt-4 bg-zinc-950/40 p-4 rounded-xl space-y-3">
             <div>
               <h3 className="text-xs font-black uppercase tracking-wider text-zinc-300">
@@ -222,10 +247,9 @@ export default function CheckoutPage() {
             </div>
           </div>
 
-          {/* Finalize Action Submission Trigger */}
           <button 
             type="submit" 
-            disabled={isSubmitting}
+            disabled={isSubmitting || cartItems.length === 0}
             className="w-full py-3.5 bg-emerald-500 hover:bg-emerald-400 text-black font-black uppercase text-xs rounded-xl tracking-wider transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-emerald-950/20"
           >
             {isSubmitting ? "Uploading Receipt & Dispatching Payload Logs..." : "Submit Completed Package Order"}
