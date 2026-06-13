@@ -20,7 +20,7 @@ interface Product {
   name: string;
   category: string;
   subcategory: string;
-  materialFace?: string; // Glass Fiber, 3K, 12K, 24K Carbon Fiber
+  materialFace?: string; 
   marketPrice: string;
   elitePrice: string;
   images?: string[];
@@ -83,6 +83,9 @@ export default function AdminDashboard() {
     name: '', category: 'Padel', subcategory: 'Rackets', materialFace: 'None / Standard', 
     marketPrice: '', elitePrice: '', description: '', model3d: '', image: '', images: []
   });
+
+  // Dedicated UI text input control for the image URLs text field
+  const [rawImagesString, setRawImagesString] = useState<string>('');
   
   const [specWeight, setSpecWeight] = useState('');
   const [specBalance, setSpecBalance] = useState('');
@@ -91,14 +94,6 @@ export default function AdminDashboard() {
   const [specCharacters, setSpecCharacters] = useState(''); 
   
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
-
-  // Helper to convert images field to comma separated text string safely
-  const getImagesStringValue = () => {
-    if (Array.isArray(newProduct.images) && newProduct.images.length > 0) {
-      return newProduct.images.join(', ');
-    }
-    return newProduct.image || '';
-  };
 
   useEffect(() => {
     const db = getDatabase(app);
@@ -213,10 +208,11 @@ export default function AdminDashboard() {
       images: assignedImagesArray
     });
 
+    setRawImagesString(assignedImagesArray.join(', '));
     setSpecWeight(product.specs?.weight || '');
     setSpecBalance(product.specs?.balance || '');
     setSpecThickness(product.specs?.thickness || '');
-    setSpecShape(product.specs?.shape || '');               
+    setSpecShape(product.specs?.shape || '');                
     setSpecCharacters(product.specs?.characters || '');       
   };
 
@@ -226,6 +222,7 @@ export default function AdminDashboard() {
       name: '', category: 'Padel', subcategory: 'Rackets', materialFace: 'None / Standard', 
       marketPrice: '', elitePrice: '', description: '', model3d: '', image: '', images: []
     });
+    setRawImagesString('');
     setSpecWeight('');
     setSpecBalance('');
     setSpecThickness('');
@@ -240,8 +237,13 @@ export default function AdminDashboard() {
     const parsedMarket = parseInt(newProduct.marketPrice?.replace(/[^0-9]/g, '') || '0').toLocaleString();
     const parsedElite = parseInt(newProduct.elitePrice?.replace(/[^0-9]/g, '') || '0').toLocaleString();
 
-    // Configuration fallback setup values
-    const primaryImg = Array.isArray(newProduct.images) && newProduct.images.length > 0 ? newProduct.images[0] : '';
+    // Parse the image string cleanly into an array upon submission
+    const parsedUrls = rawImagesString
+      .split(',')
+      .map(url => url.trim())
+      .filter(url => url !== '');
+
+    const primaryImg = parsedUrls.length > 0 ? parsedUrls[0] : '';
 
     const productPayload: Product = {
       name: newProduct.name || 'Unnamed Equipment',
@@ -253,7 +255,7 @@ export default function AdminDashboard() {
       description: newProduct.description || '',
       model3d: newProduct.model3d || '',
       image: primaryImg,
-      images: newProduct.images || [],
+      images: parsedUrls,
       specs: {
         weight: specWeight || undefined,
         balance: specBalance || undefined,
@@ -446,16 +448,8 @@ export default function AdminDashboard() {
                 <input 
                   type="text" 
                   required 
-                  value={getImagesStringValue()} 
-                  onChange={e => {
-                    const value = e.target.value;
-                    const parsedUrls = value.split(',').map(url => url.trim()).filter(url => url !== '');
-                    setNewProduct(prev => ({ 
-                      ...prev, 
-                      image: parsedUrls[0] || '', 
-                      images: parsedUrls 
-                    }));
-                  }} 
+                  value={rawImagesString} 
+                  onChange={e => setRawImagesString(e.target.value)} 
                   className="w-full bg-zinc-950 border border-zinc-800 focus:border-emerald-500 rounded-xl px-4 py-2.5 text-xs text-white outline-none transition-all font-mono" 
                   placeholder="https://link1.com, https://link2.com" 
                 />
@@ -585,8 +579,8 @@ export default function AdminDashboard() {
                           </div>
                         </div>
                         <div className="flex gap-2">
-                          <button onClick={() => handleEditSelect(product)} className="px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-lg text-[10px] font-black uppercase tracking-wider hover:text-emerald-400 transition-colors">Edit</button>
-                          <button onClick={() => product.id && handleDeleteProduct(product.id)} className="px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-lg text-[10px] font-black uppercase tracking-wider hover:text-red-400 transition-colors">Purge</button>
+                          <button type="button" onClick={() => handleEditSelect(product)} className="px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-lg text-[10px] font-black uppercase tracking-wider hover:text-emerald-400 transition-colors">Edit</button>
+                          <button type="button" onClick={() => product.id && handleDeleteProduct(product.id)} className="px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-lg text-[10px] font-black uppercase tracking-wider hover:text-red-400 transition-colors">Purge</button>
                         </div>
                       </div>
                     );
@@ -605,23 +599,106 @@ export default function AdminDashboard() {
                   <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-zinc-900 pb-3">
                     <div>
                       <span className="text-[10px] font-mono font-bold text-zinc-500 uppercase">ID: {order.id}</span>
-                      <h4 className="text-sm font-black text-zinc-200">{order.customer.name} ({order.customer.city})</h4>
+                      <h4 className="text-sm font-black text-white uppercase tracking-tight">{order.customer.name}</h4>
+                      <p className="text-xs text-zinc-400">{order.customer.phone} • {order.customer.city}</p>
+                      <p className="text-xs text-zinc-500 mt-1">{order.customer.address}</p>
                     </div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${order.orderStatus === 'COMPLETED_DELIVERY' ? 'bg-zinc-900 text-zinc-500' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'}`}>
-                        {order.orderStatus}
+                    <div className="flex flex-col items-end gap-2">
+                      <span className={`px-2.5 py-1 rounded text-[10px] font-black tracking-widest uppercase border ${
+                        order.orderStatus === 'COMPLETED_DELIVERY' ? 'bg-emerald-950/40 border-emerald-500 text-emerald-400' :
+                        order.orderStatus === 'DISPATCHED_COMPOUND' ? 'bg-blue-950/40 border-blue-500 text-blue-400' :
+                        order.orderStatus === 'PROCESSING' ? 'bg-amber-950/40 border-amber-500 text-amber-400' :
+                        'bg-zinc-900 border-zinc-700 text-zinc-400'
+                      }`}>
+                        {order.orderStatus.replace('_', ' ')}
                       </span>
-                      {order.orderStatus !== 'PENDING_VERIFICATION' && (
-                        <button onClick={() => handleRevertOrderStatus(order)} className="px-3 py-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 font-black text-[10px] uppercase tracking-wider rounded-lg transition-all border border-zinc-800">
-                          🔀 Revert / Undo
-                        </button>
+                      <span className="text-[10px] font-mono text-zinc-500">
+                        {new Date(order.timestamp).toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Order Manifest items array preview element iteration */}
+                  <div className="space-y-2">
+                    <span className="block text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Order Manifest Payload</span>
+                    <div className="bg-zinc-900 border border-zinc-850 rounded-xl divide-y divide-zinc-850 overflow-hidden">
+                      {order.items.map((item, idx) => (
+                        <div key={idx} className="p-3 flex justify-between items-center text-xs">
+                          <div>
+                            <span className="font-bold text-zinc-200">{item.name}</span>
+                            <span className="text-zinc-500 ml-2 font-mono">({item.category})</span>
+                          </div>
+                          <div className="font-mono text-zinc-400">
+                            {item.unitPrice} x{item.quantity} = <span className="text-emerald-400 font-bold">{item.totalItemCost.toLocaleString()} PKR</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Pricing Financial Summary Row & Payment Tracking Screenshot Context */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                    <div className="bg-zinc-900/40 border border-zinc-850 p-4 rounded-xl space-y-2 font-mono text-xs">
+                      <div className="flex justify-between">
+                        <span className="text-zinc-500">Gross Payload Total:</span>
+                        <span className="text-zinc-300 font-bold">{order.financials.orderTotal}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-zinc-500">Fulfillment Context:</span>
+                        <span className="text-zinc-300 font-bold uppercase text-[11px]">{order.fulfillmentType}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-zinc-500">Settlement Method:</span>
+                        <span className="text-zinc-300 font-bold uppercase text-[11px]">{order.financials.paymentMethod}</span>
+                      </div>
+                      {order.financials.advancePaid && (
+                        <div className="flex justify-between border-t border-zinc-850/60 pt-2 text-amber-400">
+                          <span>Security Advance Paid:</span>
+                          <span className="font-bold">{order.financials.advancePaid}</span>
+                        </div>
                       )}
-                      {order.orderStatus !== 'COMPLETED_DELIVERY' && (
-                        <button onClick={() => handleUpdateOrderStatus(order)} className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-black font-black text-[10px] uppercase tracking-wider rounded-lg transition-all">
-                          Cycle Next Status →
-                        </button>
+                      {order.financials.remainingBalance && (
+                        <div className="flex justify-between text-emerald-400">
+                          <span>Outstanding Balance COD:</span>
+                          <span className="font-black">{order.financials.remainingBalance}</span>
+                        </div>
                       )}
-                      <button onClick={() => handleCancelOrder(order.id)} className="px-3 py-2 bg-red-950/60 hover:bg-red-900 text-red-400 font-black text-[10px] uppercase tracking-wider rounded-lg transition-all">Purge Order</button>
+                    </div>
+
+                    <div className="flex flex-col justify-between items-end gap-3">
+                      <div className="w-full flex justify-end gap-2">
+                        {order.orderStatus !== 'PENDING_VERIFICATION' && (
+                          <button type="button" onClick={() => handleRevertOrderStatus(order)} className="px-3 py-2 bg-zinc-900 border border-zinc-800 hover:border-amber-500/40 text-zinc-400 hover:text-amber-400 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all">
+                            ⏮ Revert Status
+                          </button>
+                        )}
+                        
+                        {order.orderStatus !== 'COMPLETED_DELIVERY' ? (
+                          <button type="button" onClick={() => handleUpdateOrderStatus(order)} className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-black rounded-xl text-[10px] font-black uppercase tracking-wider transition-all shadow-lg shadow-emerald-500/10">
+                            Cycle Step Forward ⏭
+                          </button>
+                        ) : (
+                          <button type="button" disabled className="px-4 py-2 bg-zinc-800 text-zinc-600 rounded-xl text-[10px] font-black uppercase tracking-wider cursor-not-allowed">
+                            Order Completed 🏁
+                          </button>
+                        )}
+
+                        <button type="button" onClick={() => handleCancelOrder(order.id)} className="px-3 py-2 bg-zinc-900 border border-zinc-800 hover:border-red-500/40 text-zinc-500 hover:text-red-400 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all">
+                          Cancel Order
+                        </button>
+                      </div>
+
+                      {order.paymentScreenshot && (
+                        <a href={order.paymentScreenshot} target="_blank" rel="noreferrer" className="group flex items-center gap-2 bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 p-2.5 rounded-xl transition-all w-full md:w-auto">
+                          <div className="w-8 h-8 bg-black rounded border border-zinc-800 overflow-hidden flex items-center justify-center">
+                            <img src={order.paymentScreenshot} className="max-h-full max-w-full object-cover" alt="" />
+                          </div>
+                          <div className="text-left">
+                            <span className="block text-[10px] font-black uppercase tracking-wider text-emerald-400 group-hover:text-emerald-300">Verification Ledger</span>
+                            <span className="block text-[9px] font-mono text-zinc-500 uppercase">View Bank Receipt Screen</span>
+                          </div>
+                        </a>
+                      )}
                     </div>
                   </div>
                 </div>
