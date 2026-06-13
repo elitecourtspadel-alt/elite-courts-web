@@ -70,7 +70,9 @@ const SPORT_COLLECTIONS = [
 ];
 
 const SPORTS = SPORT_COLLECTIONS.map(s => s.name);
-const PADEL_MATERIALS = ["All Rackets", "Glass Fiber", "3K", "12K", "24K"];
+
+// CHANGED: Removed 12K and added "Balls" as a dedicated collection filter tab matrix
+const PADEL_MATERIALS = ["All Gear", "Glass Fiber", "3K", "24K", "Balls"];
 
 function ProductDetailView({ product, onBack, onAddToCart, onBuyNow }: { product: Product; onBack: () => void; onAddToCart: (p: Product, qty: number) => void; onBuyNow: (p: Product, qty: number) => void }) {
   const [detailQuantity, setDetailQuantity] = useState<number>(1);
@@ -162,26 +164,26 @@ function ProductDetailView({ product, onBack, onAddToCart, onBuyNow }: { product
           </p>
 
           {product.keyFeatureMetrics && (
-            <div className="mt-6 border-t border-zinc-850 pt-5 space-y-3">
+            <div className="mt-6 border-t border-zinc-800 pt-5 space-y-3">
               <h3 className="text-xs font-black uppercase tracking-wider text-emerald-400">Technical Specifications Matrix</h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 font-mono">
-                <div className="bg-zinc-950 p-3 border border-zinc-850 rounded-xl">
+                <div className="bg-zinc-950 p-3 border border-zinc-800 rounded-xl">
                   <span className="text-[9px] font-sans font-bold text-zinc-500 uppercase block mb-0.5">Total Weight</span>
                   <span className="text-xs text-white font-semibold">{product.keyFeatureMetrics.totalWeight || 'N/A'}</span>
                 </div>
-                <div className="bg-zinc-950 p-3 border border-zinc-850 rounded-xl">
+                <div className="bg-zinc-950 p-3 border border-zinc-800 rounded-xl">
                   <span className="text-[9px] font-sans font-bold text-zinc-500 uppercase block mb-0.5">Balance Matrix</span>
                   <span className="text-xs text-white font-semibold">{product.keyFeatureMetrics.balanceMatrix || 'N/A'}</span>
                 </div>
-                <div className="bg-zinc-950 p-3 border border-zinc-850 rounded-xl">
+                <div className="bg-zinc-950 p-3 border border-zinc-800 rounded-xl">
                   <span className="text-[9px] font-sans font-bold text-zinc-500 uppercase block mb-0.5">Thickness</span>
                   <span className="text-xs text-white font-semibold">{product.keyFeatureMetrics.thickness || 'N/A'}</span>
                 </div>
-                <div className="bg-zinc-950 p-3 border border-zinc-850 rounded-xl col-span-2 sm:col-span-1">
+                <div className="bg-zinc-950 p-3 border border-zinc-800 rounded-xl col-span-2 sm:col-span-1">
                   <span className="text-[9px] font-sans font-bold text-zinc-500 uppercase block mb-0.5">Structural Shape</span>
                   <span className="text-xs text-white font-semibold">{product.keyFeatureMetrics.structuralShape || 'N/A'}</span>
                 </div>
-                <div className="bg-zinc-950 p-3 border border-zinc-850 rounded-xl col-span-2">
+                <div className="bg-zinc-950 p-3 border border-zinc-800 rounded-xl col-span-2">
                   <span className="text-[9px] font-sans font-bold text-zinc-500 uppercase block mb-0.5">Characteristics / Fit</span>
                   <span className="text-xs text-zinc-300 font-medium leading-tight block">{product.keyFeatureMetrics.characteristics || 'N/A'}</span>
                 </div>
@@ -197,7 +199,7 @@ function ProductDetailView({ product, onBack, onAddToCart, onBuyNow }: { product
                   type="button"
                   disabled={detailQuantity <= 1}
                   onClick={() => setDetailQuantity(prev => Math.max(1, prev - 1))}
-                  className="w-10 h-10 bg-zinc-950 hover:bg-zinc-850 rounded-lg font-bold flex items-center justify-center disabled:opacity-30 transition-all text-zinc-400 hover:text-white"
+                  className="w-10 h-10 bg-zinc-950 hover:bg-zinc-800 rounded-lg font-bold flex items-center justify-center disabled:opacity-30 transition-all text-zinc-400 hover:text-white"
                 >
                   —
                 </button>
@@ -205,7 +207,7 @@ function ProductDetailView({ product, onBack, onAddToCart, onBuyNow }: { product
                 <button 
                   type="button"
                   onClick={() => setDetailQuantity(prev => prev + 1)}
-                  className="w-10 h-10 bg-zinc-950 hover:bg-zinc-850 rounded-lg font-bold flex items-center justify-center transition-all text-zinc-400 hover:text-white"
+                  className="w-10 h-10 bg-zinc-950 hover:bg-zinc-800 rounded-lg font-bold flex items-center justify-center transition-all text-zinc-400 hover:text-white"
                 >
                   +
                 </button>
@@ -217,7 +219,7 @@ function ProductDetailView({ product, onBack, onAddToCart, onBuyNow }: { product
           </div>
 
           <div className="flex gap-4 pt-4">
-            <button onClick={() => onAddToCart(product, detailQuantity)} className="flex-1 py-4 bg-zinc-900 border border-zinc-800 text-white rounded-xl text-xs uppercase font-black tracking-wider transition-all hover:bg-zinc-850 hover:border-zinc-700">
+            <button onClick={() => onAddToCart(product, detailQuantity)} className="flex-1 py-4 bg-zinc-900 border border-zinc-800 text-white rounded-xl text-xs uppercase font-black tracking-wider transition-all hover:bg-zinc-800 hover:border-zinc-700">
               Add To Bag
             </button>
             <button onClick={() => onBuyNow(product, detailQuantity)} className="flex-1 py-4 bg-emerald-500 hover:bg-emerald-400 text-black rounded-xl text-xs font-black uppercase tracking-wider transition-all">
@@ -235,7 +237,7 @@ export default function StorePage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [viewState, setViewState] = useState<string>("Home");
-  const [selectedSubcategory, setSelectedSubcategory] = useState<string>("All Rackets");
+  const [selectedSubcategory, setSelectedSubcategory] = useState<string>("All Gear");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
 
@@ -264,7 +266,7 @@ export default function StorePage() {
     if (typeof window === 'undefined') return;
     const params = new URLSearchParams(window.location.search);
     const viewParam = params.get('view') || 'Home';
-    const subParam = params.get('subcategory') || 'All Rackets';
+    const subParam = params.get('subcategory') || 'All Gear';
     const productParam = params.get('product');
 
     setViewState(viewParam);
@@ -282,14 +284,14 @@ export default function StorePage() {
     setSelectedProduct(null);
   };
 
-  const navigateTo = (view: string, subcat: string = "All Rackets", product: Product | null = null) => {
+  const navigateTo = (view: string, subcat: string = "All Gear", product: Product | null = null) => {
     if (typeof window === 'undefined') return;
     const params = new URLSearchParams();
     
     if (view !== 'Home') {
       params.set('view', view);
     }
-    if (view === 'Padel' && subcat !== 'All Rackets') {
+    if (view === 'Padel' && subcat !== 'All Gear') {
       params.set('subcategory', subcat);
     }
     if (product) {
@@ -355,12 +357,11 @@ export default function StorePage() {
     }, 0);
   };
 
-  // Advanced evaluation filtering parsing parent sport categories and localized blade fabrics
   const filteredProducts = products.filter((p) => {
     if (viewState === "Home") return true;
     if (p.category !== viewState) return false;
     
-    if (viewState === "Padel" && selectedSubcategory !== "All Rackets") {
+    if (viewState === "Padel" && selectedSubcategory !== "All Gear") {
       const normalize = (str: string) => str?.toLowerCase().replace(/[^a-z0-9]/g, '') || '';
       return normalize(p.subcategory).includes(normalize(selectedSubcategory)) || 
              normalize(p.name).includes(normalize(selectedSubcategory));
@@ -464,7 +465,7 @@ export default function StorePage() {
               {products.slice(0, 8).map((p, idx) => {
                 const imgSource = Array.isArray(p.images) && p.images.length > 0 ? p.images[0] : (p.image || p.mediaUrl || p.imageUrl || 'https://placehold.co/150');
                 return (
-                  <div key={idx} onClick={() => navigateTo(p.category, "All Rackets", p)} className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 cursor-pointer hover:border-zinc-700 transition-all flex flex-col justify-between group">
+                  <div key={idx} onClick={() => navigateTo(p.category, "All Gear", p)} className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 cursor-pointer hover:border-zinc-700 transition-all flex flex-col justify-between group">
                     <div>
                       <div className="h-36 bg-zinc-950 rounded-xl mb-3 flex items-center justify-center p-3 border border-zinc-900 overflow-hidden relative">
                         <img src={imgSource} className="max-h-full object-contain transition-transform duration-300 group-hover:scale-105" alt="" onError={e => (e.target as HTMLImageElement).src = 'https://placehold.co/150'} />
@@ -486,7 +487,7 @@ export default function StorePage() {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
             <h2 className="text-2xl font-black uppercase tracking-tight text-emerald-400">{viewState} Repertoire</h2>
             
-            {/* FIX: Contextual Material selection tabs matrix for Padel */}
+            {/* Contextual Material selection tabs matrix for Padel */}
             {viewState === "Padel" && (
               <div className="flex flex-wrap gap-1.5 bg-zinc-900 p-1 rounded-xl border border-zinc-800">
                 {PADEL_MATERIALS.map((material) => (
