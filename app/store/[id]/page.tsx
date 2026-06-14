@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { initializeApp, getApps } from "firebase/app";
 import { getDatabase, ref, onValue } from "firebase/database";
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation'; // Swap useParams for useSearchParams
+import { useRouter, useParams } from 'next/navigation';
 
 const firebaseConfig = {
   apiKey: "AizasyD4bPvYwRjOAGfiwoVPbG_4hj6QEbgdc9A",
@@ -19,20 +19,14 @@ const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
 
 export default function ProductPage() {
   const router = useRouter();
-  const searchParams = useSearchParams(); // Read query parameters (?product=...)
-  
-  // Extract 'product' from the URL query string
-  const productId = searchParams.get('product');
+  const params = useParams(); 
+  const productId = params?.id as string;
 
   const [product, setProduct] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!productId) {
-      // If there's no product in query string, stop loading to prevent an endless spinner
-      setLoading(false);
-      return;
-    }
+    if (!productId) return;
 
     const db = getDatabase(app);
     const productRef = ref(db, `store/products/${productId}`);
@@ -65,6 +59,7 @@ export default function ProductPage() {
     
     localStorage.setItem('elite_store_active_cart', JSON.stringify(cart));
     
+    // Optional: Trigger global event if your navbar has a cart indicator
     window.dispatchEvent(new Event('storage'));
     alert(`${product.name} added to cart!`);
   };
@@ -115,6 +110,8 @@ export default function ProductPage() {
   const marketPrice = product.marketPrice || product.marketRate || product.standardRate;
   const elitePrice = product.elitePrice || product.discountPrice || product.salePrice;
   const productDescription = product.performanceDescriptionManifest || product.description || product.performanceDescription;
+  
+  // Safely fallback to internal fields if root object keys differ
   const specs = product.keyFeatureMetrics || product.specifications || product.specs || {};
 
   return (
@@ -169,7 +166,7 @@ export default function ProductPage() {
             <div className="space-y-3">
               <h3 className="text-xs font-bold text-zinc-300 uppercase tracking-widest">Product Overview</h3>
               <p className="text-zinc-400 text-sm leading-relaxed">
-                {productDescription || "Take your game to the next level with this premium asset..."}
+                {productDescription || "Take your game to the next level with this premium asset, engineered specifically for players who demand explosive speed, sharp responsiveness, and unyielding consistency."}
               </p>
             </div>
 
