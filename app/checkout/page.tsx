@@ -49,7 +49,6 @@ export default function CheckoutPage() {
           
           const normalizedItems = parsedCart.map((item: any) => {
             if (item.product) {
-              // Strip all commas, letters, spaces to ensure pure integer extraction
               const cleanPriceString = item.product.elitePrice.replace(/[^0-9]/g, '');
               const priceNum = parseInt(cleanPriceString, 10) || 0;
               
@@ -72,7 +71,6 @@ export default function CheckoutPage() {
     }
   }, []);
 
-  // Compute values safely with structural fallback limits
   const grossTotal = cartItems.reduce((acc, item) => acc + (item.totalItemCost || 0), 0);
   const isFullPayment = checkoutChannel === 'DELIVERY_FULL';
   const requiredPaymentAmount = isFullPayment ? grossTotal : Math.round(grossTotal * 0.20);
@@ -101,7 +99,6 @@ export default function CheckoutPage() {
     setIsSubmitting(true);
 
     try {
-      // 1. Process block upload to Storage Bucket reference locations cleanly
       const fileExtension = screenshotFile.name.split('.').pop() || 'jpg';
       const uniqueFileName = `receipts/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExtension}`;
       const screenshotStorageRef = storageRef(storage, uniqueFileName);
@@ -109,7 +106,6 @@ export default function CheckoutPage() {
       const uploadSnapshot = await uploadBytes(screenshotStorageRef, screenshotFile);
       const uploadedScreenshotUrl = await getDownloadURL(uploadSnapshot.ref);
 
-      // 2. Format explicit fulfillment definitions to database strings
       const databaseFulfillment = checkoutChannel === 'PICKUP_STORE' ? 'PICKUP' : 'DELIVERY';
       
       let databasePaymentMethodText = "";
@@ -137,13 +133,11 @@ export default function CheckoutPage() {
         paymentScreenshot: uploadedScreenshotUrl
       };
 
-      // 3. Write data frame explicitly to real-time sync target
       const ordersDbRef = ref(db, 'store/orders');
       await push(ordersDbRef, orderPayload);
 
       alert("Order package metadata synced successfully!");
       
-      // Reset variables smoothly on structural completion
       localStorage.removeItem('elite_store_active_cart');
       setCustomerName('');
       setCustomerPhone('');
@@ -154,10 +148,8 @@ export default function CheckoutPage() {
 
     } catch (error: any) {
       console.error("Critical breakdown details inside deployment pipeline:", error);
-      // Give a clean, detailed prompt response if safety rules or connection failure interrupts execution
       alert(`Order handshakes transmission failure: ${error?.message || "Check storage bucket connection rules layouts."}`);
     } finally {
-      // Ensure the button unlocked state always executes no matter what happens
       setIsSubmitting(false);
     }
   };
@@ -226,7 +218,8 @@ export default function CheckoutPage() {
             </div>
           </div>
 
-          <div className="border border-zinc-800 pt-4 bg-zinc-950/40 p-4 rounded-xl space-y-3">
+          {/* DEPOSIT VALIDATION BOX WITH INJECTED BANK ACCOUNT LEDGER DETAILS */}
+          <div className="border border-zinc-800 bg-zinc-950/40 p-4 rounded-xl space-y-4">
             <div>
               <h3 className="text-xs font-black uppercase tracking-wider text-zinc-300">
                 {isFullPayment ? "🧾 Full Amount Deposit Verification" : "🛡️ 20% Security Hold Authorization"}
@@ -234,6 +227,32 @@ export default function CheckoutPage() {
               <p className="text-[11px] text-zinc-500 mt-1 font-medium leading-relaxed">
                 To commit this order tracking reference payload to our processing queue, transfer exactly <span className="text-emerald-400 font-mono font-bold">{requiredPaymentAmount.toLocaleString()} PKR</span> to our checking account ledger, then submit a screenshot confirmation matrix below.
               </p>
+            </div>
+
+            {/* Injected Bank Details Panel */}
+            <div className="bg-zinc-950 border border-zinc-850 rounded-xl p-3.5 space-y-2 font-mono text-[11px]">
+              <span className="block text-[9px] font-sans font-black text-emerald-500/85 uppercase tracking-wider mb-1">Official Payment Destination:</span>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 border-b border-zinc-900 pb-2">
+                <div>
+                  <span className="text-zinc-500 block text-[9px] uppercase tracking-wide">Bank Node</span>
+                  <span className="text-zinc-200 font-bold">Meezan Bank Ltd.</span>
+                </div>
+                <div>
+                  <span className="text-zinc-500 block text-[9px] uppercase tracking-wide">Account Title</span>
+                  <span className="text-zinc-200 font-bold">Elite Courts</span>
+                </div>
+                <div>
+                  <span className="text-zinc-500 block text-[9px] uppercase tracking-wide">Account Number</span>
+                  <span className="text-zinc-200 font-bold">0123456789</span>
+                </div>
+              </div>
+              <div className="pt-1 flex justify-between items-center text-[10px]">
+                <div>
+                  <span className="text-zinc-500 block text-[8px] uppercase tracking-wide">International IBAN Registry</span>
+                  <span className="text-emerald-400/90 font-bold">PK43MEZN0000000123456789</span>
+                </div>
+                <span className="text-[9px] text-zinc-600 uppercase font-bold tracking-widest hidden sm:inline">IMMEDIATE TRANSFER</span>
+              </div>
             </div>
 
             <div className="bg-zinc-950 border border-zinc-850 p-3 rounded-xl">
