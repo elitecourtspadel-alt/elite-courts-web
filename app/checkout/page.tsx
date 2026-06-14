@@ -246,15 +246,7 @@ export default function CheckoutPage() {
                   <span className="text-zinc-200 font-bold">11580113772152</span>
                 </div>
               </div>
-              <div className="pt-1 flex justify-between items-center text-[10px]">
-                <div>
-                  <span className="text-zinc-500 block text-[8px] uppercase tracking-wide">International IBAN Registry</span>
-                  <span className="text-emerald-400/90 font-bold">PK43MEZN0000000123456789</span>
-                </div>
-                <span className="text-[9px] text-zinc-600 uppercase font-bold tracking-widest hidden sm:inline">IMMEDIATE TRANSFER</span>
-              </div>
             </div>
-
             <div className="bg-zinc-950 border border-zinc-850 p-3 rounded-xl">
               <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-2">
                 Attach Proof Picture ({isFullPayment ? "100% Total Cost" : "20% Advance Commitment"})
