@@ -54,6 +54,12 @@ interface Product {
   description?: string;
   performanceDescriptionManifest?: string;
   keyFeatureMetrics?: KeyFeatureMetrics;
+  // Fallbacks for flat-mapped admin entry panels
+  totalWeight?: string;
+  balanceMatrix?: string;
+  thickness?: string;
+  structuralShape?: string;
+  characteristics?: string;
 }
 
 interface CartItem {
@@ -70,8 +76,6 @@ const SPORT_COLLECTIONS = [
 ];
 
 const SPORTS = SPORT_COLLECTIONS.map(s => s.name);
-
-// CHANGED: Removed 12K and added "Balls" as a dedicated collection filter tab matrix
 const PADEL_MATERIALS = ["All Gear", "Glass Fiber", "3K", "24K", "Balls"];
 
 function ProductDetailView({ product, onBack, onAddToCart, onBuyNow }: { product: Product; onBack: () => void; onAddToCart: (p: Product, qty: number) => void; onBuyNow: (p: Product, qty: number) => void }) {
@@ -102,6 +106,16 @@ function ProductDetailView({ product, onBack, onAddToCart, onBuyNow }: { product
 
   const rawPrice = parseInt(product.elitePrice.replace(/[^0-9]/g, '')) || 0;
   const dynamicallyScaledTotal = rawPrice * detailQuantity;
+
+  // FIX: Extract specifications with immediate root fallback checks
+  const weight = product.keyFeatureMetrics?.totalWeight || product.totalWeight || 'N/A';
+  const balance = product.keyFeatureMetrics?.balanceMatrix || product.balanceMatrix || 'N/A';
+  const thick = product.keyFeatureMetrics?.thickness || product.thickness || 'N/A';
+  const shape = product.keyFeatureMetrics?.structuralShape || product.structuralShape || 'N/A';
+  const traits = product.keyFeatureMetrics?.characteristics || product.characteristics || 'N/A';
+
+  // Section renders if any single matrix data node is present
+  const hasSpecs = weight !== 'N/A' || balance !== 'N/A' || thick !== 'N/A' || shape !== 'N/A' || traits !== 'N/A';
 
   return (
     <div className="animate-fadeIn">
@@ -163,29 +177,30 @@ function ProductDetailView({ product, onBack, onAddToCart, onBuyNow }: { product
             {product.performanceDescriptionManifest || product.description || "High-end configuration optimized for competitive play."}
           </p>
 
-          {product.keyFeatureMetrics && (
+          {/* FIX CHECK: Dynamic render condition check using clean variables */}
+          {hasSpecs && (
             <div className="mt-6 border-t border-zinc-800 pt-5 space-y-3">
               <h3 className="text-xs font-black uppercase tracking-wider text-emerald-400">Technical Specifications Matrix</h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 font-mono">
                 <div className="bg-zinc-950 p-3 border border-zinc-800 rounded-xl">
                   <span className="text-[9px] font-sans font-bold text-zinc-500 uppercase block mb-0.5">Total Weight</span>
-                  <span className="text-xs text-white font-semibold">{product.keyFeatureMetrics.totalWeight || 'N/A'}</span>
+                  <span className="text-xs text-white font-semibold">{weight}</span>
                 </div>
                 <div className="bg-zinc-950 p-3 border border-zinc-800 rounded-xl">
                   <span className="text-[9px] font-sans font-bold text-zinc-500 uppercase block mb-0.5">Balance Matrix</span>
-                  <span className="text-xs text-white font-semibold">{product.keyFeatureMetrics.balanceMatrix || 'N/A'}</span>
+                  <span className="text-xs text-white font-semibold">{balance}</span>
                 </div>
                 <div className="bg-zinc-950 p-3 border border-zinc-800 rounded-xl">
                   <span className="text-[9px] font-sans font-bold text-zinc-500 uppercase block mb-0.5">Thickness</span>
-                  <span className="text-xs text-white font-semibold">{product.keyFeatureMetrics.thickness || 'N/A'}</span>
+                  <span className="text-xs text-white font-semibold">{thick}</span>
                 </div>
                 <div className="bg-zinc-950 p-3 border border-zinc-800 rounded-xl col-span-2 sm:col-span-1">
                   <span className="text-[9px] font-sans font-bold text-zinc-500 uppercase block mb-0.5">Structural Shape</span>
-                  <span className="text-xs text-white font-semibold">{product.keyFeatureMetrics.structuralShape || 'N/A'}</span>
+                  <span className="text-xs text-white font-semibold">{shape}</span>
                 </div>
                 <div className="bg-zinc-950 p-3 border border-zinc-800 rounded-xl col-span-2">
                   <span className="text-[9px] font-sans font-bold text-zinc-500 uppercase block mb-0.5">Characteristics / Fit</span>
-                  <span className="text-xs text-zinc-300 font-medium leading-tight block">{product.keyFeatureMetrics.characteristics || 'N/A'}</span>
+                  <span className="text-xs text-zinc-300 font-medium leading-tight block">{traits}</span>
                 </div>
               </div>
             </div>
