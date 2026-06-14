@@ -239,11 +239,11 @@ export default function CheckoutPage() {
                 </div>
                 <div>
                   <span className="text-zinc-500 block text-[9px] uppercase tracking-wide">Account Title</span>
-                  <span className="text-zinc-200 font-bold">Elite Courts</span>
+                  <span className="text-zinc-200 font-bold">Elite Enterprises</span>
                 </div>
                 <div>
                   <span className="text-zinc-500 block text-[9px] uppercase tracking-wide">Account Number</span>
-                  <span className="text-zinc-200 font-bold">0123456789</span>
+                  <span className="text-zinc-200 font-bold">11580113772152</span>
                 </div>
               </div>
               <div className="pt-1 flex justify-between items-center text-[10px]">
