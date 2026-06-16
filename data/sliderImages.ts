@@ -23,7 +23,7 @@ export interface SliderImage {
 export const sliderImages: readonly SliderImage[] = [
     {
     id: "Glow",
-    src: "/images/slider/golow-pickle.png",
+    src: "/images/slider/Glow-pickleball.png",
     alt: "Elite Courts padel court and player area in Lahore",
     label: "New Launch",
     caption: "1st Ever Glow in the Dark Pickleball in Pakistan",
