@@ -33,7 +33,7 @@ export const sliderImages: readonly SliderImage[] = [
   },
     {
     id: "Elite-store",
-    src: "/images/slider/store.jpg",
+    src: "/images/slider/elite-store.png",
     alt: "Elite Courts padel court and player area in Lahore",
     label: "Elite Store",
     caption: "You can shop high quality padel, pickleball, cricket, badminton and table tennis gear.",
@@ -52,7 +52,7 @@ export const sliderImages: readonly SliderImage[] = [
     priority: true,
   },
   {
-    id: "store",
+    id: "Cricket",
     src: "/images/slider/cricket-practice.webp",
     alt: "High speed bowling machine at Elite Court",
     label: "Cricket Practice",
@@ -89,7 +89,7 @@ export const sliderImages: readonly SliderImage[] = [
   },
   {
     id: "pickleball-court",
-    src: "/images/slider/pickleball-court.webp",
+    src: "/images/slider/IMG_3047.JPG",
     alt: "Racket sports court space at Elite Courts Lahore",
     label: "Pickleball Sports",
     caption: "Pickleball, badminton, table tennis, and court sessions in one facility.",
