@@ -71,10 +71,10 @@ export default function HomePage() {
             <p className="font-semibold text-[color:var(--text)] text-lg">Shop our store</p>
             <p className="text-sm text-[color:var(--muted)]">Gear, accessories, and merchandise</p>
           </div>
-          <Button asChild size="lg" className="bg-amber-600 hover:bg-amber-700 shadow-md text-white font-bold px-8 py-6 rounded-xl transition-all duration-200 hover:scale-105">
+          <Button asChild size="lg" className="bg-emerald-600 hover:bg-emerald-700 shadow-md text-white font-bold px-8 py-6 rounded-xl transition-all duration-200 hover:scale-105">
             <Link href="/store">
               <ShoppingBag className="mr-2 h-5 w-5" />
-              Visit Store
+              Visit Elite Store
               <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </Button>
