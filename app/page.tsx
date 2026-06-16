@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, ShieldCheck, Star, Users } from "lucide-react";
+import { ArrowRight, ShieldCheck, ShoppingBag, Star, Users } from "lucide-react";
 import { HeroSlider } from "@/components/hero-slider";
 import { AmenitiesGrid } from "@/components/amenities-grid";
 import { Container } from "@/components/layout/container";
@@ -51,7 +51,7 @@ export default function HomePage() {
     <>
       <JsonLd data={schema} />
       <HeroSlider />
-      
+
       {/* LIVE TOURNAMENT SECTION BANNER */}
       <section className="bg-[color:var(--surface-soft)] py-6 border-b border-[color:var(--border)]">
         <Container className="flex justify-center">
@@ -59,6 +59,23 @@ export default function HomePage() {
             <Link href="/pickleball-tournament">
               <Star className="mr-2 h-5 w-5 fill-white text-white animate-pulse" />
               View Live Tournament Bracket 🏆
+            </Link>
+          </Button>
+        </Container>
+      </section>
+
+      {/* STORE BANNER */}
+      <section className="bg-[color:var(--surface-soft)] py-6 border-b border-[color:var(--border)]">
+        <Container className="flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="text-center sm:text-left">
+            <p className="font-semibold text-[color:var(--text)] text-lg">Shop our store</p>
+            <p className="text-sm text-[color:var(--muted)]">Gear, accessories, and merchandise</p>
+          </div>
+          <Button asChild size="lg" className="bg-amber-600 hover:bg-amber-700 shadow-md text-white font-bold px-8 py-6 rounded-xl transition-all duration-200 hover:scale-105">
+            <Link href="/store">
+              <ShoppingBag className="mr-2 h-5 w-5" />
+              Visit Store
+              <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </Button>
         </Container>
@@ -184,6 +201,24 @@ export default function HomePage() {
         <Container className="space-y-10">
           <SectionHeading eyebrow={home.location.eyebrow} title={home.location.title} description={home.location.description} maxWidth="wide" />
           <LocationPreview />
+        </Container>
+      </section>
+
+      {/* STORE CTA — before the main CTA banner */}
+      <section className="py-10 border-b border-[color:var(--border)]">
+        <Container className="flex flex-col items-center gap-4 text-center">
+          <ShoppingBag className="h-8 w-8 text-amber-600" />
+          <h2 className="font-display text-2xl font-semibold text-[color:var(--text)]">Looking for gear?</h2>
+          <p className="text-sm text-[color:var(--muted)] max-w-md">
+            Browse our online store for sports equipment, apparel, and accessories — delivered to your door.
+          </p>
+          <Button asChild size="lg" className="bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl transition-all duration-200 hover:scale-105">
+            <Link href="/store">
+              <ShoppingBag className="mr-2 h-5 w-5" />
+              Shop Now
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
+          </Button>
         </Container>
       </section>
 
