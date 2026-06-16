@@ -86,6 +86,20 @@ export default function HomePage() {
         </Container>
       </section>
 
+      {/* ── TOURNAMENT PILL ── subtle, just below the store banner */}
+      <div className="border-b border-[color:var(--border)] bg-[color:var(--surface-soft)] py-4">
+        <Container className="flex justify-center">
+          <Link
+            href="/pickleball-tournament"
+            className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-2 text-xs font-medium text-[color:var(--muted)] transition-colors hover:border-emerald-400/40 hover:text-emerald-600"
+          >
+            <Trophy className="h-3.5 w-3.5" />
+            Live Tournament Bracket
+            <ArrowRight className="h-3 w-3" />
+          </Link>
+        </Container>
+      </div>
+
       <NewPackagesSection />
 
       <section className="py-16 sm:py-20">
@@ -208,20 +222,6 @@ export default function HomePage() {
           <LocationPreview />
         </Container>
       </section>
-
-      {/* ── TOURNAMENT PILL ── subtle, near the footer */}
-      <div className="border-b border-[color:var(--border)] bg-[color:var(--surface-soft)] py-4">
-        <Container className="flex justify-center">
-          <Link
-            href="/pickleball-tournament"
-            className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-2 text-xs font-medium text-[color:var(--muted)] transition-colors hover:border-emerald-400/40 hover:text-emerald-600"
-          >
-            <Trophy className="h-3.5 w-3.5" />
-            Live Tournament Bracket
-            <ArrowRight className="h-3 w-3" />
-          </Link>
-        </Container>
-      </div>
 
       <CtaBanner title={home.cta.title} description={home.cta.description} />
     </>
