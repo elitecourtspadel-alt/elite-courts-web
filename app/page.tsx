@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, ShieldCheck, ShoppingBag, Star, Users } from "lucide-react";
+import { ArrowRight, ShieldCheck, ShoppingBag, Star, Trophy, Users } from "lucide-react";
 import { HeroSlider } from "@/components/hero-slider";
 import { AmenitiesGrid } from "@/components/amenities-grid";
 import { Container } from "@/components/layout/container";
@@ -52,32 +52,37 @@ export default function HomePage() {
       <JsonLd data={schema} />
       <HeroSlider />
 
-      {/* LIVE TOURNAMENT SECTION BANNER */}
-      <section className="bg-[color:var(--surface-soft)] py-6 border-b border-[color:var(--border)]">
-        <Container className="flex justify-center">
-          <Button asChild size="lg" className="bg-emerald-600 hover:bg-emerald-700 shadow-md text-white font-bold px-8 py-6 rounded-xl transition-all duration-200 hover:scale-105">
-            <Link href="/pickleball-tournament">
-              <Star className="mr-2 h-5 w-5 fill-white text-white animate-pulse" />
-              View Live Tournament Bracket 🏆
-            </Link>
-          </Button>
-        </Container>
-      </section>
+      {/* ── ELITE STORE HERO BANNER ── prominent, first thing after slider */}
+      <section className="relative overflow-hidden bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 py-12 sm:py-16">
+        {/* decorative glow */}
+        <div className="pointer-events-none absolute -left-32 -top-32 h-96 w-96 rounded-full bg-amber-500/10 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-24 -right-24 h-80 w-80 rounded-full bg-amber-400/10 blur-3xl" />
 
-      {/* STORE BANNER */}
-      <section className="bg-[color:var(--surface-soft)] py-6 border-b border-[color:var(--border)]">
-        <Container className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="text-center sm:text-left">
-            <p className="font-semibold text-[color:var(--text)] text-lg">Shop our store</p>
-            <p className="text-sm text-[color:var(--muted)]">Gear, accessories, and merchandise</p>
+        <Container className="relative z-10 flex flex-col items-center gap-6 text-center sm:flex-row sm:items-center sm:justify-between sm:text-left">
+          <div className="space-y-2">
+            <p className="text-xs font-bold uppercase tracking-widest text-amber-400">Now Open</p>
+            <h2 className="font-display text-3xl font-bold text-white sm:text-4xl">
+              Elite Courts Store
+            </h2>
+            <p className="max-w-md text-sm leading-6 text-slate-300">
+              Premium sports gear, apparel, and accessories — everything you need to play your best game.
+            </p>
           </div>
-          <Button asChild size="lg" className="bg-emerald-600 hover:bg-emerald-700 shadow-md text-white font-bold px-8 py-6 rounded-xl transition-all duration-200 hover:scale-105">
-            <Link href="/store">
-              <ShoppingBag className="mr-2 h-5 w-5" />
-              Visit Elite Store
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Link>
-          </Button>
+
+          <div className="flex flex-col items-center gap-3 sm:items-end">
+            <Button
+              asChild
+              size="lg"
+              className="group min-w-[200px] rounded-xl bg-amber-500 px-8 py-6 text-base font-bold text-slate-900 shadow-[0_0_40px_-8px_rgba(245,158,11,0.7)] transition-all duration-300 hover:scale-105 hover:bg-amber-400 hover:shadow-[0_0_56px_-6px_rgba(245,158,11,0.9)]"
+            >
+              <Link href="/store">
+                <ShoppingBag className="mr-2 h-5 w-5 transition-transform duration-200 group-hover:-rotate-6" />
+                Shop Now
+                <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
+              </Link>
+            </Button>
+            <p className="text-xs text-slate-400">Free delivery on orders over Rs 5,000</p>
+          </div>
         </Container>
       </section>
 
@@ -204,23 +209,19 @@ export default function HomePage() {
         </Container>
       </section>
 
-      {/* STORE CTA — before the main CTA banner */}
-      <section className="py-10 border-b border-[color:var(--border)]">
-        <Container className="flex flex-col items-center gap-4 text-center">
-          <ShoppingBag className="h-8 w-8 text-amber-600" />
-          <h2 className="font-display text-2xl font-semibold text-[color:var(--text)]">Looking for gear?</h2>
-          <p className="text-sm text-[color:var(--muted)] max-w-md">
-            Browse our online store for sports equipment, apparel, and accessories — delivered to your door.
-          </p>
-          <Button asChild size="lg" className="bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl transition-all duration-200 hover:scale-105">
-            <Link href="/store">
-              <ShoppingBag className="mr-2 h-5 w-5" />
-              Shop Now
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Link>
-          </Button>
+      {/* ── TOURNAMENT PILL ── subtle, near the footer */}
+      <div className="border-b border-[color:var(--border)] bg-[color:var(--surface-soft)] py-4">
+        <Container className="flex justify-center">
+          <Link
+            href="/pickleball-tournament"
+            className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-2 text-xs font-medium text-[color:var(--muted)] transition-colors hover:border-emerald-400/40 hover:text-emerald-600"
+          >
+            <Trophy className="h-3.5 w-3.5" />
+            Live Tournament Bracket
+            <ArrowRight className="h-3 w-3" />
+          </Link>
         </Container>
-      </section>
+      </div>
 
       <CtaBanner title={home.cta.title} description={home.cta.description} />
     </>
