@@ -21,6 +21,26 @@ export interface SliderImage {
 }
 
 export const sliderImages: readonly SliderImage[] = [
+    {
+    id: "Glow",
+    src: "/images/slider/First Time ever in Pakistan.png",
+    alt: "Elite Courts padel court and player area in Lahore",
+    label: "New Launch",
+    caption: "1st ever Glow in the Dark Pickleball in Pakistan",
+    objectPosition: "center",
+    quality: 95,
+    priority: true,
+  },
+    {
+    id: "padel-court",
+    src: "/images/slider/Glow-pickleball.png",
+    alt: "Elite Courts padel court and player area in Lahore",
+    label: "Padel",
+    caption: "Premium padel courts for quick games, practice, and competitive rallies.",
+    objectPosition: "center",
+    quality: 95,
+    priority: true,
+  },
   {
     id: "padel-court",
     src: "/images/slider/padel-court.webp",
@@ -32,11 +52,11 @@ export const sliderImages: readonly SliderImage[] = [
     priority: true,
   },
   {
-    id: "cricket-practice",
-    src: "/images/slider/cricket-practice.webp",
-    alt: "Cricket bowling machine practice area at Elite Courts Lahore",
+    id: "store",
+    src: "/images/slider/store.jpg",
+    alt: "Launched our Elite Store",
     label: "Cricket Practice",
-    caption: "Bowling machine practice with swing, spin, speed gun, and focused net sessions.",
+    caption: "You can shop high quality padel, pickleball, cricket, badminton and table tennis gear",
     objectPosition: "center",
     quality: 95,
   },
