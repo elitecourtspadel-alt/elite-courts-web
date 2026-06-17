@@ -46,7 +46,7 @@ export const sliderImages: readonly SliderImage[] = [
   },
   {
     id: "padel-court",
-    src: "/images/slider/padels-on-ground.webp",
+    src: "/images/slider/padel-image.jpg",
     alt: "Elite Courts padel court and player area in Lahore",
     label: "Padel",
     title: "High Quality Panoramic Padel Court",
@@ -87,7 +87,7 @@ export const sliderImages: readonly SliderImage[] = [
   },
   {
     id: "session-highlight",
-    src: "/images/slider/session-highlight.webp",
+    src: "/images/slider/DSC03258.JPG",
     alt: "Players enjoying a sports session at Elite Courts Lahore",
     label: "Highlights",
     title: "Real moments from Elite Courts.",
@@ -105,14 +105,5 @@ export const sliderImages: readonly SliderImage[] = [
     objectPosition: "center",
     quality: 95,
   },
-  {
-    id: "padels",
-    src: "/images/slider/padels-on-ground.webp",
-    alt: "Elite Courts padel court and player area in Lahore",
-    label: "Padel",
-    title: "Play your next game at Elite Courts.",
-    caption: "Premium padel courts for quick games, practice, and competitive rallies.",
-    objectPosition: "center",
-    quality: 95,
-  },
+
 ];
