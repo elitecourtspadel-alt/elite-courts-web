@@ -43,7 +43,7 @@ export const sliderImages: readonly SliderImage[] = [
   },
   {
     id: "padel-court",
-    src: "/images/slider/padel-court.webp",
+    src: "/images/slider/padels-on-ground.webp",
     alt: "Elite Courts padel court and player area in Lahore",
     label: "Padel",
     caption: "Premium padel courts for quick games, practice, and competitive rallies.",
