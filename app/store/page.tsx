@@ -32,18 +32,20 @@ const firebaseConfig = {
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
 
-interface KeyFeatureMetrics {
-  totalWeight?: string;
-  balanceMatrix?: string;
+interface ProductSpecs {
+  weight?: string;
+  balance?: string;
   thickness?: string;
-  structuralShape?: string;
-  characteristics?: string;
+  shape?: string;
+  characters?: string;
+  [key: string]: string | undefined;
 }
 
 interface Product {
   name: string;
   category: string;
   subcategory: string;
+  materialFace?: string;
   marketPrice: string;
   elitePrice: string;
   images?: string[];
@@ -53,12 +55,7 @@ interface Product {
   model3d?: string;
   description?: string;
   performanceDescriptionManifest?: string;
-  keyFeatureMetrics?: KeyFeatureMetrics;
-  totalWeight?: string;
-  balanceMatrix?: string;
-  thickness?: string;
-  structuralShape?: string;
-  characteristics?: string;
+  specs?: ProductSpecs;
 }
 
 interface CartItem {
@@ -106,11 +103,11 @@ function ProductDetailView({ product, onBack, onAddToCart, onBuyNow }: { product
   const rawPrice = parseInt(product.elitePrice.replace(/[^0-9]/g, '')) || 0;
   const dynamicallyScaledTotal = rawPrice * detailQuantity;
 
-  const weight = product.keyFeatureMetrics?.totalWeight || product.totalWeight || 'N/A';
-  const balance = product.keyFeatureMetrics?.balanceMatrix || product.balanceMatrix || 'N/A';
-  const thick = product.keyFeatureMetrics?.thickness || product.thickness || 'N/A';
-  const shape = product.keyFeatureMetrics?.structuralShape || product.structuralShape || 'N/A';
-  const traits = product.keyFeatureMetrics?.characteristics || product.characteristics || 'N/A';
+  const weight = product.specs?.weight || 'N/A';
+  const balance = product.specs?.balance || 'N/A';
+  const thick = product.specs?.thickness || 'N/A';
+  const shape = product.specs?.shape || 'N/A';
+  const traits = product.specs?.characters || 'N/A';
 
   const hasSpecs = weight !== 'N/A' || balance !== 'N/A' || thick !== 'N/A' || shape !== 'N/A' || traits !== 'N/A';
 
@@ -153,9 +150,16 @@ function ProductDetailView({ product, onBack, onAddToCart, onBuyNow }: { product
 
         <div className="lg:col-span-7 space-y-7">
           <div>
-            <span className="text-[11px] uppercase font-bold text-emerald-400 tracking-[0.15em]">
-              {product.category} {product.subcategory ? `/ ${product.subcategory}` : 'Portfolio'}
-            </span>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[11px] uppercase font-bold text-emerald-400 tracking-[0.15em]">
+                {product.category} {product.subcategory ? `/ ${product.subcategory}` : 'Portfolio'}
+              </span>
+              {product.materialFace && product.materialFace !== 'None / Standard' && (
+                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-300 bg-emerald-500/10 border border-emerald-500/25 px-2 py-0.5 rounded-md">
+                  {product.materialFace}
+                </span>
+              )}
+            </div>
             <h1 className="text-3xl md:text-[2.75rem] font-extrabold text-zinc-50 mt-2 mb-1 leading-[1.05] tracking-tight">{product.name}</h1>
           </div>
 
