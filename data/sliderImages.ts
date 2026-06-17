@@ -71,7 +71,7 @@ export const sliderImages: readonly SliderImage[] = [
   },
   {
     id: "facility-view",
-    src: "/images/slider/facility-view.webp",
+    src: "/images/slider/Glow-wingjpeg.jpeg",
     alt: "Elite Courts multi-sport facility view in Lahore",
     label: "Facility",
     caption: "Clean courts, useful player amenities, and simple WhatsApp booking.",
