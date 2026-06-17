@@ -253,12 +253,16 @@ export default function CheckoutPage() {
               </label>
               <input 
                 type="file" 
-                key={screenshotFile ? screenshotFile.name : 'empty-file'}
                 accept="image/*" 
                 required
                 onChange={handleFileChange} 
                 className="w-full text-xs text-zinc-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-black file:uppercase file:tracking-wider file:bg-zinc-800 file:text-emerald-400 hover:file:bg-zinc-700 cursor-pointer transition-colors"
               />
+              {screenshotFile && (
+                <p className="mt-2 text-[10px] font-mono text-emerald-400">
+                  ✓ Selected: {screenshotFile.name}
+                </p>
+              )}
             </div>
           </div>
 
