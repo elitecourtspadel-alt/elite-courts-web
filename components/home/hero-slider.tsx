@@ -103,7 +103,7 @@ export function HeroSlider() {
               {active.label}
             </p>
             <h1 className="mx-auto max-w-[42rem] text-balance text-3xl font-semibold tracking-tight text-white drop-shadow-[0_8px_24px_rgba(2,6,23,0.98)] sm:text-4xl md:text-5xl lg:text-6xl">
-              {siteContent.hero.title}
+              {active.title ?? siteContent.hero.title}
             </h1>
             <p className="mx-auto mt-3 max-w-[32rem] text-pretty text-sm font-semibold leading-6 text-cyan-50 drop-shadow-[0_6px_18px_rgba(2,6,23,0.98)] sm:text-base">
               {active.caption}
