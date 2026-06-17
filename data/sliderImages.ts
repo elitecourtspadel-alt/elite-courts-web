@@ -89,7 +89,7 @@ export const sliderImages: readonly SliderImage[] = [
   },
   {
     id: "pickleball-court",
-    src: "/images/slider/IMG_3047.JPG",
+    src: "/images/slider/New-pickle.JPG",
     alt: "Racket sports court space at Elite Courts Lahore",
     label: "Pickleball Sports",
     caption: "Pickleball, badminton, table tennis, and court sessions in one facility.",
