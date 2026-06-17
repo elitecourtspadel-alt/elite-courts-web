@@ -33,7 +33,7 @@ export const sliderImages: readonly SliderImage[] = [
   },
     {
     id: "Elite-store",
-    src: "/images/slider/elite-store.png",
+    src: "/images/slider/rackets.jpg",
     alt: "Elite Courts padel court and player area in Lahore",
     label: "Elite Store",
     caption: "You can shop high quality padel, pickleball, cricket, badminton and table tennis gear.",
