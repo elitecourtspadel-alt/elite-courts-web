@@ -256,6 +256,7 @@ export default function StorePage() {
   const [selectedSubcategory, setSelectedSubcategory] = useState<string>("All Gear");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
+  const [sortOrder, setSortOrder] = useState<'default' | 'price-asc' | 'price-desc' | 'alpha-asc' | 'alpha-desc'>('default');
 
   useEffect(() => {
     const db = getDatabase(app);
@@ -322,6 +323,7 @@ export default function StorePage() {
     setViewState(product ? product.category : view);
     setSelectedSubcategory(subcat);
     setSelectedProduct(product);
+    setSortOrder('default');
 
     // Scroll back to the top of the page whenever navigation changes views/products
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -386,6 +388,16 @@ export default function StorePage() {
              normalize(p.name).includes(normalize(selectedSubcategory));
     }
     return true;
+  });
+
+  const getPrice = (p: Product) => parseInt(p.elitePrice.replace(/[^0-9]/g, '')) || 0;
+
+  const sortedProducts = [...filteredProducts].sort((a, b) => {
+    if (sortOrder === 'price-asc') return getPrice(a) - getPrice(b);
+    if (sortOrder === 'price-desc') return getPrice(b) - getPrice(a);
+    if (sortOrder === 'alpha-asc') return a.name.localeCompare(b.name);
+    if (sortOrder === 'alpha-desc') return b.name.localeCompare(a.name);
+    return 0;
   });
 
   const padelCategory = SPORT_COLLECTIONS.find(s => s.name === "Padel")!;
@@ -515,32 +527,57 @@ export default function StorePage() {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
             <h2 className="text-2xl font-black uppercase tracking-tight text-emerald-400">{viewState} Repertoire</h2>
 
-            {viewState === "Padel" && (
-              <div className="flex flex-wrap gap-1.5 bg-zinc-900 p-1.5 rounded-xl border border-zinc-800">
-                {PADEL_MATERIALS.map((material) => (
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+              {/* Sort Controls */}
+              <div className="flex items-center gap-1.5 bg-zinc-900 p-1 rounded-xl border border-zinc-800">
+                {([
+                  { value: 'default',    label: 'Default' },
+                  { value: 'price-asc',  label: '↑ Price' },
+                  { value: 'price-desc', label: '↓ Price' },
+                  { value: 'alpha-asc',  label: 'A → Z' },
+                  { value: 'alpha-desc', label: 'Z → A' },
+                ] as const).map(opt => (
                   <button
-                    key={material}
-                    onClick={() => navigateTo("Padel", material)}
-                    className={`px-4 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all ${
-                      selectedSubcategory === material
-                        ? "bg-emerald-500 text-black shadow-md shadow-emerald-500/20"
-                        : "text-zinc-400 hover:text-white hover:bg-zinc-850"
+                    key={opt.value}
+                    onClick={() => setSortOrder(opt.value)}
+                    className={`px-3 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all ${
+                      sortOrder === opt.value
+                        ? 'bg-zinc-700 text-white'
+                        : 'text-zinc-500 hover:text-white'
                     }`}
                   >
-                    {material}
+                    {opt.label}
                   </button>
                 ))}
               </div>
-            )}
+
+              {viewState === "Padel" && (
+                <div className="flex flex-wrap gap-1.5 bg-zinc-900 p-1.5 rounded-xl border border-zinc-800">
+                  {PADEL_MATERIALS.map((material) => (
+                    <button
+                      key={material}
+                      onClick={() => navigateTo("Padel", material)}
+                      className={`px-4 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all ${
+                        selectedSubcategory === material
+                          ? "bg-emerald-500 text-black shadow-md shadow-emerald-500/20"
+                          : "text-zinc-400 hover:text-white hover:bg-zinc-850"
+                      }`}
+                    >
+                      {material}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
-          {filteredProducts.length === 0 ? (
+          {sortedProducts.length === 0 ? (
             <div className="py-20 text-center text-zinc-500 text-xs uppercase tracking-widest font-bold border border-dashed border-zinc-800 rounded-2xl">
               No configurations match this specification variant.
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-              {filteredProducts.map((p, idx) => {
+              {sortedProducts.map((p, idx) => {
                 const imgSource = Array.isArray(p.images) && p.images.length > 0 ? p.images[0] : (p.image || p.mediaUrl || p.imageUrl || 'https://placehold.co/150');
                 return (
                   <div key={idx} onClick={() => navigateTo(p.category, selectedSubcategory, p)} className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 cursor-pointer hover:border-emerald-500/30 hover:-translate-y-1 transition-all duration-200 flex flex-col justify-between group shadow-[0_4px_20px_-8px_rgba(0,0,0,0.5)] hover:shadow-[0_12px_30px_-10px_rgba(16,185,129,0.25)]">
