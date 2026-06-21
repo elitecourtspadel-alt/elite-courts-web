@@ -312,6 +312,9 @@ export default function StorePage() {
       setSelectedProduct(null);
     }
   }, []);
+
+  useEffect(() => {
+    const db = getDatabase(app);
     const productsRef = ref(db, 'store/products');
     const unsubscribe = onValue(productsRef, (snapshot) => {
       const data = snapshot.val();
