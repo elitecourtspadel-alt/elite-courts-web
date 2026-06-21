@@ -299,8 +299,19 @@ export default function StorePage() {
 
   const c = t(isDark);
 
+  // On first mount, if we arrived at /store with no params from the referring link,
+  // wipe any stale params that might be left in the browser's session history
   useEffect(() => {
-    const db = getDatabase(app);
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    // If there's no view param, clean the URL and force Home state immediately
+    if (!params.get('view')) {
+      window.history.replaceState({}, '', window.location.pathname);
+      setViewState('Home');
+      setSelectedSubcategory('All Gear');
+      setSelectedProduct(null);
+    }
+  }, []);
     const productsRef = ref(db, 'store/products');
     const unsubscribe = onValue(productsRef, (snapshot) => {
       const data = snapshot.val();
