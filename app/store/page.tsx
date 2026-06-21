@@ -321,11 +321,21 @@ export default function StorePage() {
   const syncStateFromUrl = (availableProducts: Product[]) => {
     if (typeof window === 'undefined') return;
     const params = new URLSearchParams(window.location.search);
-    const viewParam = params.get('view') || 'Home';
+    const viewParam = params.get('view');
     const subParam = params.get('subcategory') || 'All Gear';
     const productParam = params.get('product');
+
+    // If no view param in URL at all, always land on Home — never inherit a stale view
+    if (!viewParam) {
+      setViewState('Home');
+      setSelectedSubcategory('All Gear');
+      setSelectedProduct(null);
+      return;
+    }
+
     setViewState(viewParam);
     setSelectedSubcategory(subParam);
+
     if (productParam && availableProducts.length > 0) {
       const match = availableProducts.find(p => p.name.toLowerCase().replace(/[^a-z0-9]/g, '-') === productParam);
       if (match) { setSelectedProduct(match); return; }
