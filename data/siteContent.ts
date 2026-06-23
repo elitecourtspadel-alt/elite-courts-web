@@ -329,6 +329,21 @@ export const siteContent = {
       bookingMessage: "I'm looking to book a Pickleball slot at Elite Courts.",
     },
     {
+      slug: "glow-pickleball",
+      name: "Glow in the Dark Pickleball",
+      shortName: "Glow Pickleball",
+      summary:
+        "Pakistan's first Glow in the Dark Pickleball experience — play under neon lights with glowing equipment, light balls, googles, gloves, neon shirts, and bands.",
+      features: [
+        "First ever in Pakistan",
+        "Complete glow gear provided",
+        "Neon balls, rackets and court setup",
+        "Googles, gloves, shirts and bands included",
+      ],
+      image: "/images/slider/Glow-pickleball.png",
+      bookingMessage: "I'm looking to book a Glow in the Dark Pickleball session at Elite Courts.",
+    },
+    {
       slug: "cricket",
       name: "Cricket Nets / Bowling Machine",
       shortName: "Cricket",
