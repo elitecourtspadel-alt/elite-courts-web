@@ -6,7 +6,7 @@ import { PACKAGE_CURRENCY, PACKAGE_PRICES } from "./packagePrices";
 // then add that id to the correct packageSections entry near the bottom of this file.
 // To remove a package, delete it from packages and remove its id from packageSections.
 
-export type PackageSport = "Padel" | "Pickleball" | "Cricket" | "Table Tennis" | "Badminton" | "Membership";
+export type PackageSport = "Padel" | "Pickleball" | "Glow Pickleball" | "Cricket" | "Table Tennis" | "Badminton" | "Membership";
 export type PackageType = "court" | "bundle" | "bowling-machine" | "indoor-sport" | "monthly-membership";
 
 export const NEW_PACKAGE_BADGE_LABEL = "Just Added" as const;
@@ -68,7 +68,7 @@ export const packages = [
   },
 
   /** Padel Packages **/
-  
+
   {
     id: "padel-weekend-1-hour",
     visible: true,
@@ -255,6 +255,58 @@ export const packages = [
     features: ["Premium rackets included", "Free balls provided", "GoPro recording access"],
     terms: ["Flat rate applicable all week"],
     whatsappMessage: "I'm interested in the 3 Hours Pickleball bundle at Elite Courts.",
+  },
+
+  /** Glow in the Dark Pickleball Packages **/
+
+  {
+    id: "glow-pickleball-weekday-1-hour",
+    visible: true,
+    sport: "Glow Pickleball",
+    packageType: "court",
+    title: "Weekday Glow Pickleball",
+    subtitle: "Monday to Thursday",
+    description: "Experience Pakistan's first Glow in the Dark Pickleball on weekdays.",
+    currency: PACKAGE_CURRENCY,
+    discountedPrice: PACKAGE_PRICES.glowPickleballWeekday,
+    priceSuffix: " / hour",
+    duration: "1 hour",
+    availability: "Monday to Thursday",
+    badge: "New",
+    features: [
+      "Glow in the dark equipment included",
+      "Neon balls and rackets provided",
+      "Glowing court setup",
+      "Googles and gloves available",
+      "Neon shirts and bands",
+      "GoPro recording access",
+    ],
+    whatsappMessage: "I'm looking to book a Weekday Glow in the Dark Pickleball session at Elite Courts.",
+  },
+  {
+    id: "glow-pickleball-weekend-1-hour",
+    visible: true,
+    sport: "Glow Pickleball",
+    packageType: "court",
+    title: "Weekend Glow Pickleball",
+    subtitle: "Friday to Sunday",
+    description: "Experience Pakistan's first Glow in the Dark Pickleball on weekends.",
+    currency: PACKAGE_CURRENCY,
+    discountedPrice: PACKAGE_PRICES.glowPickleballWeekend,
+    priceSuffix: " / hour",
+    duration: "1 hour",
+    availability: "Friday to Sunday",
+    badge: "Popular",
+    isPopular: true,
+    features: [
+      "Glow in the dark equipment included",
+      "Neon balls and rackets provided",
+      "Glowing court setup",
+      "Googles and gloves available",
+      "Neon shirts and bands",
+      "GoPro recording access",
+    ],
+    whatsappMessage: "I'm looking to book a Weekend Glow in the Dark Pickleball session at Elite Courts.",
   },
 
   /** Cricket Packages **/
@@ -609,6 +661,19 @@ export const packageSections = [
     note: "Pickleball bundle rates are listed as flat rates applicable all week.",
   },
   {
+    id: "glow-pickleball",
+    label: "Glow Pickleball",
+    eyebrow: "Glow in the Dark",
+    title: "Glow in the Dark Pickleball",
+    description:
+      "Pakistan's first Glow in the Dark Pickleball experience — neon equipment, glowing court, and complete glow gear included.",
+    packageIds: [
+      "glow-pickleball-weekday-1-hour",
+      "glow-pickleball-weekend-1-hour",
+    ],
+    note: "Complete glow gear package included with every booking.",
+  },
+  {
     id: "cricket",
     label: "Cricket",
     eyebrow: "Cricket",
@@ -669,7 +734,8 @@ export const packageSections = [
 
 export const quickPricingHighlights = [
   `Padel starts from ${formatMoney(PACKAGE_PRICES.padelWeekdayOneHour)} on weekdays and ${formatMoney(PACKAGE_PRICES.padelWeekendOneHour)} on weekends.`,
-  `Pickleball is ${formatMoney(PACKAGE_PRICES.pickleballOneHour)} per hour, with multi-hour bundle savings available.`,
+  `Pickleball is ${formatMoney(PACKAGE_PRICES.pickleballOneHour)} per hour on weekdays and ${formatMoney(PACKAGE_PRICES.pickleballOneHourWeekend)} on weekends.`,
+  `Glow in the Dark Pickleball is ${formatMoney(PACKAGE_PRICES.glowPickleballWeekday)} on weekdays and ${formatMoney(PACKAGE_PRICES.glowPickleballWeekend)} on weekends.`,
   `Cricket bowling machine packages start from ${formatMoney(PACKAGE_PRICES.cricketFiveOversWeekday)} on weekdays and ${formatMoney(PACKAGE_PRICES.cricketFiveOversWeekend)} on weekends.`,
   `Badminton is ${formatMoney(PACKAGE_PRICES.badmintonCourtSixtyMinutes)} for a 60-minute court rental session.`,
 ] as const;
