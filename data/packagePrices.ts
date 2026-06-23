@@ -3,14 +3,11 @@
 // Update only the numbers below when package prices change.
 // Do not remove or rename a price key unless you also update the matching package
 // in data/packages.ts. Amounts are stored as plain numbers in Pakistani Rupees.
-
 export const PACKAGE_CURRENCY = "Rs" as const;
-
 export const PACKAGE_PRICES = {
   // Padel hourly rates
   padelWeekdayOneHour: 3000,
   padelWeekendOneHour: 3500,
-
   // Padel multi-hour bundles
   padelTwoHourWeekdayOriginal: 6000,
   padelTwoHourWeekdayDiscounted: 5500,
@@ -20,7 +17,6 @@ export const PACKAGE_PRICES = {
   padelThreeHourWeekdayDiscounted: 7500,
   padelThreeHourWeekendOriginal: 10500,
   padelThreeHourWeekendDiscounted: 9000,
-
   // Pickleball hourly and bundle rates
   pickleballOneHour: 1500,
   pickleballOneHourWeekend: 2000,
@@ -28,7 +24,9 @@ export const PACKAGE_PRICES = {
   pickleballTwoHourDiscounted: 2750,
   pickleballThreeHourOriginal: 4500,
   pickleballThreeHourDiscounted: 4000,
-
+  // Glow in the Dark Pickleball rates
+  glowPickleballWeekday: 2500,
+  glowPickleballWeekend: 3000,
   // Cricket bowling machine rates
   cricketFiveOversWeekday: 400,
   cricketTenOversWeekday: 750,
@@ -38,16 +36,14 @@ export const PACKAGE_PRICES = {
   cricketTwentyOversWeekend: 1650,
   cricketHalfHour: 1500,
   cricketOneHour: 2500,
-
   // Table tennis rates
   tableTennisSinglesThirtyMinutes: 400,
   tableTennisSinglesSixtyMinutes: 700,
   tableTennisDoublesThirtyMinutes: 600,
   tableTennisDoublesSixtyMinutes: 1000,
-
   // Badminton rate
   badmintonCourtSixtyMinutes: 1500,
-
+  badmintonCourSixtyMinutesWeekend: 2000,
   // Monthly memberships
   cricketMembershipFiveOversDaily: 7500,
   cricketMembershipTenOversDaily: 10000,
