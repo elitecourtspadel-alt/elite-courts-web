@@ -536,9 +536,9 @@ export default function StorePage() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
             <div onClick={() => navigateTo(padelCategory.name)}
               className={`lg:col-span-7 relative h-80 rounded-3xl overflow-hidden cursor-pointer border p-8 flex flex-col justify-end group transition-all hover:border-zinc-600 ${c.card}`}>
-              <img src={padelCategory.img} className="absolute inset-0 w-full h-full object-cover opacity-45 transition-transform duration-500 group-hover:scale-105" alt=""
+              <img src={padelCategory.img} className={`absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 ${isDark ? 'opacity-45' : 'opacity-100'}`} alt=""
                 onError={e => { (e.target as HTMLImageElement).src = padelCategory.fallback; }} />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
+              <div className={`absolute inset-0 bg-gradient-to-t ${isDark ? 'from-black/80 via-black/10' : 'from-black/70 via-black/20'} to-transparent`} />
               <div className="relative z-10 space-y-1">
                 <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">Featured Category</span>
                 <h3 className="text-3xl font-black uppercase tracking-tight text-white">{padelCategory.name} Gear</h3>
@@ -548,9 +548,9 @@ export default function StorePage() {
               {rightGridCategories.map(sport => (
                 <div key={sport.name} onClick={() => navigateTo(sport.name)}
                   className={`relative h-36 rounded-3xl overflow-hidden cursor-pointer border p-4 flex flex-col justify-end group transition-all hover:border-zinc-600 ${c.card}`}>
-                  <img src={sport.img} className="absolute inset-0 w-full h-full object-cover opacity-35 transition-transform duration-500 group-hover:scale-105" alt=""
+                  <img src={sport.img} className={`absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 ${isDark ? 'opacity-35' : 'opacity-100'}`} alt=""
                     onError={e => { (e.target as HTMLImageElement).src = sport.fallback; }} />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/5 to-transparent" />
+                  <div className={`absolute inset-0 bg-gradient-to-t ${isDark ? 'from-black/75 via-black/5' : 'from-black/65 via-black/15'} to-transparent`} />
                   <h4 className="text-sm font-bold relative z-10 uppercase tracking-wider text-white">{sport.name}</h4>
                 </div>
               ))}
