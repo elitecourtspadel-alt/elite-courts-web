@@ -52,9 +52,8 @@ export default function HomePage() {
       <JsonLd data={schema} />
       <HeroSlider />
 
-      {/* ── ELITE STORE HERO BANNER ── prominent, first thing after slider */}
+      {/* ── ELITE STORE HERO BANNER ── */}
       <section className="relative overflow-hidden bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 py-12 sm:py-16">
-        {/* decorative glow */}
         <div className="pointer-events-none absolute -left-32 -top-32 h-96 w-96 rounded-full bg-amber-500/10 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-24 -right-24 h-80 w-80 rounded-full bg-amber-400/10 blur-3xl" />
 
@@ -86,15 +85,15 @@ export default function HomePage() {
         </Container>
       </section>
 
-      {/* ── TOURNAMENT PILL ── subtle, just below the store banner */}
+      {/* ── ELITE TOURNAMENTS PILL ── */}
       <div className="border-b border-[color:var(--border)] bg-[color:var(--surface-soft)] py-4">
         <Container className="flex justify-center">
           <Link
-            href="/pickleball-tournament"
-            className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-2 text-xs font-medium text-[color:var(--muted)] transition-colors hover:border-emerald-400/40 hover:text-emerald-600"
+            href="/tournaments"
+            className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border)] bg-[color:var(--surface)] px-5 py-2.5 text-xs font-bold text-[color:var(--muted)] transition-colors hover:border-amber-400/40 hover:text-amber-600"
           >
-            <Trophy className="h-3.5 w-3.5" />
-            Live Tournament Bracket
+            <Trophy className="h-3.5 w-3.5 text-amber-500" />
+            Elite Tournaments
             <ArrowRight className="h-3 w-3" />
           </Link>
         </Container>
