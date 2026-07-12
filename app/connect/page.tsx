@@ -17,128 +17,52 @@ import {
 const menuSections = [
   {
     category: "Hot Drinks",
+    emoji: "☕",
     items: [
-      {
-        name: "Americano",
-        price: "Rs 250",
-        description: "Classic black coffee",
-        image: "https://images.unsplash.com/photo-1510707577719-ae7c14805e3a?w=400&q=80",
-      },
-      {
-        name: "Cappuccino",
-        price: "Rs 300",
-        description: "Espresso with steamed milk foam",
-        image: "https://images.unsplash.com/photo-1572442388796-11668a67e53d?w=400&q=80",
-      },
-      {
-        name: "Latte",
-        price: "Rs 320",
-        description: "Smooth espresso with steamed milk",
-        image: "https://images.unsplash.com/photo-1561047029-3000c68339ca?w=400&q=80",
-      },
-      {
-        name: "Green Tea",
-        price: "Rs 200",
-        description: "Light and refreshing",
-        image: "https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=400&q=80",
-      },
+      { name: "Karak Chai", price: "Rs 150", image: "https://images.unsplash.com/photo-1561336313-0bd5e0b27ec8?w=400&q=80" },
+      { name: "Cardamom Chai", price: "Rs 150", image: "https://images.unsplash.com/photo-1571934811356-5cc061b6821f?w=400&q=80" },
+      { name: "Instant Coffee", price: "Rs 250", image: "https://images.unsplash.com/photo-1510707577719-ae7c14805e3a?w=400&q=80" },
+      { name: "Caramel Latte", price: "Rs 350", image: "https://images.unsplash.com/photo-1572442388796-11668a67e53d?w=400&q=80" },
+      { name: "Mocha", price: "Rs 350", image: "https://images.unsplash.com/photo-1578314675249-a6910f80cc4e?w=400&q=80" },
     ],
   },
   {
     category: "Iced Coffee",
+    emoji: "🧋",
     items: [
-      {
-        name: "Vanilla Bean Iced Latte",
-        price: "Rs 350",
-        description: "A smooth, sweet iced coffee enhanced with the delicate essence of vanilla bean.",
-        image: "/images/menu/vanilla-bean-iced-latte.jpg",
-        fallback: "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=400&q=80",
-      },
-      {
-        name: "Classic Iced Latte",
-        price: "Rs 300",
-        description: "A smooth, light iced latte made with best quality coffee beans.",
-        image: "/images/menu/classic-iced-latte.jpg",
-        fallback: "https://images.unsplash.com/photo-1517701604599-bb29b565090c?w=400&q=80",
-      },
-      {
-        name: "Caramel Iced Latte",
-        price: "Rs 350",
-        description: "A smooth, special iced latte enhanced with special caramel.",
-        image: "/images/menu/caramel-iced-latte.jpg",
-        fallback: "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=400&q=80",
-      },
-      {
-        name: "Salted Caramel Iced Latte",
-        price: "Rs 350",
-        description: "A smooth, special iced latte enhanced with special caramel and a pinch of salt.",
-        image: "/images/menu/salted-caramel-iced-latte.jpg",
-        fallback: "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=400&q=80",
-      },
-      {
-        name: "Mocha Iced Latte",
-        price: "Rs 350",
-        description: "A chocolatey sweet iced latte made with dark chocolate and creamy milk.",
-        image: "/images/menu/mocha-iced-latte.jpg",
-        fallback: "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=400&q=80",
-      },
-      {
-        name: "Spanish Iced Latte",
-        price: "Rs 380",
-        description: "A special, smooth iced latte enhanced with sweetened condensed milk.",
-        image: "/images/menu/spanish-iced-latte.jpg",
-        fallback: "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=400&q=80",
-      },
-      {
-        name: "Blueberry Iced Latte",
-        price: "Rs 400",
-        description: "A special, refreshing iced latte prepared with special blueberry essence.",
-        image: "/images/menu/blueberry-iced-latte.jpg",
-        fallback: "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=400&q=80",
-      },
-      {
-        name: "Wild Berry Iced Latte",
-        price: "Rs 400",
-        description: "A special refreshing iced latte prepared with special essence of lots of berries.",
-        image: "/images/menu/wild-berry-iced-latte.jpg",
-        fallback: "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=400&q=80",
-      },
-      {
-        name: "Elite Iced Latte",
-        price: "Rs 400",
-        description: "A smooth, refreshing iced latte elevated by signature flavors for ultimate relaxation.",
-        image: "/images/menu/elite-iced-latte.jpg",
-        fallback: "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=400&q=80",
-      },
+      { name: "Vanilla Bean Iced Latte", price: "Rs 350", image: "https://images.unsplash.com/photo-1517701604599-bb29b565090c?w=400&q=80" },
+      { name: "Classic Iced Latte", price: "Rs 300", image: "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=400&q=80" },
+      { name: "Caramel Iced Latte", price: "Rs 350", image: "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=400&q=80" },
+      { name: "Salted Caramel Iced Latte", price: "Rs 350", image: "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=400&q=80" },
+      { name: "Mocha Iced Latte", price: "Rs 350", image: "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=400&q=80" },
+      { name: "Spanish Iced Latte", price: "Rs 380", image: "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=400&q=80" },
+      { name: "Blueberry Iced Latte", price: "Rs 400", image: "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=400&q=80" },
+      { name: "Wild Berry Iced Latte", price: "Rs 400", image: "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=400&q=80" },
+      { name: "Elite Iced Latte", price: "Rs 400", image: "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=400&q=80" },
+    ],
+  },
+  {
+    category: "Light Bites",
+    emoji: "🍟",
+    items: [
+      { name: "Fries", price: "Rs 150", image: "https://images.unsplash.com/photo-1576107232684-1279f903166a?w=400&q=80" },
+      { name: "Masala Fries", price: "Rs 170", image: "https://images.unsplash.com/photo-1576107232684-1279f903166a?w=400&q=80" },
+      { name: "Nuggets (5 pcs)", price: "Rs 220", image: "https://images.unsplash.com/photo-1562802378-063ec186a863?w=400&q=80" },
+      { name: "Hot Shots (4 pcs)", price: "Rs 250", image: "https://images.unsplash.com/photo-1562802378-063ec186a863?w=400&q=80" },
+      { name: "Chicken Samosa", price: "Rs 70", image: "https://images.unsplash.com/photo-1601050690597-df0568f70950?w=400&q=80" },
+      { name: "Malai Boti Samosa", price: "Rs 85", image: "https://images.unsplash.com/photo-1601050690597-df0568f70950?w=400&q=80" },
     ],
   },
   {
     category: "Cold Drinks",
+    emoji: "🥤",
     items: [
-      {
-        name: "Watermelon Mocktail",
-        price: "Rs 300",
-        description: "Fresh and fruity",
-        image: "https://images.unsplash.com/photo-1579954115545-a95591f28bfc?w=400&q=80",
-      },
-      {
-        name: "Virgin Mojito",
-        price: "Rs 300",
-        description: "Minty and refreshing",
-        image: "https://images.unsplash.com/photo-1544145945-f90425340c7e?w=400&q=80",
-      },
-      {
-        name: "Energy Drink",
-        price: "Rs 200",
-        description: "Ice cold boost",
-        image: "https://images.unsplash.com/photo-1622543925917-763c34d1a86e?w=400&q=80",
-      },
-      {
-        name: "Water Bottle",
-        price: "Rs 100",
-        description: "Still or sparkling",
-        image: "https://images.unsplash.com/photo-1548839140-29a749e1cf4d?w=400&q=80",
-      },
+      { name: "Gatorade", price: "Rs 170", image: "https://images.unsplash.com/photo-1622543925917-763c34d1a86e?w=400&q=80" },
+      { name: "Soft Drink 345 ml", price: "Rs 120", image: "https://images.unsplash.com/photo-1622543925917-763c34d1a86e?w=400&q=80" },
+      { name: "Soft Drink 500 ml", price: "Rs 170", image: "https://images.unsplash.com/photo-1622543925917-763c34d1a86e?w=400&q=80" },
+      { name: "Sting 500 ml", price: "Rs 170", image: "https://images.unsplash.com/photo-1622543925917-763c34d1a86e?w=400&q=80" },
+      { name: "Mineral Water 500 ml", price: "Rs 100", image: "https://images.unsplash.com/photo-1548839140-29a749e1cf4d?w=400&q=80" },
+      { name: "Mineral Water 1.5 L", price: "Rs 200", image: "https://images.unsplash.com/photo-1548839140-29a749e1cf4d?w=400&q=80" },
     ],
   },
 ];
@@ -188,7 +112,7 @@ const links = [
 
 export default function ConnectPage() {
   const [activeTab, setActiveTab] = useState<"menu" | "links">("menu");
-  const [expandedCategory, setExpandedCategory] = useState<string | null>("Iced Coffee");
+  const [expandedCategory, setExpandedCategory] = useState<string | null>("Hot Drinks");
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white py-12 px-4 sm:px-6">
@@ -236,44 +160,34 @@ export default function ConnectPage() {
               const isOpen = expandedCategory === section.category;
               return (
                 <div key={section.category} className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
-
-                  {/* Category header */}
                   <button
                     onClick={() => setExpandedCategory(isOpen ? null : section.category)}
                     className="w-full flex items-center justify-between px-5 py-4 hover:bg-zinc-800/50 transition-colors"
                   >
                     <div className="flex items-center gap-3">
-                      <UtensilsCrossed className="h-4 w-4 text-emerald-400" />
+                      <span className="text-lg">{section.emoji}</span>
                       <span className="font-bold text-sm text-zinc-100">{section.category}</span>
                       <span className="text-[10px] font-mono text-zinc-500">{section.items.length} items</span>
                     </div>
                     {isOpen
-                      ? <Minus className="h-4 w-4 text-zinc-500" />
-                      : <Plus className="h-4 w-4 text-zinc-500" />
+                      ? <Minus className="h-4 w-4 text-zinc-500 shrink-0" />
+                      : <Plus className="h-4 w-4 text-zinc-500 shrink-0" />
                     }
                   </button>
 
-                  {/* Items with images */}
                   {isOpen && (
                     <div className="border-t border-zinc-800 divide-y divide-zinc-800/60">
                       {section.items.map((item) => (
                         <div key={item.name} className="flex items-center gap-4 px-4 py-3">
-                          <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 border border-zinc-800 bg-zinc-950">
+                          <div className="w-14 h-14 rounded-xl overflow-hidden shrink-0 border border-zinc-800 bg-zinc-950">
                             <img
                               src={item.image}
                               alt={item.name}
                               className="w-full h-full object-cover"
-                              onError={(e) => {
-                                const fallback = (item as any).fallback;
-                                if (fallback) (e.target as HTMLImageElement).src = fallback;
-                              }}
                             />
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-semibold text-zinc-200 leading-tight">{item.name}</p>
-                            {(item as any).description && (
-                              <p className="text-[11px] text-zinc-500 mt-0.5 leading-snug line-clamp-2">{(item as any).description}</p>
-                            )}
                           </div>
                           <span className="text-sm font-mono font-bold text-emerald-400 shrink-0">{item.price}</span>
                         </div>
