@@ -32,7 +32,7 @@ const menuSections = [
     items: [
       { name: "Vanilla Bean Iced Latte", price: "Rs 350", image: "https://images.unsplash.com/photo-1517701604599-bb29b565090c?w=400&q=80" },
       { name: "Classic Iced Latte", price: "Rs 300", image: "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=400&q=80" },
-      { name: "Caramel Iced Latte", price: "Rs 350", img: "/images/sports/Caramellatte.jpg", },
+      { name: "Caramel Iced Latte", price: "Rs 350", img: "/images/sports/Caramellatte.jpg", fallback: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800" },
       { name: "Salted Caramel Iced Latte", price: "Rs 350", image: "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=400&q=80" },
       { name: "Mocha Iced Latte", price: "Rs 350", image: "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=400&q=80" },
       { name: "Spanish Iced Latte", price: "Rs 380", image: "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=400&q=80" },
