@@ -126,7 +126,7 @@ const links = [
 
 export default function ConnectPage() {
   const [activeTab, setActiveTab] = useState<"menu" | "links">("menu");
-  const [expandedCategory, setExpandedCategory] = useState<string | null>("Hot Drinks");
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white py-12 px-4 sm:px-6">
