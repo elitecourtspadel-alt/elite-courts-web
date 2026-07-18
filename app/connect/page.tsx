@@ -49,7 +49,7 @@ const menuSections = [
       { name: "Lemonade / Mint Lemonade Cooler", price: "Rs 300", image: "/images/sports/lemondae.jpeg", fallback: "https://images.unsplash.com/photo-1523677011781-c91d1bbe2f9e?w=400&q=80" },
       { name: "Passion Fruit Sixer", price: "Rs 350", image: "/images/sports/Passion-Fruit.webp", fallback: "https://images.unsplash.com/photo-1607446045875-a59b83d27f14?w=400&q=80" },
       { name: "Elite Tropical Refresher", price: "Rs 400", image: "/images/sports/elite_mocktail.webp", fallback: "https://images.unsplash.com/photo-1551538827-9c037cb4f32a?w=400&q=80" },
-      { name: "Blueberry Crush", price: "Rs 350", image: "/images/sports/Blueberry_Iced_Latte.webp", fallback: "https://images.unsplash.com/photo-1553361371-9b22f78e8b1d?w=400&q=80" },
+      { name: "Blueberry Crush", price: "Rs 350", image: "/images/sports/blueberry_mocktail.jpeg", fallback: "https://images.unsplash.com/photo-1553361371-9b22f78e8b1d?w=400&q=80" },
       { name: "Wild Berry Override", price: "Rs 350", image: "/images/sports/wild-berry-mocktail.webp", fallback: "https://images.unsplash.com/photo-1497534446932-c925b458314e?w=400&q=80" },
       { name: "Peach Iced Tea Lob", price: "Rs 350", image: "/images/sports/peach_iced_tea.jpeg", fallback: "https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=400&q=80" },
       { name: "Raspberry Punch", price: "Rs 350", image: "/images/sports/raspberry-mocktail.jpg", fallback: "https://images.unsplash.com/photo-1544145945-f90425340c7e?w=400&q=80" },
