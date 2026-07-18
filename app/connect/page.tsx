@@ -42,6 +42,20 @@ const menuSections = [
     ],
   },
   {
+    category: "Mocktails",
+    emoji: "🍹",
+    items: [
+      { name: "Blue Lagoon Smash", price: "Rs 350", image: "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=400&q=80" },
+      { name: "Lemonade / Mint Lemonade Cooler", price: "Rs 300", image: "https://images.unsplash.com/photo-1523677011781-c91d1bbe2f9e?w=400&q=80" },
+      { name: "Passion Fruit Sixer", price: "Rs 350", image: "https://images.unsplash.com/photo-1607446045875-a59b83d27f14?w=400&q=80" },
+      { name: "Elite Tropical Refresher", price: "Rs 400", image: "https://images.unsplash.com/photo-1551538827-9c037cb4f32a?w=400&q=80" },
+      { name: "Blueberry Crush", price: "Rs 350", image: "https://images.unsplash.com/photo-1553361371-9b22f78e8b1d?w=400&q=80" },
+      { name: "Wild Berry Override", price: "Rs 350", image: "https://images.unsplash.com/photo-1497534446932-c925b458314e?w=400&q=80" },
+      { name: "Peach Iced Tea Lob", price: "Rs 350", image: "https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=400&q=80" },
+      { name: "Raspberry Punch", price: "Rs 350", image: "https://images.unsplash.com/photo-1544145945-f90425340c7e?w=400&q=80" },
+    ],
+  },
+  {
     category: "Light Bites",
     emoji: "🍟",
     items: [
