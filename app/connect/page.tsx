@@ -39,19 +39,21 @@ const menuSections = [
       { name: "Blueberry Iced Latte", price: "Rs 400", image: "/images/sports/Blueberry_Iced_Latte.webp", fallback: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800" },
       { name: "Wild Berry Iced Latte", price: "Rs 400", image: "/images/sports/Wild_berry_latte.jpg", fallback: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800" },
       { name: "Elite Iced Latte", price: "Rs 400", image: "/images/sports/Elite_Iced_Latte.jpg", fallback: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800" },
+    ],
   },
   {
     category: "Mocktails",
     emoji: "🍹",
     items: [
-      { name: "Blue Lagoon Smash", price: "Rs 350", image: "/images/sports/blue_lagoon.jpeg", fallback: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800" },
-      { name: "Lemonade / Mint Lemonade Cooler", image: "/images/sports/lemondae.jpeg", fallback: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800" },
-      { name: "Passion Fruit Sixer", price: "Rs 350", image: "/images/sports/Passion-Fruit.webp", fallback: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800" },
-      { name: "Elite Tropical Refresher", price: "Rs 400", image: "/images/sports/elite_mocktail.webp", fallback: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800" },
-      { name: "Blueberry Crush", price: "Rs 350", image: "/images/sports/Blueberry_Iced_Latte.webp", fallback: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800" },
-      { name: "Wild Berry Override", price: "Rs 350", image: "/images/sports/wild-berry-mocktail.webp", fallback: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800" },
-      { name: "Peach Iced Tea Lob", price: "Rs 350", image: "/images/sports/peach_iced_tea.jpeg", fallback: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800" },
-      { name: "Raspberry Punch", price: "Rs 350", image: "/images/sports/raspberry-mocktail.jpg", fallback: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800" },
+      { name: "Blue Lagoon Smash", price: "Rs 350", image: "/images/sports/blue_lagoon.jpeg", fallback: "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=400&q=80" },
+      { name: "Lemonade / Mint Lemonade Cooler", price: "Rs 300", image: "/images/sports/lemondae.jpeg", fallback: "https://images.unsplash.com/photo-1523677011781-c91d1bbe2f9e?w=400&q=80" },
+      { name: "Passion Fruit Sixer", price: "Rs 350", image: "/images/sports/Passion-Fruit.webp", fallback: "https://images.unsplash.com/photo-1607446045875-a59b83d27f14?w=400&q=80" },
+      { name: "Elite Tropical Refresher", price: "Rs 400", image: "/images/sports/elite_mocktail.webp", fallback: "https://images.unsplash.com/photo-1551538827-9c037cb4f32a?w=400&q=80" },
+      { name: "Blueberry Crush", price: "Rs 350", image: "/images/sports/Blueberry_Iced_Latte.webp", fallback: "https://images.unsplash.com/photo-1553361371-9b22f78e8b1d?w=400&q=80" },
+      { name: "Wild Berry Override", price: "Rs 350", image: "/images/sports/wild-berry-mocktail.webp", fallback: "https://images.unsplash.com/photo-1497534446932-c925b458314e?w=400&q=80" },
+      { name: "Peach Iced Tea Lob", price: "Rs 350", image: "/images/sports/peach_iced_tea.jpeg", fallback: "https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=400&q=80" },
+      { name: "Raspberry Punch", price: "Rs 350", image: "/images/sports/raspberry-mocktail.jpg", fallback: "https://images.unsplash.com/photo-1544145945-f90425340c7e?w=400&q=80" },
+    ],
   },
   {
     category: "Light Bites",
@@ -196,6 +198,11 @@ export default function ConnectPage() {
                               src={item.image}
                               alt={item.name}
                               className="w-full h-full object-cover"
+                              onError={(e) => {
+                                if (item.fallback) {
+                                  (e.currentTarget as HTMLImageElement).src = item.fallback;
+                                }
+                              }}
                             />
                           </div>
                           <div className="flex-1 min-w-0">
