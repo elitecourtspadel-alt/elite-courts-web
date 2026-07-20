@@ -14,7 +14,21 @@ import {
   Minus,
 } from "lucide-react";
 
-const menuSections = [
+type MenuItem = {
+  name: string;
+  price: string;
+  image: string;
+  fallback?: string;
+  description?: string;
+};
+
+type MenuSection = {
+  category: string;
+  emoji: string;
+  items: MenuItem[];
+};
+
+const menuSections: MenuSection[] = [
   {
     category: "Hot Drinks",
     emoji: "☕",
@@ -217,7 +231,7 @@ export default function ConnectPage() {
 
                   {isOpen && (
                     <div className="border-t border-zinc-800 divide-y divide-zinc-800/60">
-                      {section.items.map((item) => (
+                      {section.items.map((item: MenuItem) => (
                         <div key={item.name} className="flex items-center gap-4 px-4 py-3">
                           <div className="w-14 h-14 rounded-xl overflow-hidden shrink-0 border border-zinc-800 bg-zinc-950">
                             <img
