@@ -56,15 +56,41 @@ const menuSections = [
     ],
   },
   {
-    category: "Light Bites",
+    category: "Burgers",
+    emoji: "🍔",
+    items: [
+      { name: "Chicken Pattie", price: "Rs 500", description: "Double pattie chicken burger with special sauces and a slice of cheese", image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400&q=80" },
+      { name: "Crispy Chicken", price: "Rs 650", description: "Crispy chicken burger filled with signature sauces and a slice of cheese", image: "https://images.unsplash.com/photo-1553979459-d2229ba7433b?w=400&q=80" },
+      { name: "Chicken Skewer", price: "Rs 550", description: "Grilled chicken skewer burger with veggies and our signature sauce", image: "https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?w=400&q=80" },
+    ],
+  },
+  {
+    category: "Snacks",
     emoji: "🍟",
     items: [
-      { name: "Fries", price: "Rs 150", image: "https://images.unsplash.com/photo-1576107232684-1279f903166a?w=400&q=80" },
-      { name: "Masala Fries", price: "Rs 170", image: "https://images.unsplash.com/photo-1576107232684-1279f903166a?w=400&q=80" },
-      { name: "Nuggets (5 pcs)", price: "Rs 220", image: "https://images.unsplash.com/photo-1562802378-063ec186a863?w=400&q=80" },
-      { name: "Hot Shots (4 pcs)", price: "Rs 250", image: "https://images.unsplash.com/photo-1562802378-063ec186a863?w=400&q=80" },
-      { name: "Chicken Samosa", price: "Rs 70", image: "https://images.unsplash.com/photo-1601050690597-df0568f70950?w=400&q=80" },
-      { name: "Malai Boti Samosa", price: "Rs 85", image: "https://images.unsplash.com/photo-1601050690597-df0568f70950?w=400&q=80" },
+      { name: "Crispy Chicken", price: "Rs 350", description: "Zinger crispy golden chicken piece", image: "https://images.unsplash.com/photo-1562967914-608f82629710?w=400&q=80" },
+      { name: "Loaded Fries", price: "Rs 450", description: "Crispy golden fries topped with seasoned chicken, melted cheese, and our signature house sauces", image: "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=400&q=80" },
+      { name: "Panini Sandwich", price: "Rs 550", description: "Grilled chicken with melted cheese and signature sauces", image: "https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=400&q=80" },
+      { name: "Club Sandwich", price: "Rs 650", description: "Grilled chicken with veggies and our signature sauce", image: "https://images.unsplash.com/photo-1567234669003-dce7a7a88821?w=400&q=80" },
+      { name: "Chicken Nuggets", price: "Rs 300", description: "Crispy golden chicken nuggets served with signature sauce", image: "https://images.unsplash.com/photo-1562802378-063ec186a863?w=400&q=80" },
+    ],
+  },
+  {
+    category: "Light Bites",
+    emoji: "🥨",
+    items: [
+      { name: "Fries", price: "Rs 170", description: "Crispy golden fries", image: "https://images.unsplash.com/photo-1576107232684-1279f903166a?w=400&q=80" },
+      { name: "Masala Fries", price: "Rs 170", description: "Crispy golden fries tossed in special masala", image: "https://images.unsplash.com/photo-1576107232684-1279f903166a?w=400&q=80" },
+      { name: "Chicken Samosa", price: "Rs 50", description: "Crispy chicken juicy samosa", image: "https://images.unsplash.com/photo-1601050690597-df0568f70950?w=400&q=80" },
+    ],
+  },
+  {
+    category: "Elite Pizza",
+    emoji: "🍕",
+    items: [
+      { name: "Elite Pizza (Small)", price: "Rs 800", description: "Signature Elite Pizza with grilled chicken, melted cheese and signature sauce", image: "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400&q=80" },
+      { name: "Elite Pizza (Medium)", price: "Rs 950", description: "Signature Elite Pizza with grilled chicken, melted cheese and signature sauce", image: "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400&q=80" },
+      { name: "Elite Pizza (Large)", price: "Rs 1050", description: "Signature Elite Pizza with grilled chicken, melted cheese and signature sauce", image: "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400&q=80" },
     ],
   },
   {
@@ -207,6 +233,9 @@ export default function ConnectPage() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-semibold text-zinc-200 leading-tight">{item.name}</p>
+                            {item.description && (
+                              <p className="text-xs text-zinc-500 mt-0.5 leading-snug">{item.description}</p>
+                            )}
                           </div>
                           <span className="text-sm font-mono font-bold text-emerald-400 shrink-0">{item.price}</span>
                         </div>
@@ -216,6 +245,11 @@ export default function ConnectPage() {
                 </div>
               );
             })}
+
+            {/* Make it a Meal upsell note */}
+            <p className="text-xs text-zinc-600 text-center pt-1">
+              🍔 Add fries + drink to any burger for <span className="text-zinc-400 font-semibold">+Rs 250</span>
+            </p>
           </div>
         )}
 
