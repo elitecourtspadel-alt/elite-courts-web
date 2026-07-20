@@ -76,6 +76,7 @@ const menuSections: MenuSection[] = [
       { name: "Chicken Pattie", price: "Rs 500", description: "Double pattie chicken burger with special sauces and a slice of cheese", image: "/images/sports/Caramellatte.jpg", fallback: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800" },
       { name: "Crispy Chicken", price: "Rs 650", description: "Crispy chicken burger filled with signature sauces and a slice of cheese", image: "/images/sports/Caramellatte.jpg", fallback: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800" },
       { name: "Chicken Skewer", price: "Rs 550", description: "Grilled chicken skewer burger with veggies and our signature sauce", image: "/images/sports/Caramellatte.jpg", fallback: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800" },
+    ],
   },
   {
     category: "Snacks",
@@ -86,6 +87,7 @@ const menuSections: MenuSection[] = [
       { name: "Panini Sandwich", price: "Rs 550", description: "Grilled chicken with melted cheese and signature sauces", image: "https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=400&q=80" },
       { name: "Club Sandwich", price: "Rs 650", description: "Grilled chicken with veggies and our signature sauce", image: "https://images.unsplash.com/photo-1567234669003-dce7a7a88821?w=400&q=80" },
       { name: "Chicken Nuggets", price: "Rs 300", description: "Crispy golden chicken nuggets served with signature sauce", image: "/images/sports/Caramellatte.jpg", fallback: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800" },
+    ],
   },
   {
     category: "Light Bites",
