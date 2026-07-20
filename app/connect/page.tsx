@@ -75,7 +75,7 @@ const menuSections: MenuSection[] = [
     items: [
       { name: "Chicken Pattie", price: "Rs 500", description: "Double pattie chicken burger with special sauces and a slice of cheese", image: "/images/sports/chicken_pattie_burger copy.jpg", fallback: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800" },
       { name: "Crispy Chicken", price: "Rs 650", description: "Crispy chicken burger filled with signature sauces and a slice of cheese", image: "/images/sports/crispy_burger.webp", fallback: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800" },
-      { name: "Chicken Skewer", price: "Rs 550", description: "Grilled chicken skewer burger with veggies and our signature sauce", image: "/images/sports/chicken_skewer_burger.jpeg, fallback: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800" },
+      { name: "Chicken Skewer", price: "Rs 550", description: "Grilled chicken skewer burger with veggies and our signature sauce", image: "/images/sports/chicken_skewer_burger.jpeg", fallback: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800" },
     ],
   },
   {
