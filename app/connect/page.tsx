@@ -73,29 +73,29 @@ const menuSections: MenuSection[] = [
     category: "Burgers",
     emoji: "🍔",
     items: [
-      { name: "Chicken Pattie", price: "Rs 500", description: "Double pattie chicken burger with special sauces and a slice of cheese", image: "/images/sports/chicken_pattie_burger copy.jpg", fallback: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800" },
-      { name: "Crispy Chicken", price: "Rs 650", description: "Crispy chicken burger filled with signature sauces and a slice of cheese", image: "/images/sports/crispy_burger.webp", fallback: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800" },
-      { name: "Chicken Skewer", price: "Rs 550", description: "Grilled chicken skewer burger with veggies and our signature sauce", image: "/images/sports/chicken_skewer_burger.jpeg", fallback: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800" },
+      { name: "Chicken Pattie", price: "Rs 500", description: "Double pattie chicken burger with special sauces and a slice of cheese", image: "/images/sports/Caramellatte.jpg", fallback: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800" },
+      { name: "Crispy Chicken", price: "Rs 650", description: "Crispy chicken burger filled with signature sauces and a slice of cheese", image: "/images/sports/Caramellatte.jpg", fallback: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800" },
+      { name: "Chicken Skewer", price: "Rs 550", description: "Grilled chicken skewer burger with veggies and our signature sauce", image: "/images/sports/Caramellatte.jpg", fallback: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800" },
     ],
   },
   {
     category: "Snacks",
     emoji: "🍟",
     items: [
-      { name: "Crispy Chicken", price: "Rs 350", description: "Zinger crispy golden chicken piece", image: "/images/sports/crispy_chicken.png", fallback: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800" },
-      { name: "Loaded Fries", price: "Rs 450", description: "Crispy golden fries topped with seasoned chicken, melted cheese, and our signature house sauces", image: "/images/sports/loaded_fries.jpeg", fallback: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800" },
+      { name: "Crispy Chicken", price: "Rs 350", description: "Zinger crispy golden chicken piece", image: "/images/sports/Caramellatte.jpg", fallback: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800" },
+      { name: "Loaded Fries", price: "Rs 450", description: "Crispy golden fries topped with seasoned chicken, melted cheese, and our signature house sauces", image: "/images/sports/Caramellatte.jpg", fallback: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800" },
       { name: "Panini Sandwich", price: "Rs 550", description: "Grilled chicken with melted cheese and signature sauces", image: "https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=400&q=80" },
       { name: "Club Sandwich", price: "Rs 650", description: "Grilled chicken with veggies and our signature sauce", image: "https://images.unsplash.com/photo-1567234669003-dce7a7a88821?w=400&q=80" },
-      { name: "Chicken Nuggets", price: "Rs 300", description: "Crispy golden chicken nuggets served with signature sauce", image: "/images/sports/chicken-nuggets.jpg", fallback: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800" },
+      { name: "Chicken Nuggets", price: "Rs 300", description: "Crispy golden chicken nuggets served with signature sauce", image: "/images/sports/Caramellatte.jpg", fallback: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800" },
     ],
   },
   {
     category: "Light Bites",
     emoji: "🥨",
     items: [
-      { name: "Fries", price: "Rs 170", description: "Crispy golden fries", image: "/images/sports/fries.jpg", fallback: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800" },
-      { name: "Masala Fries", price: "Rs 170", description: "Crispy golden fries tossed in special masala", image: "/images/sports/fries.jpg", fallback: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800" },
-      { name: "Chicken Samosa", price: "Rs 50", description: "Crispy chicken juicy samosa", image: "/images/sports/chicken_samosa.jpeg", fallback: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800" },
+      { name: "Fries", price: "Rs 170", description: "Crispy golden fries", image: "/images/sports/Caramellatte.jpg", fallback: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800" },
+      { name: "Masala Fries", price: "Rs 170", description: "Crispy golden fries tossed in special masala", image: "/images/sports/Caramellatte.jpg", fallback: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800" },
+      { name: "Chicken Samosa", price: "Rs 50", description: "Crispy chicken juicy samosa", image: "/images/sports/Caramellatte.jpg", fallback: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800" },
     ],
   },
   {
@@ -111,12 +111,12 @@ const menuSections: MenuSection[] = [
     category: "Cold Drinks",
     emoji: "🥤",
     items: [
-      { name: "Gatorade", price: "Rs 170", image: "/images/sports/gatorade.jpeg", fallback: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800" },
-      { name: "Soft Drink 345 ml", price: "Rs 120", image: "/images/sports/pepsi_345.webp", fallback: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800" },
-      { name: "Soft Drink 500 ml", price: "Rs 170", image: "/images/sports/pepsi_500ml.webp", fallback: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800" },
-      { name: "Sting 500 ml", price: "Rs 170", image: "/images/sports/sting.jpg", fallback: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800" },
-      { name: "Mineral Water 500 ml", price: "Rs 100", image: "/images/sports/water_500ml.webp", fallback: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800" },
-      { name: "Mineral Water 1.5 L", price: "Rs 200", image: "/images/sports/water_1.5.jpg", fallback: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800" },
+      { name: "Gatorade", price: "Rs 170", image: "/images/sports/Caramellatte.jpg", fallback: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800" },
+      { name: "Soft Drink 345 ml", price: "Rs 120", image: "/images/sports/Caramellatte.jpg", fallback: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800" },
+      { name: "Soft Drink 500 ml", price: "Rs 170", image: "/images/sports/Caramellatte.jpg", fallback: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800" },
+      { name: "Sting 500 ml", price: "Rs 170", image: "/images/sports/Caramellatte.jpg", fallback: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800" },
+      { name: "Mineral Water 500 ml", price: "Rs 100", image: "/images/sports/Caramellatte.jpg", fallback: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800" },
+      { name: "Mineral Water 1.5 L", price: "Rs 200", image: "/images/sports/Caramellatte.jpg", fallback: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800" },
     ],
   },
 ];
@@ -231,6 +231,14 @@ export default function ConnectPage() {
 
                   {isOpen && (
                     <div className="border-t border-zinc-800 divide-y divide-zinc-800/60">
+                      {section.category === "Burgers" && (
+                        <div className="px-4 py-2.5 bg-amber-950/30 border-b border-amber-900/40 flex items-center gap-2">
+                          <span className="text-base">🍔</span>
+                          <p className="text-xs text-amber-300 font-semibold">
+                            Make it a Meal — add fries + drink for <span className="text-amber-200">+Rs 250</span>
+                          </p>
+                        </div>
+                      )}
                       {section.items.map((item: MenuItem) => (
                         <div key={item.name} className="flex items-center gap-4 px-4 py-3">
                           <div className="w-14 h-14 rounded-xl overflow-hidden shrink-0 border border-zinc-800 bg-zinc-950">
@@ -260,10 +268,7 @@ export default function ConnectPage() {
               );
             })}
 
-            {/* Make it a Meal upsell note */}
-            <p className="text-xs text-zinc-600 text-center pt-1">
-              🍔 Add fries + drink to any burger for <span className="text-zinc-400 font-semibold">+Rs 250</span>
-            </p>
+
           </div>
         )}
 
