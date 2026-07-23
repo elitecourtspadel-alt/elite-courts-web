@@ -20,7 +20,7 @@ const tournaments = [
     name: "Padel Tournament",
     edition: "Season 1",
     date: "26-07-2026",
-    status: "coming up" as const,
+    status: "completed" as const,
     sport: "Padel",
     href: "/padel-tournament",
     description: "Elite Courts' first Padel Tournament featuring group stage brackets and knockout rounds.",
