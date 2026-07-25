@@ -19,22 +19,31 @@ const firebaseConfig = {
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
 
-function formatTime(iso: string) {
-  if (!iso) return '';
-  return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+// ⚠️ The whole tournament happens on a single day — keep this in sync with the
+// same constant in the admin file. Times are stored as plain "HH:MM" and combined
+// with this date only for internal live/upcoming/past calculations; it's never shown.
+const TOURNAMENT_DATE = '2026-07-25';
+
+function toDateTime(time: string) {
+  if (!time) return '';
+  return `${TOURNAMENT_DATE}T${time}`;
 }
-function formatDate(iso: string) {
-  if (!iso) return '';
-  return new Date(iso).toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' });
+
+function formatTime(time: string) {
+  if (!time) return '';
+  const d = new Date(toDateTime(time));
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
 }
-function endTime(iso: string, mins: number) {
-  if (!iso || !mins) return '';
-  return new Date(new Date(iso).getTime() + mins * 60000)
-    .toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+
+function endTime(time: string, mins: number) {
+  if (!time || !mins) return '';
+  const d = new Date(new Date(toDateTime(time)).getTime() + mins * 60000);
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
 }
-function matchStatus(iso?: string, durationMins?: number) {
-  if (!iso) return 'unscheduled';
-  const start = new Date(iso).getTime();
+
+function matchStatus(time?: string, durationMins?: number) {
+  if (!time) return 'unscheduled';
+  const start = new Date(toDateTime(time)).getTime();
   const end = start + (durationMins || 45) * 60000;
   const now = Date.now();
   if (now < start) return 'upcoming';
@@ -53,8 +62,6 @@ function TimeBadge({ iso, duration, winner }: { iso?: string; duration?: number;
     }`}>
       {status === 'live' && <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse inline-block" />}
       {status === 'upcoming' && <Clock className="w-3 h-3" />}
-      <span>{formatDate(iso)}</span>
-      <span>·</span>
       <span>{formatTime(iso)}</span>
       {duration ? <><span>→</span><span>{endTime(iso, duration)}</span></> : null}
       {status === 'live' && !winner && <span className="ml-1">LIVE</span>}
