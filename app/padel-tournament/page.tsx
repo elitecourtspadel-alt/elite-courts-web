@@ -249,7 +249,7 @@ export default function PadelTournamentView() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                     {matchesRaw.length === 0 ? (
                       <p className="text-zinc-700 text-xs text-center py-4 col-span-2">No matches scheduled yet</p>
-                    ) : matchesRaw.map((match: any) => {
+                    ) : [...matchesRaw].sort((a: any, b: any) => (a[1].matchNumber || 0) - (b[1].matchNumber || 0)).map((match: any) => {
                       const matchId = match[0]; const mData = match[1];
                       const status = matchStatus(mData.scheduledTime, mData.durationMins);
                       return (
@@ -257,7 +257,7 @@ export default function PadelTournamentView() {
                           status === 'live' ? 'border-red-500/40' : 'border-zinc-800/80'
                         }`}>
                           <div className="flex items-center justify-between text-[10px] text-zinc-500 font-mono border-b border-zinc-900 pb-1">
-                            <span>{matchId.toUpperCase()}</span>
+                            <span>{mData.matchNumber ? `MATCH ${mData.matchNumber}` : 'MATCH'}</span>
                             {mData.winner ? <span className="text-emerald-400 font-bold">FINAL</span> :
                              status === 'live' ? <span className="text-red-400 font-bold animate-pulse">LIVE 🔴</span> :
                              <span className="text-amber-500 animate-pulse">PENDING</span>}
