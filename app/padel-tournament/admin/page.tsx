@@ -26,6 +26,8 @@ interface Match {
   score1: string;
   score2: string;
   winner: string;
+  scheduledTime?: string;   // ISO string e.g. "2026-07-25T14:30"
+  durationMins?: number;    // expected match duration in minutes
 }
 
 interface GroupData {
@@ -36,15 +38,43 @@ interface GroupData {
 interface TournamentData {
   groups?: Record<string, GroupData>;
   knockouts?: {
-    semi1?: { winner: string; score1: string; score2: string };
-    semi2?: { winner: string; score1: string; score2: string };
-    final?: { winner: string; score1: string; score2: string };
+    semi1?: { winner: string; score1: string; score2: string; scheduledTime?: string; durationMins?: number };
+    semi2?: { winner: string; score1: string; score2: string; scheduledTime?: string; durationMins?: number };
+    final?: { winner: string; score1: string; score2: string; scheduledTime?: string; durationMins?: number };
   };
   config?: {
     streamLink?: string;
     championPhotoUrl?: string;
     closingPhotoUrl?: string;
   };
+}
+
+function formatTime(iso: string) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+}
+
+function formatDate(iso: string) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' });
+}
+
+function endTime(iso: string, mins: number) {
+  if (!iso || !mins) return '';
+  const d = new Date(new Date(iso).getTime() + mins * 60000);
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+}
+
+function matchStatus(iso?: string, durationMins?: number) {
+  if (!iso) return 'unscheduled';
+  const start = new Date(iso).getTime();
+  const end = start + (durationMins || 45) * 60000;
+  const now = Date.now();
+  if (now < start) return 'upcoming';
+  if (now >= start && now <= end) return 'live';
+  return 'past';
 }
 
 export default function PadelTournamentAdmin() {
@@ -56,6 +86,9 @@ export default function PadelTournamentAdmin() {
   const [newTeamName, setNewTeamName] = useState('');
   const [matchTeam1, setMatchTeam1] = useState('');
   const [matchTeam2, setMatchTeam2] = useState('');
+  const [matchTime, setMatchTime] = useState('');
+  const [matchDuration, setMatchDuration] = useState('45');
+
   const [editingMatch, setEditingMatch] = useState<string | null>(null);
   const [resultScore1, setResultScore1] = useState('');
   const [resultScore2, setResultScore2] = useState('');
@@ -64,12 +97,18 @@ export default function PadelTournamentAdmin() {
   const [semi1Score1, setSemi1Score1] = useState('');
   const [semi1Score2, setSemi1Score2] = useState('');
   const [semi1Winner, setSemi1Winner] = useState('');
+  const [semi1Time, setSemi1Time] = useState('');
+  const [semi1Duration, setSemi1Duration] = useState('45');
   const [semi2Score1, setSemi2Score1] = useState('');
   const [semi2Score2, setSemi2Score2] = useState('');
   const [semi2Winner, setSemi2Winner] = useState('');
+  const [semi2Time, setSemi2Time] = useState('');
+  const [semi2Duration, setSemi2Duration] = useState('45');
   const [finalScore1, setFinalScore1] = useState('');
   const [finalScore2, setFinalScore2] = useState('');
   const [finalWinner, setFinalWinner] = useState('');
+  const [finalTime, setFinalTime] = useState('');
+  const [finalDuration, setFinalDuration] = useState('60');
 
   const [streamLink, setStreamLink] = useState('');
   const [championPhoto, setChampionPhoto] = useState('');
@@ -85,12 +124,18 @@ export default function PadelTournamentAdmin() {
       setSemi1Score1(val.knockouts?.semi1?.score1 || '');
       setSemi1Score2(val.knockouts?.semi1?.score2 || '');
       setSemi1Winner(val.knockouts?.semi1?.winner || '');
+      setSemi1Time(val.knockouts?.semi1?.scheduledTime || '');
+      setSemi1Duration(String(val.knockouts?.semi1?.durationMins || 45));
       setSemi2Score1(val.knockouts?.semi2?.score1 || '');
       setSemi2Score2(val.knockouts?.semi2?.score2 || '');
       setSemi2Winner(val.knockouts?.semi2?.winner || '');
+      setSemi2Time(val.knockouts?.semi2?.scheduledTime || '');
+      setSemi2Duration(String(val.knockouts?.semi2?.durationMins || 45));
       setFinalScore1(val.knockouts?.final?.score1 || '');
       setFinalScore2(val.knockouts?.final?.score2 || '');
       setFinalWinner(val.knockouts?.final?.winner || '');
+      setFinalTime(val.knockouts?.final?.scheduledTime || '');
+      setFinalDuration(String(val.knockouts?.final?.durationMins || 60));
       setStreamLink(val.config?.streamLink || '');
       setChampionPhoto(val.config?.championPhotoUrl || '');
       setClosingPhoto(val.config?.closingPhotoUrl || '');
@@ -115,8 +160,10 @@ export default function PadelTournamentAdmin() {
     await push(ref(db, `${TOURNEY_PATH}/groups/${group}/matches`), {
       team1: matchTeam1.trim(), team2: matchTeam2.trim(),
       score1: '', score2: '', winner: '',
+      scheduledTime: matchTime || '',
+      durationMins: Number(matchDuration) || 45,
     });
-    setMatchTeam1(''); setMatchTeam2('');
+    setMatchTeam1(''); setMatchTeam2(''); setMatchTime('');
   };
 
   const handleDeleteMatch = async (group: string, matchKey: string) => {
@@ -129,6 +176,8 @@ export default function PadelTournamentAdmin() {
     await set(ref(db, `${TOURNEY_PATH}/groups/${group}/matches/${matchKey}`), {
       team1: m?.team1 || '', team2: m?.team2 || '',
       score1: resultScore1, score2: resultScore2, winner: resultWinner,
+      scheduledTime: m?.scheduledTime || '',
+      durationMins: m?.durationMins || 45,
     });
     setEditingMatch(null);
     showSaved('Result saved');
@@ -143,12 +192,12 @@ export default function PadelTournamentAdmin() {
   };
 
   const handleSaveKnockout = async (stage: 'semi1' | 'semi2' | 'final') => {
-    const scores: Record<string, { score1: string; score2: string; winner: string }> = {
-      semi1: { score1: semi1Score1, score2: semi1Score2, winner: semi1Winner },
-      semi2: { score1: semi2Score1, score2: semi2Score2, winner: semi2Winner },
-      final: { score1: finalScore1, score2: finalScore2, winner: finalWinner },
+    const payloads: Record<string, any> = {
+      semi1: { score1: semi1Score1, score2: semi1Score2, winner: semi1Winner, scheduledTime: semi1Time, durationMins: Number(semi1Duration) },
+      semi2: { score1: semi2Score1, score2: semi2Score2, winner: semi2Winner, scheduledTime: semi2Time, durationMins: Number(semi2Duration) },
+      final: { score1: finalScore1, score2: finalScore2, winner: finalWinner, scheduledTime: finalTime, durationMins: Number(finalDuration) },
     };
-    await set(ref(db, `${TOURNEY_PATH}/knockouts/${stage}`), scores[stage]);
+    await set(ref(db, `${TOURNEY_PATH}/knockouts/${stage}`), payloads[stage]);
     showSaved(`${stage === 'final' ? 'Grand Final' : stage} saved`);
   };
 
@@ -159,7 +208,6 @@ export default function PadelTournamentAdmin() {
     showSaved('Config saved');
   };
 
-  // Derive group winners for knockout dropdowns
   const groupWinners: Record<string, string> = {};
   GROUPS.forEach((g) => {
     const gData = data.groups?.[g];
@@ -185,8 +233,28 @@ export default function PadelTournamentAdmin() {
   const semi1Teams = [groupWinners['Group A'], groupWinners['Group C']].filter(Boolean);
   const semi2Teams = [groupWinners['Group B'], groupWinners['Group D']].filter(Boolean);
   const finalTeams = [data.knockouts?.semi1?.winner, data.knockouts?.semi2?.winner].filter(Boolean) as string[];
-
   const TABS = [...GROUPS, 'Knockouts', 'Config'];
+
+  // ── Shared time badge component
+  const TimeBadge = ({ iso, duration, winner }: { iso?: string; duration?: number; winner?: string }) => {
+    if (!iso) return null;
+    const status = matchStatus(iso, duration);
+    return (
+      <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-mono font-bold border ${
+        status === 'live' ? 'bg-red-500/10 border-red-500/30 text-red-400' :
+        status === 'past' ? 'bg-zinc-800/60 border-zinc-700 text-zinc-500' :
+        'bg-cyan-500/10 border-cyan-500/20 text-cyan-400'
+      }`}>
+        {status === 'live' && <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse inline-block" />}
+        <span>{formatDate(iso)}</span>
+        <span>·</span>
+        <span>{formatTime(iso)}</span>
+        {duration ? <><span>→</span><span>{endTime(iso, duration)}</span></> : null}
+        {status === 'live' && !winner && <span className="text-red-400 ml-1">LIVE</span>}
+        {status === 'past' && winner && <span className="text-emerald-400 ml-1">DONE</span>}
+      </div>
+    );
+  };
 
   if (loading) return (
     <div className="bg-zinc-950 min-h-screen flex items-center justify-center text-zinc-500 text-xs uppercase tracking-widest animate-pulse">
@@ -238,7 +306,6 @@ export default function PadelTournamentAdmin() {
           const teams = gData?.teams ? Object.entries(gData.teams) : [];
           const matches = gData?.matches ? Object.entries(gData.matches) : [];
 
-          // Standings
           const standingsMap: Record<string, { name: string; p: number; w: number; l: number; diff: number; pts: number }> = {};
           teams.forEach(([, n]) => { standingsMap[n] = { name: n, p: 0, w: 0, l: 0, diff: 0, pts: 0 }; });
           matches.forEach(([, m]: any) => {
@@ -255,7 +322,7 @@ export default function PadelTournamentAdmin() {
           return (
             <div className="space-y-6">
 
-              {/* Live Standings Table */}
+              {/* Standings */}
               {sortedStandings.length > 0 && (
                 <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
                   <h3 className="text-xs font-black uppercase tracking-wider text-cyan-400 mb-4">Live Standings — {group}</h3>
@@ -275,9 +342,11 @@ export default function PadelTournamentAdmin() {
                       {sortedStandings.map((row, idx) => (
                         <tr key={row.name} className={idx === 0 ? 'bg-cyan-500/5' : ''}>
                           <td className="py-2.5 pl-2 font-mono text-zinc-600 font-bold">{idx + 1}</td>
-                          <td className="py-2.5 font-semibold text-zinc-200 flex items-center gap-2">
-                            {idx === 0 && <span className="text-[9px] bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 px-1.5 py-0.5 rounded-full font-black uppercase">Leader</span>}
-                            {row.name}
+                          <td className="py-2.5 font-semibold text-zinc-200">
+                            <div className="flex items-center gap-2">
+                              {idx === 0 && <span className="text-[9px] bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 px-1.5 py-0.5 rounded-full font-black uppercase">Leader</span>}
+                              {row.name}
+                            </div>
                           </td>
                           <td className="py-2.5 text-center text-zinc-400 font-mono">{row.p}</td>
                           <td className="py-2.5 text-center text-emerald-400 font-mono">{row.w}</td>
@@ -299,8 +368,7 @@ export default function PadelTournamentAdmin() {
                 <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-5">
                   <h3 className="text-sm font-black uppercase tracking-wider text-cyan-400">Teams — {group}</h3>
                   <div className="flex gap-2">
-                    <input
-                      type="text" value={newTeamName}
+                    <input type="text" value={newTeamName}
                       onChange={e => setNewTeamName(e.target.value)}
                       onKeyDown={e => e.key === 'Enter' && handleAddTeam(group)}
                       placeholder="Team / player name"
@@ -313,7 +381,7 @@ export default function PadelTournamentAdmin() {
                   </div>
                   <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
                     {teams.length === 0 ? (
-                      <p className="text-zinc-600 text-xs text-center py-6 border border-dashed border-zinc-800 rounded-xl">No teams yet — add your first team above</p>
+                      <p className="text-zinc-600 text-xs text-center py-6 border border-dashed border-zinc-800 rounded-xl">No teams yet</p>
                     ) : teams.map(([key, name]) => (
                       <div key={key} className="flex items-center justify-between bg-zinc-950 border border-zinc-800 px-4 py-2.5 rounded-xl">
                         <span className="text-xs font-semibold text-zinc-200">{name}</span>
@@ -324,9 +392,9 @@ export default function PadelTournamentAdmin() {
                   </div>
                 </div>
 
-                {/* Matches Panel */}
+                {/* Schedule Match Panel */}
                 <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-5">
-                  <h3 className="text-sm font-black uppercase tracking-wider text-cyan-400">Matches — {group}</h3>
+                  <h3 className="text-sm font-black uppercase tracking-wider text-cyan-400">Schedule Match — {group}</h3>
                   <div className="space-y-2">
                     <select value={matchTeam1} onChange={e => setMatchTeam1(e.target.value)}
                       className="w-full bg-zinc-950 border border-zinc-800 focus:border-cyan-500 rounded-xl px-3 py-2.5 text-xs text-white outline-none">
@@ -338,20 +406,51 @@ export default function PadelTournamentAdmin() {
                       <option value="">Select Team 2</option>
                       {teams.map(([k, n]) => <option key={k} value={n}>{n}</option>)}
                     </select>
+
+                    {/* ── Time + Duration fields */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Match Date & Time</label>
+                        <input type="datetime-local" value={matchTime}
+                          onChange={e => setMatchTime(e.target.value)}
+                          className="w-full bg-zinc-950 border border-zinc-800 focus:border-cyan-500 rounded-xl px-3 py-2 text-xs outline-none text-white font-mono" />
+                      </div>
+                      <div>
+                        <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Duration (mins)</label>
+                        <select value={matchDuration} onChange={e => setMatchDuration(e.target.value)}
+                          className="w-full bg-zinc-950 border border-zinc-800 focus:border-cyan-500 rounded-xl px-3 py-2 text-xs text-white outline-none">
+                          <option value="30">30 min</option>
+                          <option value="45">45 min</option>
+                          <option value="60">60 min</option>
+                          <option value="75">75 min</option>
+                          <option value="90">90 min</option>
+                        </select>
+                      </div>
+                    </div>
+
                     <button onClick={() => handleAddMatch(group)}
                       className="w-full bg-zinc-800 hover:bg-zinc-700 text-white px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all">
                       + Schedule Match
                     </button>
                   </div>
 
-                  <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
+                  {/* Match list */}
+                  <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
                     {matches.length === 0 ? (
                       <p className="text-zinc-600 text-xs text-center py-6 border border-dashed border-zinc-800 rounded-xl">No matches scheduled yet</p>
                     ) : matches.map(([matchKey, m]: any) => {
                       const editKey = `${group}__${matchKey}`;
                       const isEditing = editingMatch === editKey;
+                      const status = matchStatus(m.scheduledTime, m.durationMins);
                       return (
-                        <div key={matchKey} className="bg-zinc-950 border border-zinc-800 rounded-xl p-4 space-y-3">
+                        <div key={matchKey} className={`bg-zinc-950 border rounded-xl p-4 space-y-3 ${
+                          status === 'live' ? 'border-red-500/40' : 'border-zinc-800'
+                        }`}>
+                          {/* Time badge */}
+                          {m.scheduledTime && (
+                            <TimeBadge iso={m.scheduledTime} duration={m.durationMins} winner={m.winner} />
+                          )}
+
                           <div className="flex items-center justify-between gap-3">
                             <div className="text-xs space-y-1.5 flex-1">
                               <div className="flex items-center justify-between">
@@ -423,96 +522,62 @@ export default function PadelTournamentAdmin() {
           <div className="space-y-6">
             <h3 className="text-sm font-black uppercase tracking-wider text-amber-400">Knockout Stage</h3>
 
-            {/* Semifinal 1 */}
-            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4">
-              <h4 className="text-xs font-black uppercase tracking-wider text-zinc-300">
-                Semifinal 1 — <span className="text-cyan-400">{groupWinners['Group A'] || 'Winner A'}</span> vs <span className="text-cyan-400">{groupWinners['Group C'] || 'Winner C'}</span>
-              </h4>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">{groupWinners['Group A'] || 'Team A1'} Score</label>
-                  <input type="text" value={semi1Score1} onChange={e => setSemi1Score1(e.target.value)}
-                    className="w-full bg-zinc-950 border border-zinc-800 focus:border-cyan-500 rounded-xl px-3 py-2 text-xs outline-none text-white font-mono" />
-                </div>
-                <div>
-                  <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">{groupWinners['Group C'] || 'Team C1'} Score</label>
-                  <input type="text" value={semi1Score2} onChange={e => setSemi1Score2(e.target.value)}
-                    className="w-full bg-zinc-950 border border-zinc-800 focus:border-cyan-500 rounded-xl px-3 py-2 text-xs outline-none text-white font-mono" />
-                </div>
-              </div>
-              <div>
-                <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Winner</label>
-                <select value={semi1Winner} onChange={e => setSemi1Winner(e.target.value)}
-                  className="w-full bg-zinc-950 border border-zinc-800 focus:border-cyan-500 rounded-xl px-3 py-2 text-xs outline-none text-white">
-                  <option value="">Select winner</option>
-                  {semi1Teams.map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
-              </div>
-              <button onClick={() => handleSaveKnockout('semi1')}
-                className="w-full bg-cyan-500 hover:bg-cyan-400 text-black py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all">
-                Save Semifinal 1
-              </button>
-            </div>
+            {/* Reusable time fields */}
+            {([
+              { label: `Semifinal 1 — ${groupWinners['Group A'] || 'Winner A'} vs ${groupWinners['Group C'] || 'Winner C'}`, stage: 'semi1' as const, score1: semi1Score1, setScore1: setSemi1Score1, score2: semi1Score2, setScore2: setSemi1Score2, winner: semi1Winner, setWinner: setSemi1Winner, time: semi1Time, setTime: setSemi1Time, duration: semi1Duration, setDuration: setSemi1Duration, teams: semi1Teams, color: 'cyan' },
+              { label: `Semifinal 2 — ${groupWinners['Group B'] || 'Winner B'} vs ${groupWinners['Group D'] || 'Winner D'}`, stage: 'semi2' as const, score1: semi2Score1, setScore1: setSemi2Score1, score2: semi2Score2, setScore2: setSemi2Score2, winner: semi2Winner, setWinner: setSemi2Winner, time: semi2Time, setTime: setSemi2Time, duration: semi2Duration, setDuration: setSemi2Duration, teams: semi2Teams, color: 'cyan' },
+              { label: '🏆 Grand Final', stage: 'final' as const, score1: finalScore1, setScore1: setFinalScore1, score2: finalScore2, setScore2: setFinalScore2, winner: finalWinner, setWinner: setFinalWinner, time: finalTime, setTime: setFinalTime, duration: finalDuration, setDuration: setFinalDuration, teams: finalTeams, color: 'amber' },
+            ] as any[]).map((s) => (
+              <div key={s.stage} className={`bg-zinc-900 ${s.stage === 'final' ? 'border-2 border-amber-500/30' : 'border border-zinc-800'} rounded-2xl p-6 space-y-4`}>
+                <h4 className={`text-xs font-black uppercase tracking-wider ${s.stage === 'final' ? 'text-amber-400' : 'text-zinc-300'}`}>{s.label}</h4>
 
-            {/* Semifinal 2 */}
-            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4">
-              <h4 className="text-xs font-black uppercase tracking-wider text-zinc-300">
-                Semifinal 2 — <span className="text-cyan-400">{groupWinners['Group B'] || 'Winner B'}</span> vs <span className="text-cyan-400">{groupWinners['Group D'] || 'Winner D'}</span>
-              </h4>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">{groupWinners['Group B'] || 'Team B1'} Score</label>
-                  <input type="text" value={semi2Score1} onChange={e => setSemi2Score1(e.target.value)}
-                    className="w-full bg-zinc-950 border border-zinc-800 focus:border-cyan-500 rounded-xl px-3 py-2 text-xs outline-none text-white font-mono" />
+                {/* Time scheduling */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Match Date & Time</label>
+                    <input type="datetime-local" value={s.time} onChange={e => s.setTime(e.target.value)}
+                      className={`w-full bg-zinc-950 border border-zinc-800 focus:border-${s.color}-500 rounded-xl px-3 py-2 text-xs outline-none text-white font-mono`} />
+                  </div>
+                  <div>
+                    <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Duration (mins)</label>
+                    <select value={s.duration} onChange={e => s.setDuration(e.target.value)}
+                      className={`w-full bg-zinc-950 border border-zinc-800 focus:border-${s.color}-500 rounded-xl px-3 py-2 text-xs text-white outline-none`}>
+                      <option value="30">30 min</option>
+                      <option value="45">45 min</option>
+                      <option value="60">60 min</option>
+                      <option value="75">75 min</option>
+                      <option value="90">90 min</option>
+                    </select>
+                  </div>
                 </div>
-                <div>
-                  <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">{groupWinners['Group D'] || 'Team D1'} Score</label>
-                  <input type="text" value={semi2Score2} onChange={e => setSemi2Score2(e.target.value)}
-                    className="w-full bg-zinc-950 border border-zinc-800 focus:border-cyan-500 rounded-xl px-3 py-2 text-xs outline-none text-white font-mono" />
-                </div>
-              </div>
-              <div>
-                <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Winner</label>
-                <select value={semi2Winner} onChange={e => setSemi2Winner(e.target.value)}
-                  className="w-full bg-zinc-950 border border-zinc-800 focus:border-cyan-500 rounded-xl px-3 py-2 text-xs outline-none text-white">
-                  <option value="">Select winner</option>
-                  {semi2Teams.map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
-              </div>
-              <button onClick={() => handleSaveKnockout('semi2')}
-                className="w-full bg-cyan-500 hover:bg-cyan-400 text-black py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all">
-                Save Semifinal 2
-              </button>
-            </div>
+                {s.time && <TimeBadge iso={s.time} duration={Number(s.duration)} winner={s.winner} />}
 
-            {/* Grand Final */}
-            <div className="bg-zinc-900 border-2 border-amber-500/30 rounded-2xl p-6 space-y-4">
-              <h4 className="text-xs font-black uppercase tracking-wider text-amber-400">🏆 Grand Final</h4>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">{data.knockouts?.semi1?.winner || 'Semi 1 Winner'} Score</label>
-                  <input type="text" value={finalScore1} onChange={e => setFinalScore1(e.target.value)}
-                    className="w-full bg-zinc-950 border border-zinc-800 focus:border-amber-500 rounded-xl px-3 py-2 text-xs outline-none text-white font-mono" />
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">{s.teams[0] || 'Team 1'} Score</label>
+                    <input type="text" value={s.score1} onChange={e => s.setScore1(e.target.value)}
+                      className={`w-full bg-zinc-950 border border-zinc-800 focus:border-${s.color}-500 rounded-xl px-3 py-2 text-xs outline-none text-white font-mono`} />
+                  </div>
+                  <div>
+                    <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">{s.teams[1] || 'Team 2'} Score</label>
+                    <input type="text" value={s.score2} onChange={e => s.setScore2(e.target.value)}
+                      className={`w-full bg-zinc-950 border border-zinc-800 focus:border-${s.color}-500 rounded-xl px-3 py-2 text-xs outline-none text-white font-mono`} />
+                  </div>
                 </div>
                 <div>
-                  <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">{data.knockouts?.semi2?.winner || 'Semi 2 Winner'} Score</label>
-                  <input type="text" value={finalScore2} onChange={e => setFinalScore2(e.target.value)}
-                    className="w-full bg-zinc-950 border border-zinc-800 focus:border-amber-500 rounded-xl px-3 py-2 text-xs outline-none text-white font-mono" />
+                  <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">{s.stage === 'final' ? 'Champion' : 'Winner'}</label>
+                  <select value={s.winner} onChange={e => s.setWinner(e.target.value)}
+                    className={`w-full bg-zinc-950 border border-zinc-800 focus:border-${s.color}-500 rounded-xl px-3 py-2 text-xs outline-none text-white`}>
+                    <option value="">Select {s.stage === 'final' ? 'champion' : 'winner'}</option>
+                    {s.teams.map((t: string) => <option key={t} value={t}>{t}</option>)}
+                  </select>
                 </div>
+                <button onClick={() => handleSaveKnockout(s.stage)}
+                  className={`w-full ${s.stage === 'final' ? 'bg-amber-500 hover:bg-amber-400' : 'bg-cyan-500 hover:bg-cyan-400'} text-black py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all`}>
+                  {s.stage === 'final' ? '🏆 Save Grand Final' : `Save ${s.stage === 'semi1' ? 'Semifinal 1' : 'Semifinal 2'}`}
+                </button>
               </div>
-              <div>
-                <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Champion</label>
-                <select value={finalWinner} onChange={e => setFinalWinner(e.target.value)}
-                  className="w-full bg-zinc-950 border border-zinc-800 focus:border-amber-500 rounded-xl px-3 py-2 text-xs outline-none text-white">
-                  <option value="">Select champion</option>
-                  {finalTeams.map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
-              </div>
-              <button onClick={() => handleSaveKnockout('final')}
-                className="w-full bg-amber-500 hover:bg-amber-400 text-black py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all">
-                🏆 Save Grand Final
-              </button>
-            </div>
+            ))}
           </div>
         )}
 
