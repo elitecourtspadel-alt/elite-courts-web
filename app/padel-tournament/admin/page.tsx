@@ -33,6 +33,7 @@ interface Match {
   winner: string;
   scheduledTime?: string;   // time only, e.g. "14:30" (tournament runs in a single day)
   durationMins?: number;    // expected match duration in minutes
+  matchNumber?: number;     // display order / label, e.g. Match 1, Match 2...
 }
 
 interface GroupData {
@@ -90,6 +91,7 @@ export default function PadelTournamentAdmin() {
   const [newTeamName, setNewTeamName] = useState('');
   const [matchTeam1, setMatchTeam1] = useState('');
   const [matchTeam2, setMatchTeam2] = useState('');
+  const [matchNumber, setMatchNumber] = useState('');
   const [matchTime, setMatchTime] = useState('');
   const [matchDuration, setMatchDuration] = useState('45');
 
@@ -161,13 +163,15 @@ export default function PadelTournamentAdmin() {
 
   const handleAddMatch = async (group: string) => {
     if (!matchTeam1.trim() || !matchTeam2.trim()) return;
+    const existingCount = data.groups?.[group]?.matches ? Object.keys(data.groups[group].matches).length : 0;
     await push(ref(db, `${TOURNEY_PATH}/groups/${group}/matches`), {
       team1: matchTeam1.trim(), team2: matchTeam2.trim(),
       score1: '', score2: '', winner: '',
       scheduledTime: matchTime || '',
       durationMins: Number(matchDuration) || 45,
+      matchNumber: Number(matchNumber) || existingCount + 1,
     });
-    setMatchTeam1(''); setMatchTeam2(''); setMatchTime('');
+    setMatchTeam1(''); setMatchTeam2(''); setMatchTime(''); setMatchNumber('');
   };
 
   const handleDeleteMatch = async (group: string, matchKey: string) => {
@@ -409,8 +413,15 @@ export default function PadelTournamentAdmin() {
                       {teams.map(([k, n]) => <option key={k} value={n}>{n}</option>)}
                     </select>
 
-                    {/* ── Time + Duration fields */}
-                    <div className="grid grid-cols-2 gap-2">
+                    {/* ── Match # + Time + Duration fields */}
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Match #</label>
+                        <input type="number" min="1" value={matchNumber}
+                          onChange={e => setMatchNumber(e.target.value)}
+                          placeholder={String(matches.length + 1)}
+                          className="w-full bg-zinc-950 border border-zinc-800 focus:border-cyan-500 rounded-xl px-3 py-2 text-xs outline-none text-white font-mono" />
+                      </div>
                       <div>
                         <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Match Time</label>
                         <input type="time" value={matchTime}
@@ -421,6 +432,7 @@ export default function PadelTournamentAdmin() {
                         <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Duration (mins)</label>
                         <select value={matchDuration} onChange={e => setMatchDuration(e.target.value)}
                           className="w-full bg-zinc-950 border border-zinc-800 focus:border-cyan-500 rounded-xl px-3 py-2 text-xs text-white outline-none">
+                          <option value="20">20 min</option>
                           <option value="30">30 min</option>
                           <option value="45">45 min</option>
                           <option value="60">60 min</option>
@@ -440,7 +452,7 @@ export default function PadelTournamentAdmin() {
                   <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
                     {matches.length === 0 ? (
                       <p className="text-zinc-600 text-xs text-center py-6 border border-dashed border-zinc-800 rounded-xl">No matches scheduled yet</p>
-                    ) : matches.map(([matchKey, m]: any) => {
+                    ) : [...matches].sort(([, a]: any, [, b]: any) => (a.matchNumber || 0) - (b.matchNumber || 0)).map(([matchKey, m]: any) => {
                       const editKey = `${group}__${matchKey}`;
                       const isEditing = editingMatch === editKey;
                       const status = matchStatus(m.scheduledTime, m.durationMins);
@@ -448,6 +460,9 @@ export default function PadelTournamentAdmin() {
                         <div key={matchKey} className={`bg-zinc-950 border rounded-xl p-4 space-y-3 ${
                           status === 'live' ? 'border-red-500/40' : 'border-zinc-800'
                         }`}>
+                          <div className="text-[10px] font-mono font-bold text-zinc-500 uppercase tracking-wider">
+                            {m.matchNumber ? `Match ${m.matchNumber}` : 'Match'}
+                          </div>
                           {/* Time badge */}
                           {m.scheduledTime && (
                             <TimeBadge iso={m.scheduledTime} duration={m.durationMins} winner={m.winner} />
@@ -544,6 +559,7 @@ export default function PadelTournamentAdmin() {
                     <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Duration (mins)</label>
                     <select value={s.duration} onChange={e => s.setDuration(e.target.value)}
                       className={`w-full bg-zinc-950 border border-zinc-800 focus:border-${s.color}-500 rounded-xl px-3 py-2 text-xs text-white outline-none`}>
+                      <option value="20">20 min</option>
                       <option value="30">30 min</option>
                       <option value="45">45 min</option>
                       <option value="60">60 min</option>
