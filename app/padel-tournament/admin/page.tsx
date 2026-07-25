@@ -238,8 +238,8 @@ export default function PadelTournamentAdmin() {
     }
   });
 
-  const semi1Teams = [groupWinners['Group A'], groupWinners['Group C']].filter(Boolean);
-  const semi2Teams = [groupWinners['Group B'], groupWinners['Group D']].filter(Boolean);
+  const semi1Teams = [groupWinners['Group A'], groupWinners['Group D']].filter(Boolean);
+  const semi2Teams = [groupWinners['Group B'], groupWinners['Group C']].filter(Boolean);
   const finalTeams = [data.knockouts?.semi1?.winner, data.knockouts?.semi2?.winner].filter(Boolean) as string[];
   const TABS = [...GROUPS, 'Knockouts', 'Config'];
 
@@ -541,8 +541,8 @@ export default function PadelTournamentAdmin() {
 
             {/* Reusable time fields */}
             {([
-              { label: `Semifinal 1 — ${groupWinners['Group A'] || 'Winner A'} vs ${groupWinners['Group C'] || 'Winner C'}`, stage: 'semi1' as const, score1: semi1Score1, setScore1: setSemi1Score1, score2: semi1Score2, setScore2: setSemi1Score2, winner: semi1Winner, setWinner: setSemi1Winner, time: semi1Time, setTime: setSemi1Time, duration: semi1Duration, setDuration: setSemi1Duration, teams: semi1Teams, color: 'cyan' },
-              { label: `Semifinal 2 — ${groupWinners['Group B'] || 'Winner B'} vs ${groupWinners['Group D'] || 'Winner D'}`, stage: 'semi2' as const, score1: semi2Score1, setScore1: setSemi2Score1, score2: semi2Score2, setScore2: setSemi2Score2, winner: semi2Winner, setWinner: setSemi2Winner, time: semi2Time, setTime: setSemi2Time, duration: semi2Duration, setDuration: setSemi2Duration, teams: semi2Teams, color: 'cyan' },
+              { label: `Semifinal 1 — ${groupWinners['Group A'] || 'Winner A'} vs ${groupWinners['Group D'] || 'Winner D'}`, stage: 'semi1' as const, score1: semi1Score1, setScore1: setSemi1Score1, score2: semi1Score2, setScore2: setSemi1Score2, winner: semi1Winner, setWinner: setSemi1Winner, time: semi1Time, setTime: setSemi1Time, duration: semi1Duration, setDuration: setSemi1Duration, teams: semi1Teams, color: 'cyan' },
+              { label: `Semifinal 2 — ${groupWinners['Group B'] || 'Winner B'} vs ${groupWinners['Group C'] || 'Winner C'}`, stage: 'semi2' as const, score1: semi2Score1, setScore1: setSemi2Score1, score2: semi2Score2, setScore2: setSemi2Score2, winner: semi2Winner, setWinner: setSemi2Winner, time: semi2Time, setTime: setSemi2Time, duration: semi2Duration, setDuration: setSemi2Duration, teams: semi2Teams, color: 'cyan' },
               { label: '🏆 Grand Final', stage: 'final' as const, score1: finalScore1, setScore1: setFinalScore1, score2: finalScore2, setScore2: setFinalScore2, winner: finalWinner, setWinner: setFinalWinner, time: finalTime, setTime: setFinalTime, duration: finalDuration, setDuration: setFinalDuration, teams: finalTeams, color: 'amber' },
             ] as any[]).map((s) => (
               <div key={s.stage} className={`bg-zinc-900 ${s.stage === 'final' ? 'border-2 border-amber-500/30' : 'border border-zinc-800'} rounded-2xl p-6 space-y-4`}>
