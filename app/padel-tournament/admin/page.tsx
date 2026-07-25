@@ -19,6 +19,11 @@ const db = getDatabase(app);
 const GROUPS = ['Group A', 'Group B', 'Group C', 'Group D'];
 const TOURNEY_PATH = 'tournaments/padel_season_1';
 
+// ⚠️ The whole tournament happens on a single day — update this once to that date.
+// Times are stored as plain "HH:MM" and combined with this date only for internal
+// live/upcoming/past calculations. It is never shown to admins or viewers.
+const TOURNAMENT_DATE = '2026-07-25';
+
 interface Match {
   id: string;
   team1: string;
@@ -26,7 +31,7 @@ interface Match {
   score1: string;
   score2: string;
   winner: string;
-  scheduledTime?: string;   // ISO string e.g. "2026-07-25T14:30"
+  scheduledTime?: string;   // time only, e.g. "14:30" (tournament runs in a single day)
   durationMins?: number;    // expected match duration in minutes
 }
 
@@ -49,27 +54,26 @@ interface TournamentData {
   };
 }
 
-function formatTime(iso: string) {
-  if (!iso) return '';
-  const d = new Date(iso);
+function toDateTime(time: string) {
+  if (!time) return '';
+  return `${TOURNAMENT_DATE}T${time}`;
+}
+
+function formatTime(time: string) {
+  if (!time) return '';
+  const d = new Date(toDateTime(time));
   return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
 }
 
-function formatDate(iso: string) {
-  if (!iso) return '';
-  const d = new Date(iso);
-  return d.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' });
-}
-
-function endTime(iso: string, mins: number) {
-  if (!iso || !mins) return '';
-  const d = new Date(new Date(iso).getTime() + mins * 60000);
+function endTime(time: string, mins: number) {
+  if (!time || !mins) return '';
+  const d = new Date(new Date(toDateTime(time)).getTime() + mins * 60000);
   return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
 }
 
-function matchStatus(iso?: string, durationMins?: number) {
-  if (!iso) return 'unscheduled';
-  const start = new Date(iso).getTime();
+function matchStatus(time?: string, durationMins?: number) {
+  if (!time) return 'unscheduled';
+  const start = new Date(toDateTime(time)).getTime();
   const end = start + (durationMins || 45) * 60000;
   const now = Date.now();
   if (now < start) return 'upcoming';
@@ -246,8 +250,6 @@ export default function PadelTournamentAdmin() {
         'bg-cyan-500/10 border-cyan-500/20 text-cyan-400'
       }`}>
         {status === 'live' && <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse inline-block" />}
-        <span>{formatDate(iso)}</span>
-        <span>·</span>
         <span>{formatTime(iso)}</span>
         {duration ? <><span>→</span><span>{endTime(iso, duration)}</span></> : null}
         {status === 'live' && !winner && <span className="text-red-400 ml-1">LIVE</span>}
@@ -410,7 +412,7 @@ export default function PadelTournamentAdmin() {
                     {/* ── Time + Duration fields */}
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Match Date & Time</label>
+                        <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Match Time</label>
                         <input type="time" value={matchTime}
                           onChange={e => setMatchTime(e.target.value)}
                           className="w-full bg-zinc-950 border border-zinc-800 focus:border-cyan-500 rounded-xl px-3 py-2 text-xs outline-none text-white font-mono" />
@@ -534,8 +536,8 @@ export default function PadelTournamentAdmin() {
                 {/* Time scheduling */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Match Date & Time</label>
-                    <input type="datetime-local" value={s.time} onChange={e => s.setTime(e.target.value)}
+                    <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Match Time</label>
+                    <input type="time" value={s.time} onChange={e => s.setTime(e.target.value)}
                       className={`w-full bg-zinc-950 border border-zinc-800 focus:border-${s.color}-500 rounded-xl px-3 py-2 text-xs outline-none text-white font-mono`} />
                   </div>
                   <div>
