@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { initializeApp, getApps } from "firebase/app";
 import { getDatabase, ref, onValue } from "firebase/database";
-import { Trophy, GitFork, Youtube, Sparkles } from "lucide-react";
+import { Trophy, GitFork, Youtube, Sparkles, Clock } from "lucide-react";
 
 const DEFAULT_WINNER_IMAGE = "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=1200";
 const DEFAULT_CEREMONY_IMAGE = "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?q=80&w=1200";
@@ -19,9 +19,53 @@ const firebaseConfig = {
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
 
+function formatTime(iso: string) {
+  if (!iso) return '';
+  return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+}
+function formatDate(iso: string) {
+  if (!iso) return '';
+  return new Date(iso).toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' });
+}
+function endTime(iso: string, mins: number) {
+  if (!iso || !mins) return '';
+  return new Date(new Date(iso).getTime() + mins * 60000)
+    .toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+}
+function matchStatus(iso?: string, durationMins?: number) {
+  if (!iso) return 'unscheduled';
+  const start = new Date(iso).getTime();
+  const end = start + (durationMins || 45) * 60000;
+  const now = Date.now();
+  if (now < start) return 'upcoming';
+  if (now >= start && now <= end) return 'live';
+  return 'past';
+}
+
+function TimeBadge({ iso, duration, winner }: { iso?: string; duration?: number; winner?: string }) {
+  if (!iso) return null;
+  const status = matchStatus(iso, duration);
+  return (
+    <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold border ${
+      status === 'live' ? 'bg-red-500/10 border-red-500/30 text-red-400' :
+      status === 'past' ? 'bg-zinc-800/60 border-zinc-700 text-zinc-500' :
+      'bg-cyan-500/10 border-cyan-500/20 text-cyan-400'
+    }`}>
+      {status === 'live' && <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse inline-block" />}
+      {status === 'upcoming' && <Clock className="w-3 h-3" />}
+      <span>{formatDate(iso)}</span>
+      <span>·</span>
+      <span>{formatTime(iso)}</span>
+      {duration ? <><span>→</span><span>{endTime(iso, duration)}</span></> : null}
+      {status === 'live' && !winner && <span className="ml-1">LIVE</span>}
+    </div>
+  );
+}
+
 export default function PadelTournamentView() {
   const [tournamentData, setTournamentData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [, setTick] = useState(0);
 
   const requiredGroups = ['Group A', 'Group B', 'Group C', 'Group D'];
 
@@ -32,7 +76,9 @@ export default function PadelTournamentView() {
       setTournamentData(snapshot.val());
       setLoading(false);
     }, () => setLoading(false));
-    return () => unsubscribe();
+    // Re-render every minute so LIVE badges update automatically
+    const interval = setInterval(() => setTick(t => t + 1), 60000);
+    return () => { unsubscribe(); clearInterval(interval); };
   }, []);
 
   const groupWinners: Record<string, string> = {
@@ -45,12 +91,10 @@ export default function PadelTournamentView() {
       const groupData = tournamentData.groups[groupName];
       const teamsRaw = groupData?.teams ? (Object.values(groupData.teams) as string[]) : [];
       const matchesRaw = groupData?.matches ? Object.entries(groupData.matches) : [];
-      const hasMatches = matchesRaw.length > 0;
-      const allMatchesFinished = hasMatches && matchesRaw.every((match: any) => {
+      const allMatchesFinished = matchesRaw.length > 0 && matchesRaw.every((match: any) => {
         const mData = match[1];
         return mData && mData.winner && mData.winner.trim() !== "";
       });
-
       if (allMatchesFinished) {
         const standingsMap: Record<string, { name: string; pts: number; diff: number }> = {};
         teamsRaw.forEach((tName) => { standingsMap[tName] = { name: tName, pts: 0, diff: 0 }; });
@@ -70,9 +114,9 @@ export default function PadelTournamentView() {
     });
   }
 
-  const semi1 = tournamentData?.knockouts?.semi1 || { winner: "", score1: "", score2: "" };
-  const semi2 = tournamentData?.knockouts?.semi2 || { winner: "", score1: "", score2: "" };
-  const finalMatch = tournamentData?.knockouts?.final || { winner: "", score1: "", score2: "" };
+  const semi1 = tournamentData?.knockouts?.semi1 || {};
+  const semi2 = tournamentData?.knockouts?.semi2 || {};
+  const finalMatch = tournamentData?.knockouts?.final || {};
   const streamLink = tournamentData?.config?.streamLink || "";
   const winnerImageUrl = tournamentData?.config?.championPhotoUrl || DEFAULT_WINNER_IMAGE;
   const ceremonyImageUrl = tournamentData?.config?.closingPhotoUrl || DEFAULT_CEREMONY_IMAGE;
@@ -83,16 +127,13 @@ export default function PadelTournamentView() {
   return (
     <div className="p-4 sm:p-10 text-white bg-zinc-950 min-h-screen space-y-10">
 
-      {/* Header */}
       <div className="flex flex-col items-center justify-center space-y-4">
         <div className="flex items-center gap-2">
           <span className="text-[10px] font-black uppercase tracking-widest text-cyan-500 bg-cyan-500/10 border border-cyan-500/20 px-3 py-1 rounded-full">Padel</span>
           <span className="text-[10px] text-zinc-600 font-mono">Season 1</span>
         </div>
         <div>
-          <h1 className="text-3xl sm:text-4xl font-bold mb-2 text-cyan-400 text-center tracking-tight">
-            Elite Courts Padel Tournament
-          </h1>
+          <h1 className="text-3xl sm:text-4xl font-bold mb-2 text-cyan-400 text-center tracking-tight">Elite Courts Padel Tournament</h1>
           <p className="text-center text-zinc-400 text-sm">Live Brackets & Standings</p>
         </div>
         {streamLink && (
@@ -115,9 +156,7 @@ export default function PadelTournamentView() {
                 <Sparkles className="w-4 h-4" /> Champions Spotlight <Sparkles className="w-4 h-4" />
               </div>
               <div>
-                <h2 className="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-sky-200 to-cyan-500 tracking-tight">
-                  {finalMatch.winner}
-                </h2>
+                <h2 className="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-sky-200 to-cyan-500 tracking-tight">{finalMatch.winner}</h2>
                 <p className="text-xs text-zinc-400 mt-1 uppercase tracking-wider font-mono">Padel Season 1 Champions</p>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 max-w-5xl mx-auto">
@@ -144,7 +183,6 @@ export default function PadelTournamentView() {
               const teamsRaw = groupData?.teams ? (Object.values(groupData.teams) as string[]) : [];
               const matchesRaw = groupData?.matches ? Object.entries(groupData.matches) : [];
               const standingsMap: Record<string, { name: string; p: number; w: number; l: number; diff: number; pts: number }> = {};
-
               teamsRaw.forEach((tName) => { standingsMap[tName] = { name: tName, p: 0, w: 0, l: 0, diff: 0, pts: 0 }; });
               matchesRaw.forEach((match: any) => {
                 const mData = match[1];
@@ -157,7 +195,6 @@ export default function PadelTournamentView() {
                   else if (win === t2) { standingsMap[t2].w += 1; standingsMap[t2].pts += 3; standingsMap[t1].l += 1; }
                 }
               });
-
               const sortedStandings = Object.values(standingsMap).sort((a, b) => b.pts - a.pts || b.diff - a.diff);
 
               return (
@@ -201,17 +238,29 @@ export default function PadelTournamentView() {
                     </table>
                   )}
 
+                  {/* Match cards with time */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                     {matchesRaw.length === 0 ? (
                       <p className="text-zinc-700 text-xs text-center py-4 col-span-2">No matches scheduled yet</p>
                     ) : matchesRaw.map((match: any) => {
                       const matchId = match[0]; const mData = match[1];
+                      const status = matchStatus(mData.scheduledTime, mData.durationMins);
                       return (
-                        <div key={matchId} className="bg-zinc-950 border border-zinc-800/80 p-3 rounded-xl flex flex-col justify-between space-y-2">
+                        <div key={matchId} className={`bg-zinc-950 border p-3 rounded-xl flex flex-col justify-between space-y-2 ${
+                          status === 'live' ? 'border-red-500/40' : 'border-zinc-800/80'
+                        }`}>
                           <div className="flex items-center justify-between text-[10px] text-zinc-500 font-mono border-b border-zinc-900 pb-1">
                             <span>{matchId.toUpperCase()}</span>
-                            {mData.winner ? <span className="text-emerald-400 font-bold">FINAL</span> : <span className="text-amber-500 animate-pulse">PENDING</span>}
+                            {mData.winner ? <span className="text-emerald-400 font-bold">FINAL</span> :
+                             status === 'live' ? <span className="text-red-400 font-bold animate-pulse">LIVE 🔴</span> :
+                             <span className="text-amber-500 animate-pulse">PENDING</span>}
                           </div>
+
+                          {/* Time badge on public view */}
+                          {mData.scheduledTime && (
+                            <TimeBadge iso={mData.scheduledTime} duration={mData.durationMins} winner={mData.winner} />
+                          )}
+
                           <div className="space-y-1 text-xs">
                             <div className="flex justify-between items-center">
                               <span className={mData.winner === mData.team1 ? 'text-cyan-400 font-bold' : 'text-zinc-300'}>{mData.team1}</span>
@@ -242,51 +291,38 @@ export default function PadelTournamentView() {
               <div className="space-y-8 lg:col-span-1">
                 <div className="text-center font-bold text-[10px] tracking-widest text-zinc-500 uppercase mb-2">Semifinals</div>
 
-                <div className="bg-zinc-950 border border-zinc-800 p-4 rounded-2xl space-y-3 shadow-md">
-                  <div className="flex justify-between font-mono text-[9px] text-zinc-500 border-b border-zinc-900 pb-1">
-                    <span>SEMIFINAL 1</span>
-                    {semi1.winner ? <span className="text-emerald-400 font-bold">FINAL</span> : isSemi1Ready ? <span className="text-red-500 font-bold animate-pulse">LIVE 🔴</span> : <span className="text-amber-500/50">PENDING</span>}
-                  </div>
-                  <div className="space-y-2 text-xs">
-                    <div className="flex justify-between items-center">
-                      <span className={semi1.winner === groupWinners['Group A'] ? 'text-cyan-400 font-bold' : 'text-zinc-300'}>{groupWinners['Group A']}</span>
-                      <div className="flex items-center gap-1.5 font-mono">
-                        {semi1.winner && <span className="bg-zinc-900 text-zinc-400 px-1 rounded text-[10px]">{semi1.score1}</span>}
-                        <span className="text-[10px] text-zinc-600">(A1)</span>
-                      </div>
+                {[
+                  { label: 'SEMIFINAL 1', data: semi1, ga: groupWinners['Group A'], gc: groupWinners['Group C'], tagA: 'A1', tagC: 'C1', ready: isSemi1Ready },
+                  { label: 'SEMIFINAL 2', data: semi2, ga: groupWinners['Group B'], gc: groupWinners['Group D'], tagA: 'B1', tagC: 'D1', ready: isSemi2Ready },
+                ].map((s) => (
+                  <div key={s.label} className={`bg-zinc-950 border p-4 rounded-2xl space-y-3 shadow-md ${
+                    matchStatus(s.data.scheduledTime, s.data.durationMins) === 'live' ? 'border-red-500/40' : 'border-zinc-800'
+                  }`}>
+                    <div className="flex justify-between font-mono text-[9px] text-zinc-500 border-b border-zinc-900 pb-1">
+                      <span>{s.label}</span>
+                      {s.data.winner ? <span className="text-emerald-400 font-bold">FINAL</span> :
+                       matchStatus(s.data.scheduledTime, s.data.durationMins) === 'live' ? <span className="text-red-500 font-bold animate-pulse">LIVE 🔴</span> :
+                       s.ready ? <span className="text-amber-500/50">READY</span> : <span className="text-amber-500/50">PENDING</span>}
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className={semi1.winner === groupWinners['Group C'] ? 'text-cyan-400 font-bold' : 'text-zinc-300'}>{groupWinners['Group C']}</span>
-                      <div className="flex items-center gap-1.5 font-mono">
-                        {semi1.winner && <span className="bg-zinc-900 text-zinc-400 px-1 rounded text-[10px]">{semi1.score2}</span>}
-                        <span className="text-[10px] text-zinc-600">(C1)</span>
+                    {s.data.scheduledTime && <TimeBadge iso={s.data.scheduledTime} duration={s.data.durationMins} winner={s.data.winner} />}
+                    <div className="space-y-2 text-xs">
+                      <div className="flex justify-between items-center">
+                        <span className={s.data.winner === s.ga ? 'text-cyan-400 font-bold' : 'text-zinc-300'}>{s.ga}</span>
+                        <div className="flex items-center gap-1.5 font-mono">
+                          {s.data.winner && <span className="bg-zinc-900 text-zinc-400 px-1 rounded text-[10px]">{s.data.score1}</span>}
+                          <span className="text-[10px] text-zinc-600">({s.tagA})</span>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-zinc-950 border border-zinc-800 p-4 rounded-2xl space-y-3 shadow-md">
-                  <div className="flex justify-between font-mono text-[9px] text-zinc-500 border-b border-zinc-900 pb-1">
-                    <span>SEMIFINAL 2</span>
-                    {semi2.winner ? <span className="text-emerald-400 font-bold">FINAL</span> : isSemi2Ready ? <span className="text-red-500 font-bold animate-pulse">LIVE 🔴</span> : <span className="text-amber-500/50">PENDING</span>}
-                  </div>
-                  <div className="space-y-2 text-xs">
-                    <div className="flex justify-between items-center">
-                      <span className={semi2.winner === groupWinners['Group B'] ? 'text-cyan-400 font-bold' : 'text-zinc-300'}>{groupWinners['Group B']}</span>
-                      <div className="flex items-center gap-1.5 font-mono">
-                        {semi2.winner && <span className="bg-zinc-900 text-zinc-400 px-1 rounded text-[10px]">{semi2.score1}</span>}
-                        <span className="text-[10px] text-zinc-600">(B1)</span>
-                      </div>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className={semi2.winner === groupWinners['Group D'] ? 'text-cyan-400 font-bold' : 'text-zinc-300'}>{groupWinners['Group D']}</span>
-                      <div className="flex items-center gap-1.5 font-mono">
-                        {semi2.winner && <span className="bg-zinc-900 text-zinc-400 px-1 rounded text-[10px]">{semi2.score2}</span>}
-                        <span className="text-[10px] text-zinc-600">(D1)</span>
+                      <div className="flex justify-between items-center">
+                        <span className={s.data.winner === s.gc ? 'text-cyan-400 font-bold' : 'text-zinc-300'}>{s.gc}</span>
+                        <div className="flex items-center gap-1.5 font-mono">
+                          {s.data.winner && <span className="bg-zinc-900 text-zinc-400 px-1 rounded text-[10px]">{s.data.score2}</span>}
+                          <span className="text-[10px] text-zinc-600">({s.tagC})</span>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
+                ))}
               </div>
 
               <div className="lg:col-span-1 flex flex-col justify-center space-y-3">
@@ -294,8 +330,11 @@ export default function PadelTournamentView() {
                 <div className="bg-zinc-900 border-2 border-amber-500/30 p-5 rounded-2xl space-y-4 bg-gradient-to-b from-zinc-900 to-amber-950/10 shadow-xl">
                   <div className="flex justify-between font-mono text-[9px] text-amber-400 font-bold border-b border-zinc-800 pb-1">
                     <span>CHAMPIONSHIP MATCH</span>
-                    {finalMatch.winner ? <span className="text-emerald-400">FINAL</span> : (semi1.winner && semi2.winner) ? <span className="text-red-500 animate-pulse">LIVE 🔴</span> : <span className="text-amber-500/50 font-normal">PENDING</span>}
+                    {finalMatch.winner ? <span className="text-emerald-400">FINAL</span> :
+                     matchStatus(finalMatch.scheduledTime, finalMatch.durationMins) === 'live' ? <span className="text-red-500 animate-pulse">LIVE 🔴</span> :
+                     <span className="text-amber-500/50 font-normal">PENDING</span>}
                   </div>
+                  {finalMatch.scheduledTime && <TimeBadge iso={finalMatch.scheduledTime} duration={finalMatch.durationMins} winner={finalMatch.winner} />}
                   <div className="space-y-2.5 text-sm">
                     <div className="flex justify-between items-center">
                       <span className={finalMatch.winner && finalMatch.winner === semi1.winner ? 'text-amber-400 font-bold' : 'text-zinc-400'}>{semi1.winner || "Winner Semifinal 1"}</span>
