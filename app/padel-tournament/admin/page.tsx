@@ -22,7 +22,7 @@ const TOURNEY_PATH = 'tournaments/padel_season_1';
 // ⚠️ The whole tournament happens on a single day — update this once to that date.
 // Times are stored as plain "HH:MM" and combined with this date only for internal
 // live/upcoming/past calculations. It is never shown to admins or viewers.
-const TOURNAMENT_DATE = '2026-07-25';
+const TOURNAMENT_DATE = '2026-07-26';
 
 interface Match {
   id: string;
