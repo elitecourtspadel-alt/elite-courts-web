@@ -22,7 +22,7 @@ const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
 // ⚠️ The whole tournament happens on a single day — keep this in sync with the
 // same constant in the admin file. Times are stored as plain "HH:MM" and combined
 // with this date only for internal live/upcoming/past calculations; it's never shown.
-const TOURNAMENT_DATE = '2026-07-25';
+const TOURNAMENT_DATE = '2026-07-26';
 
 function toDateTime(time: string) {
   if (!time) return '';
@@ -146,7 +146,7 @@ export default function PadelTournamentView() {
         {streamLink && (
           <a href={streamLink} target="_blank" rel="noopener noreferrer"
             className="flex items-center gap-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 px-5 py-2 rounded-full text-xs transition-all border border-zinc-800">
-            <Youtube className="w-4 h-4 text-red-500" /> Watch Event Playbacks
+            <Youtube className="w-4 h-4 text-red-500" /> Watch Live Stream
           </a>
         )}
       </div>
