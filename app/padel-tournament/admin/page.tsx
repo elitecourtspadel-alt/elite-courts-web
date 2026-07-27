@@ -19,7 +19,7 @@ const db = getDatabase(app);
 const GROUPS = ['Group A', 'Group B', 'Group C', 'Group D'];
 const TOURNEY_PATH = 'tournaments/padel_season_1';
 
-// ⚠️ The whole tournament happens on a single day — update this once to that date.
+// The whole tournament happens on a single day - update this once to that date.
 // Times are stored as plain "HH:MM" and combined with this date only for internal
 // live/upcoming/past calculations. It is never shown to admins or viewers.
 const TOURNAMENT_DATE = '2026-07-26';
@@ -41,12 +41,26 @@ interface GroupData {
   matches: Record<string, Omit<Match, 'id'>>;
 }
 
+interface KnockoutMatch {
+  team1?: string;
+  team2?: string;
+  winner: string;
+  score1: string;
+  score2: string;
+  scheduledTime?: string;
+  durationMins?: number;
+}
+
 interface TournamentData {
   groups?: Record<string, GroupData>;
   knockouts?: {
-    semi1?: { winner: string; score1: string; score2: string; scheduledTime?: string; durationMins?: number };
-    semi2?: { winner: string; score1: string; score2: string; scheduledTime?: string; durationMins?: number };
-    final?: { winner: string; score1: string; score2: string; scheduledTime?: string; durationMins?: number };
+    qf1?: KnockoutMatch;
+    qf2?: KnockoutMatch;
+    qf3?: KnockoutMatch;
+    qf4?: KnockoutMatch;
+    semi1?: KnockoutMatch;
+    semi2?: KnockoutMatch;
+    final?: KnockoutMatch;
   };
   config?: {
     streamLink?: string;
@@ -82,6 +96,27 @@ function matchStatus(time?: string, durationMins?: number) {
   return 'past';
 }
 
+type KOStage = 'qf1' | 'qf2' | 'qf3' | 'qf4' | 'semi1' | 'semi2' | 'final';
+
+interface KOFormState {
+  team1: string;
+  team2: string;
+  score1: string;
+  score2: string;
+  winner: string;
+  time: string;
+  duration: string;
+}
+
+const makeEmptyKO = (duration: string): KOFormState => ({
+  team1: '', team2: '', score1: '', score2: '', winner: '', time: '', duration,
+});
+
+const KO_LABELS: Record<KOStage, string> = {
+  qf1: 'Quarterfinal 1', qf2: 'Quarterfinal 2', qf3: 'Quarterfinal 3', qf4: 'Quarterfinal 4',
+  semi1: 'Semifinal 1', semi2: 'Semifinal 2', final: 'Grand Final',
+};
+
 export default function PadelTournamentAdmin() {
   const [data, setData] = useState<TournamentData>({});
   const [loading, setLoading] = useState(true);
@@ -100,21 +135,15 @@ export default function PadelTournamentAdmin() {
   const [resultScore2, setResultScore2] = useState('');
   const [resultWinner, setResultWinner] = useState('');
 
-  const [semi1Score1, setSemi1Score1] = useState('');
-  const [semi1Score2, setSemi1Score2] = useState('');
-  const [semi1Winner, setSemi1Winner] = useState('');
-  const [semi1Time, setSemi1Time] = useState('');
-  const [semi1Duration, setSemi1Duration] = useState('45');
-  const [semi2Score1, setSemi2Score1] = useState('');
-  const [semi2Score2, setSemi2Score2] = useState('');
-  const [semi2Winner, setSemi2Winner] = useState('');
-  const [semi2Time, setSemi2Time] = useState('');
-  const [semi2Duration, setSemi2Duration] = useState('45');
-  const [finalScore1, setFinalScore1] = useState('');
-  const [finalScore2, setFinalScore2] = useState('');
-  const [finalWinner, setFinalWinner] = useState('');
-  const [finalTime, setFinalTime] = useState('');
-  const [finalDuration, setFinalDuration] = useState('60');
+  const [ko, setKo] = useState<Record<KOStage, KOFormState>>({
+    qf1: makeEmptyKO('45'),
+    qf2: makeEmptyKO('45'),
+    qf3: makeEmptyKO('45'),
+    qf4: makeEmptyKO('45'),
+    semi1: makeEmptyKO('45'),
+    semi2: makeEmptyKO('45'),
+    final: makeEmptyKO('60'),
+  });
 
   const [streamLink, setStreamLink] = useState('');
   const [championPhoto, setChampionPhoto] = useState('');
@@ -127,21 +156,27 @@ export default function PadelTournamentAdmin() {
     const unsub = onValue(tourneyRef, (snap) => {
       const val = snap.val() || {};
       setData(val);
-      setSemi1Score1(val.knockouts?.semi1?.score1 || '');
-      setSemi1Score2(val.knockouts?.semi1?.score2 || '');
-      setSemi1Winner(val.knockouts?.semi1?.winner || '');
-      setSemi1Time(val.knockouts?.semi1?.scheduledTime || '');
-      setSemi1Duration(String(val.knockouts?.semi1?.durationMins || 45));
-      setSemi2Score1(val.knockouts?.semi2?.score1 || '');
-      setSemi2Score2(val.knockouts?.semi2?.score2 || '');
-      setSemi2Winner(val.knockouts?.semi2?.winner || '');
-      setSemi2Time(val.knockouts?.semi2?.scheduledTime || '');
-      setSemi2Duration(String(val.knockouts?.semi2?.durationMins || 45));
-      setFinalScore1(val.knockouts?.final?.score1 || '');
-      setFinalScore2(val.knockouts?.final?.score2 || '');
-      setFinalWinner(val.knockouts?.final?.winner || '');
-      setFinalTime(val.knockouts?.final?.scheduledTime || '');
-      setFinalDuration(String(val.knockouts?.final?.durationMins || 60));
+
+      const loadKO = (stage: KOStage, fallbackDuration: string): KOFormState => ({
+        team1: val.knockouts?.[stage]?.team1 || '',
+        team2: val.knockouts?.[stage]?.team2 || '',
+        score1: val.knockouts?.[stage]?.score1 || '',
+        score2: val.knockouts?.[stage]?.score2 || '',
+        winner: val.knockouts?.[stage]?.winner || '',
+        time: val.knockouts?.[stage]?.scheduledTime || '',
+        duration: String(val.knockouts?.[stage]?.durationMins || fallbackDuration),
+      });
+
+      setKo({
+        qf1: loadKO('qf1', '45'),
+        qf2: loadKO('qf2', '45'),
+        qf3: loadKO('qf3', '45'),
+        qf4: loadKO('qf4', '45'),
+        semi1: loadKO('semi1', '45'),
+        semi2: loadKO('semi2', '45'),
+        final: loadKO('final', '60'),
+      });
+
       setStreamLink(val.config?.streamLink || '');
       setChampionPhoto(val.config?.championPhotoUrl || '');
       setClosingPhoto(val.config?.closingPhotoUrl || '');
@@ -199,14 +234,25 @@ export default function PadelTournamentAdmin() {
     setEditingMatch(`${group}__${matchKey}`);
   };
 
-  const handleSaveKnockout = async (stage: 'semi1' | 'semi2' | 'final') => {
-    const payloads: Record<string, any> = {
-      semi1: { score1: semi1Score1, score2: semi1Score2, winner: semi1Winner, scheduledTime: semi1Time, durationMins: Number(semi1Duration) },
-      semi2: { score1: semi2Score1, score2: semi2Score2, winner: semi2Winner, scheduledTime: semi2Time, durationMins: Number(semi2Duration) },
-      final: { score1: finalScore1, score2: finalScore2, winner: finalWinner, scheduledTime: finalTime, durationMins: Number(finalDuration) },
+  const updateKo = (stage: KOStage, field: keyof KOFormState, value: string) => {
+    setKo(prev => ({ ...prev, [stage]: { ...prev[stage], [field]: value } }));
+  };
+
+  const handleSaveKnockout = async (stage: KOStage) => {
+    const s = ko[stage];
+    const payload: any = {
+      score1: s.score1,
+      score2: s.score2,
+      winner: s.winner,
+      scheduledTime: s.time,
+      durationMins: Number(s.duration) || 45,
     };
-    await set(ref(db, `${TOURNEY_PATH}/knockouts/${stage}`), payloads[stage]);
-    showSaved(`${stage === 'final' ? 'Grand Final' : stage} saved`);
+    if (stage === 'qf1' || stage === 'qf2' || stage === 'qf3' || stage === 'qf4') {
+      payload.team1 = s.team1;
+      payload.team2 = s.team2;
+    }
+    await set(ref(db, `${TOURNEY_PATH}/knockouts/${stage}`), payload);
+    showSaved(`${KO_LABELS[stage]} saved`);
   };
 
   const handleSaveConfig = async () => {
@@ -216,34 +262,20 @@ export default function PadelTournamentAdmin() {
     showSaved('Config saved');
   };
 
-  const groupWinners: Record<string, string> = {};
+  // All teams across every group, for the quarterfinal team pickers
+  const allTeams: string[] = [];
   GROUPS.forEach((g) => {
-    const gData = data.groups?.[g];
-    const teams = gData?.teams ? Object.values(gData.teams) : [];
-    const matches = gData?.matches ? Object.entries(gData.matches) : [];
-    const allDone = matches.length > 0 && matches.every(([, m]: any) => m.winner?.trim());
-    if (allDone) {
-      const map: Record<string, { pts: number; diff: number }> = {};
-      teams.forEach(t => { map[t] = { pts: 0, diff: 0 }; });
-      matches.forEach(([, m]: any) => {
-        if (map[m.team1] && map[m.team2] && m.winner) {
-          map[m.team1].diff += Number(m.score1 || 0) - Number(m.score2 || 0);
-          map[m.team2].diff += Number(m.score2 || 0) - Number(m.score1 || 0);
-          if (m.winner === m.team1) map[m.team1].pts += 3;
-          else map[m.team2].pts += 3;
-        }
-      });
-      const sorted = Object.entries(map).sort(([, a], [, b]) => b.pts - a.pts || b.diff - a.diff);
-      if (sorted.length) groupWinners[g] = sorted[0][0];
-    }
+    const t = data.groups?.[g]?.teams;
+    if (t) Object.values(t).forEach((name) => allTeams.push(name as string));
   });
 
-  const semi1Teams = [groupWinners['Group A'], groupWinners['Group D']].filter(Boolean);
-  const semi2Teams = [groupWinners['Group B'], groupWinners['Group C']].filter(Boolean);
+  // Semi/Final matchups are derived from the *saved* winner of the previous round
+  const semi1Teams = [data.knockouts?.qf1?.winner, data.knockouts?.qf2?.winner].filter(Boolean) as string[];
+  const semi2Teams = [data.knockouts?.qf3?.winner, data.knockouts?.qf4?.winner].filter(Boolean) as string[];
   const finalTeams = [data.knockouts?.semi1?.winner, data.knockouts?.semi2?.winner].filter(Boolean) as string[];
+
   const TABS = [...GROUPS, 'Knockouts', 'Config'];
 
-  // ── Shared time badge component
   const TimeBadge = ({ iso, duration, winner }: { iso?: string; duration?: number; winner?: string }) => {
     if (!iso) return null;
     const status = matchStatus(iso, duration);
@@ -272,7 +304,6 @@ export default function PadelTournamentAdmin() {
     <div className="bg-zinc-950 min-h-screen text-white p-6 md:p-10 font-sans">
       <div className="max-w-5xl mx-auto space-y-8">
 
-        {/* Header */}
         <div className="border-b border-zinc-800 pb-6 flex items-start justify-between">
           <div>
             <div className="flex items-center gap-2 mb-1">
@@ -289,7 +320,6 @@ export default function PadelTournamentAdmin() {
           )}
         </div>
 
-        {/* Tabs */}
         <div className="flex flex-wrap gap-1.5 bg-zinc-900 p-1.5 rounded-xl border border-zinc-800">
           {TABS.map(tab => (
             <button key={tab} onClick={() => setActiveTab(tab)}
@@ -305,7 +335,6 @@ export default function PadelTournamentAdmin() {
           ))}
         </div>
 
-        {/* ── GROUP TABS ── */}
         {GROUPS.includes(activeTab) && (() => {
           const group = activeTab;
           const gData = data.groups?.[group];
@@ -327,8 +356,6 @@ export default function PadelTournamentAdmin() {
 
           return (
             <div className="space-y-6">
-
-              {/* Standings */}
               {sortedStandings.length > 0 && (
                 <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
                   <h3 className="text-xs font-black uppercase tracking-wider text-cyan-400 mb-4">Live Standings — {group}</h3>
@@ -369,8 +396,6 @@ export default function PadelTournamentAdmin() {
               )}
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-                {/* Teams Panel */}
                 <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-5">
                   <h3 className="text-sm font-black uppercase tracking-wider text-cyan-400">Teams — {group}</h3>
                   <div className="flex gap-2">
@@ -398,7 +423,6 @@ export default function PadelTournamentAdmin() {
                   </div>
                 </div>
 
-                {/* Schedule Match Panel */}
                 <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-5">
                   <h3 className="text-sm font-black uppercase tracking-wider text-cyan-400">Schedule Match — {group}</h3>
                   <div className="space-y-2">
@@ -413,7 +437,6 @@ export default function PadelTournamentAdmin() {
                       {teams.map(([k, n]) => <option key={k} value={n}>{n}</option>)}
                     </select>
 
-                    {/* ── Match # + Time + Duration fields */}
                     <div className="grid grid-cols-3 gap-2">
                       <div>
                         <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Match #</label>
@@ -448,7 +471,6 @@ export default function PadelTournamentAdmin() {
                     </button>
                   </div>
 
-                  {/* Match list */}
                   <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
                     {matches.length === 0 ? (
                       <p className="text-zinc-600 text-xs text-center py-6 border border-dashed border-zinc-800 rounded-xl">No matches scheduled yet</p>
@@ -463,7 +485,6 @@ export default function PadelTournamentAdmin() {
                           <div className="text-[10px] font-mono font-bold text-zinc-500 uppercase tracking-wider">
                             {m.matchNumber ? `Match ${m.matchNumber}` : 'Match'}
                           </div>
-                          {/* Time badge */}
                           {m.scheduledTime && (
                             <TimeBadge iso={m.scheduledTime} duration={m.durationMins} winner={m.winner} />
                           )}
@@ -534,31 +555,167 @@ export default function PadelTournamentAdmin() {
           );
         })()}
 
-        {/* ── KNOCKOUTS TAB ── */}
         {activeTab === 'Knockouts' && (
-          <div className="space-y-6">
+          <div className="space-y-8">
             <h3 className="text-sm font-black uppercase tracking-wider text-amber-400">Knockout Stage</h3>
 
-            {/* Reusable time fields */}
-            {([
-              { label: `Semifinal 1 — ${groupWinners['Group A'] || 'Winner A'} vs ${groupWinners['Group D'] || 'Winner D'}`, stage: 'semi1' as const, score1: semi1Score1, setScore1: setSemi1Score1, score2: semi1Score2, setScore2: setSemi1Score2, winner: semi1Winner, setWinner: setSemi1Winner, time: semi1Time, setTime: setSemi1Time, duration: semi1Duration, setDuration: setSemi1Duration, teams: semi1Teams, color: 'cyan' },
-              { label: `Semifinal 2 — ${groupWinners['Group B'] || 'Winner B'} vs ${groupWinners['Group C'] || 'Winner C'}`, stage: 'semi2' as const, score1: semi2Score1, setScore1: setSemi2Score1, score2: semi2Score2, setScore2: setSemi2Score2, winner: semi2Winner, setWinner: setSemi2Winner, time: semi2Time, setTime: setSemi2Time, duration: semi2Duration, setDuration: setSemi2Duration, teams: semi2Teams, color: 'cyan' },
-              { label: '🏆 Grand Final', stage: 'final' as const, score1: finalScore1, setScore1: setFinalScore1, score2: finalScore2, setScore2: setFinalScore2, winner: finalWinner, setWinner: setFinalWinner, time: finalTime, setTime: setFinalTime, duration: finalDuration, setDuration: setFinalDuration, teams: finalTeams, color: 'amber' },
-            ] as any[]).map((s) => (
-              <div key={s.stage} className={`bg-zinc-900 ${s.stage === 'final' ? 'border-2 border-amber-500/30' : 'border border-zinc-800'} rounded-2xl p-6 space-y-4`}>
-                <h4 className={`text-xs font-black uppercase tracking-wider ${s.stage === 'final' ? 'text-amber-400' : 'text-zinc-300'}`}>{s.label}</h4>
+            <div className="space-y-3">
+              <h4 className="text-xs font-black uppercase tracking-wider text-cyan-400">Quarterfinals</h4>
+              <p className="text-[10px] text-zinc-500">Pick the two teams for each quarterfinal yourself — they don't have to follow group order.</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {(['qf1', 'qf2', 'qf3', 'qf4'] as KOStage[]).map((stage, i) => {
+                  const s = ko[stage];
+                  const winnerOptions = [s.team1, s.team2].filter(Boolean);
+                  return (
+                    <div key={stage} className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 space-y-3">
+                      <h5 className="text-xs font-black uppercase tracking-wider text-zinc-300">Quarterfinal {i + 1}</h5>
+                      <div className="grid grid-cols-2 gap-2">
+                        <select value={s.team1} onChange={e => updateKo(stage, 'team1', e.target.value)}
+                          className="w-full bg-zinc-950 border border-zinc-800 focus:border-cyan-500 rounded-xl px-3 py-2 text-xs text-white outline-none">
+                          <option value="">Select Team 1</option>
+                          {allTeams.map(t => <option key={t} value={t}>{t}</option>)}
+                        </select>
+                        <select value={s.team2} onChange={e => updateKo(stage, 'team2', e.target.value)}
+                          className="w-full bg-zinc-950 border border-zinc-800 focus:border-cyan-500 rounded-xl px-3 py-2 text-xs text-white outline-none">
+                          <option value="">Select Team 2</option>
+                          {allTeams.map(t => <option key={t} value={t}>{t}</option>)}
+                        </select>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Match Time</label>
+                          <input type="time" value={s.time} onChange={e => updateKo(stage, 'time', e.target.value)}
+                            className="w-full bg-zinc-950 border border-zinc-800 focus:border-cyan-500 rounded-xl px-3 py-2 text-xs outline-none text-white font-mono" />
+                        </div>
+                        <div>
+                          <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Duration (mins)</label>
+                          <select value={s.duration} onChange={e => updateKo(stage, 'duration', e.target.value)}
+                            className="w-full bg-zinc-950 border border-zinc-800 focus:border-cyan-500 rounded-xl px-3 py-2 text-xs text-white outline-none">
+                            <option value="20">20 min</option>
+                            <option value="30">30 min</option>
+                            <option value="45">45 min</option>
+                            <option value="60">60 min</option>
+                            <option value="75">75 min</option>
+                            <option value="90">90 min</option>
+                          </select>
+                        </div>
+                      </div>
+                      {s.time && <TimeBadge iso={s.time} duration={Number(s.duration)} winner={s.winner} />}
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">{s.team1 || 'Team 1'} Score</label>
+                          <input type="text" value={s.score1} onChange={e => updateKo(stage, 'score1', e.target.value)}
+                            className="w-full bg-zinc-950 border border-zinc-800 focus:border-cyan-500 rounded-xl px-3 py-2 text-xs outline-none text-white font-mono" />
+                        </div>
+                        <div>
+                          <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">{s.team2 || 'Team 2'} Score</label>
+                          <input type="text" value={s.score2} onChange={e => updateKo(stage, 'score2', e.target.value)}
+                            className="w-full bg-zinc-950 border border-zinc-800 focus:border-cyan-500 rounded-xl px-3 py-2 text-xs outline-none text-white font-mono" />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Winner</label>
+                        <select value={s.winner} onChange={e => updateKo(stage, 'winner', e.target.value)}
+                          className="w-full bg-zinc-950 border border-zinc-800 focus:border-cyan-500 rounded-xl px-3 py-2 text-xs outline-none text-white">
+                          <option value="">Select winner</option>
+                          {winnerOptions.map(t => <option key={t} value={t}>{t}</option>)}
+                        </select>
+                      </div>
+                      <button onClick={() => handleSaveKnockout(stage)}
+                        className="w-full bg-cyan-500 hover:bg-cyan-400 text-black py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all">
+                        Save Quarterfinal {i + 1}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
 
-                {/* Time scheduling */}
+            <div className="space-y-3">
+              <h4 className="text-xs font-black uppercase tracking-wider text-cyan-400">Semifinals</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {([
+                  { stage: 'semi1' as KOStage, label: 'Semifinal 1', teams: semi1Teams },
+                  { stage: 'semi2' as KOStage, label: 'Semifinal 2', teams: semi2Teams },
+                ]).map(({ stage, label, teams }) => {
+                  const s = ko[stage];
+                  return (
+                    <div key={stage} className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 space-y-3">
+                      <h5 className="text-xs font-black uppercase tracking-wider text-zinc-300">
+                        {label}{teams.length === 2 ? ` — ${teams[0]} vs ${teams[1]}` : ''}
+                      </h5>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Match Time</label>
+                          <input type="time" value={s.time} onChange={e => updateKo(stage, 'time', e.target.value)}
+                            className="w-full bg-zinc-950 border border-zinc-800 focus:border-cyan-500 rounded-xl px-3 py-2 text-xs outline-none text-white font-mono" />
+                        </div>
+                        <div>
+                          <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Duration (mins)</label>
+                          <select value={s.duration} onChange={e => updateKo(stage, 'duration', e.target.value)}
+                            className="w-full bg-zinc-950 border border-zinc-800 focus:border-cyan-500 rounded-xl px-3 py-2 text-xs text-white outline-none">
+                            <option value="20">20 min</option>
+                            <option value="30">30 min</option>
+                            <option value="45">45 min</option>
+                            <option value="60">60 min</option>
+                            <option value="75">75 min</option>
+                            <option value="90">90 min</option>
+                          </select>
+                        </div>
+                      </div>
+                      {s.time && <TimeBadge iso={s.time} duration={Number(s.duration)} winner={s.winner} />}
+                      {teams.length < 2 ? (
+                        <p className="text-zinc-600 text-[10px] text-center py-3 border border-dashed border-zinc-800 rounded-xl">Waiting on quarterfinal results</p>
+                      ) : (
+                        <>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">{teams[0]} Score</label>
+                              <input type="text" value={s.score1} onChange={e => updateKo(stage, 'score1', e.target.value)}
+                                className="w-full bg-zinc-950 border border-zinc-800 focus:border-cyan-500 rounded-xl px-3 py-2 text-xs outline-none text-white font-mono" />
+                            </div>
+                            <div>
+                              <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">{teams[1]} Score</label>
+                              <input type="text" value={s.score2} onChange={e => updateKo(stage, 'score2', e.target.value)}
+                                className="w-full bg-zinc-950 border border-zinc-800 focus:border-cyan-500 rounded-xl px-3 py-2 text-xs outline-none text-white font-mono" />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Winner</label>
+                            <select value={s.winner} onChange={e => updateKo(stage, 'winner', e.target.value)}
+                              className="w-full bg-zinc-950 border border-zinc-800 focus:border-cyan-500 rounded-xl px-3 py-2 text-xs outline-none text-white">
+                              <option value="">Select winner</option>
+                              {teams.map(t => <option key={t} value={t}>{t}</option>)}
+                            </select>
+                          </div>
+                        </>
+                      )}
+                      <button onClick={() => handleSaveKnockout(stage)} disabled={teams.length < 2}
+                        className="w-full bg-cyan-500 hover:bg-cyan-400 disabled:opacity-30 disabled:cursor-not-allowed text-black py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all">
+                        Save {label}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <h4 className="text-xs font-black uppercase tracking-wider text-amber-400">Grand Final</h4>
+              <div className="bg-zinc-900 border-2 border-amber-500/30 rounded-2xl p-6 space-y-4">
+                <h5 className="text-xs font-black uppercase tracking-wider text-amber-400">
+                  🏆 Grand Final{finalTeams.length === 2 ? ` — ${finalTeams[0]} vs ${finalTeams[1]}` : ''}
+                </h5>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Match Time</label>
-                    <input type="time" value={s.time} onChange={e => s.setTime(e.target.value)}
-                      className={`w-full bg-zinc-950 border border-zinc-800 focus:border-${s.color}-500 rounded-xl px-3 py-2 text-xs outline-none text-white font-mono`} />
+                    <input type="time" value={ko.final.time} onChange={e => updateKo('final', 'time', e.target.value)}
+                      className="w-full bg-zinc-950 border border-zinc-800 focus:border-amber-500 rounded-xl px-3 py-2 text-xs outline-none text-white font-mono" />
                   </div>
                   <div>
                     <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Duration (mins)</label>
-                    <select value={s.duration} onChange={e => s.setDuration(e.target.value)}
-                      className={`w-full bg-zinc-950 border border-zinc-800 focus:border-${s.color}-500 rounded-xl px-3 py-2 text-xs text-white outline-none`}>
+                    <select value={ko.final.duration} onChange={e => updateKo('final', 'duration', e.target.value)}
+                      className="w-full bg-zinc-950 border border-zinc-800 focus:border-amber-500 rounded-xl px-3 py-2 text-xs text-white outline-none">
                       <option value="20">20 min</option>
                       <option value="30">30 min</option>
                       <option value="45">45 min</option>
@@ -568,38 +725,42 @@ export default function PadelTournamentAdmin() {
                     </select>
                   </div>
                 </div>
-                {s.time && <TimeBadge iso={s.time} duration={Number(s.duration)} winner={s.winner} />}
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">{s.teams[0] || 'Team 1'} Score</label>
-                    <input type="text" value={s.score1} onChange={e => s.setScore1(e.target.value)}
-                      className={`w-full bg-zinc-950 border border-zinc-800 focus:border-${s.color}-500 rounded-xl px-3 py-2 text-xs outline-none text-white font-mono`} />
-                  </div>
-                  <div>
-                    <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">{s.teams[1] || 'Team 2'} Score</label>
-                    <input type="text" value={s.score2} onChange={e => s.setScore2(e.target.value)}
-                      className={`w-full bg-zinc-950 border border-zinc-800 focus:border-${s.color}-500 rounded-xl px-3 py-2 text-xs outline-none text-white font-mono`} />
-                  </div>
-                </div>
-                <div>
-                  <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">{s.stage === 'final' ? 'Champion' : 'Winner'}</label>
-                  <select value={s.winner} onChange={e => s.setWinner(e.target.value)}
-                    className={`w-full bg-zinc-950 border border-zinc-800 focus:border-${s.color}-500 rounded-xl px-3 py-2 text-xs outline-none text-white`}>
-                    <option value="">Select {s.stage === 'final' ? 'champion' : 'winner'}</option>
-                    {s.teams.map((t: string) => <option key={t} value={t}>{t}</option>)}
-                  </select>
-                </div>
-                <button onClick={() => handleSaveKnockout(s.stage)}
-                  className={`w-full ${s.stage === 'final' ? 'bg-amber-500 hover:bg-amber-400' : 'bg-cyan-500 hover:bg-cyan-400'} text-black py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all`}>
-                  {s.stage === 'final' ? '🏆 Save Grand Final' : `Save ${s.stage === 'semi1' ? 'Semifinal 1' : 'Semifinal 2'}`}
+                {ko.final.time && <TimeBadge iso={ko.final.time} duration={Number(ko.final.duration)} winner={ko.final.winner} />}
+                {finalTeams.length < 2 ? (
+                  <p className="text-zinc-600 text-[10px] text-center py-3 border border-dashed border-zinc-800 rounded-xl">Waiting on semifinal results</p>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">{finalTeams[0]} Score</label>
+                        <input type="text" value={ko.final.score1} onChange={e => updateKo('final', 'score1', e.target.value)}
+                          className="w-full bg-zinc-950 border border-zinc-800 focus:border-amber-500 rounded-xl px-3 py-2 text-xs outline-none text-white font-mono" />
+                      </div>
+                      <div>
+                        <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">{finalTeams[1]} Score</label>
+                        <input type="text" value={ko.final.score2} onChange={e => updateKo('final', 'score2', e.target.value)}
+                          className="w-full bg-zinc-950 border border-zinc-800 focus:border-amber-500 rounded-xl px-3 py-2 text-xs outline-none text-white font-mono" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Champion</label>
+                      <select value={ko.final.winner} onChange={e => updateKo('final', 'winner', e.target.value)}
+                        className="w-full bg-zinc-950 border border-zinc-800 focus:border-amber-500 rounded-xl px-3 py-2 text-xs outline-none text-white">
+                        <option value="">Select champion</option>
+                        {finalTeams.map(t => <option key={t} value={t}>{t}</option>)}
+                      </select>
+                    </div>
+                  </>
+                )}
+                <button onClick={() => handleSaveKnockout('final')} disabled={finalTeams.length < 2}
+                  className="w-full bg-amber-500 hover:bg-amber-400 disabled:opacity-30 disabled:cursor-not-allowed text-black py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all">
+                  🏆 Save Grand Final
                 </button>
               </div>
-            ))}
+            </div>
           </div>
         )}
 
-        {/* ── CONFIG TAB ── */}
         {activeTab === 'Config' && (
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-5">
             <h3 className="text-sm font-black uppercase tracking-wider text-zinc-400">Tournament Configuration</h3>
