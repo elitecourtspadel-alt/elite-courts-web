@@ -19,7 +19,7 @@ const firebaseConfig = {
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
 
-// ⚠️ The whole tournament happens on a single day — keep this in sync with the
+// The whole tournament happens on a single day - keep this in sync with the
 // same constant in the admin file. Times are stored as plain "HH:MM" and combined
 // with this date only for internal live/upcoming/past calculations; it's never shown.
 const TOURNAMENT_DATE = '2026-07-26';
@@ -83,44 +83,14 @@ export default function PadelTournamentView() {
       setTournamentData(snapshot.val());
       setLoading(false);
     }, () => setLoading(false));
-    // Re-render every minute so LIVE badges update automatically
     const interval = setInterval(() => setTick(t => t + 1), 60000);
     return () => { unsubscribe(); clearInterval(interval); };
   }, []);
 
-  const groupWinners: Record<string, string> = {
-    'Group A': 'Winner Group A', 'Group B': 'Winner Group B',
-    'Group C': 'Winner Group C', 'Group D': 'Winner Group D'
-  };
-
-  if (tournamentData?.groups) {
-    requiredGroups.forEach((groupName) => {
-      const groupData = tournamentData.groups[groupName];
-      const teamsRaw = groupData?.teams ? (Object.values(groupData.teams) as string[]) : [];
-      const matchesRaw = groupData?.matches ? Object.entries(groupData.matches) : [];
-      const allMatchesFinished = matchesRaw.length > 0 && matchesRaw.every((match: any) => {
-        const mData = match[1];
-        return mData && mData.winner && mData.winner.trim() !== "";
-      });
-      if (allMatchesFinished) {
-        const standingsMap: Record<string, { name: string; pts: number; diff: number }> = {};
-        teamsRaw.forEach((tName) => { standingsMap[tName] = { name: tName, pts: 0, diff: 0 }; });
-        matchesRaw.forEach((match: any) => {
-          const mData = match[1];
-          const t1 = mData.team1; const t2 = mData.team2; const win = mData.winner;
-          const s1 = Number(mData.score1 || 0); const s2 = Number(mData.score2 || 0);
-          if (standingsMap[t1] && standingsMap[t2] && win) {
-            standingsMap[t1].diff += (s1 - s2); standingsMap[t2].diff += (s2 - s1);
-            if (win === t1) standingsMap[t1].pts += 3;
-            else if (win === t2) standingsMap[t2].pts += 3;
-          }
-        });
-        const sorted = Object.values(standingsMap).sort((a, b) => b.pts - a.pts || b.diff - a.diff);
-        if (sorted.length > 0) groupWinners[groupName] = sorted[0].name;
-      }
-    });
-  }
-
+  const qf1 = tournamentData?.knockouts?.qf1 || {};
+  const qf2 = tournamentData?.knockouts?.qf2 || {};
+  const qf3 = tournamentData?.knockouts?.qf3 || {};
+  const qf4 = tournamentData?.knockouts?.qf4 || {};
   const semi1 = tournamentData?.knockouts?.semi1 || {};
   const semi2 = tournamentData?.knockouts?.semi2 || {};
   const finalMatch = tournamentData?.knockouts?.final || {};
@@ -128,8 +98,8 @@ export default function PadelTournamentView() {
   const winnerImageUrl = tournamentData?.config?.championPhotoUrl || DEFAULT_WINNER_IMAGE;
   const ceremonyImageUrl = tournamentData?.config?.closingPhotoUrl || DEFAULT_CEREMONY_IMAGE;
 
-  const isSemi1Ready = groupWinners['Group A'] !== 'Winner Group A' && groupWinners['Group D'] !== 'Winner Group D';
-  const isSemi2Ready = groupWinners['Group B'] !== 'Winner Group B' && groupWinners['Group C'] !== 'Winner Group C';
+  const isSemi1Ready = !!(qf1.winner && qf2.winner);
+  const isSemi2Ready = !!(qf3.winner && qf4.winner);
 
   return (
     <div className="p-4 sm:p-10 text-white bg-zinc-950 min-h-screen space-y-10">
@@ -156,7 +126,6 @@ export default function PadelTournamentView() {
       ) : (
         <div className="max-w-7xl mx-auto space-y-12">
 
-          {/* Champion Hero */}
           {finalMatch.winner && (
             <div className="bg-gradient-to-b from-cyan-950/20 to-zinc-900/40 border border-cyan-500/20 p-6 sm:p-8 rounded-3xl text-center space-y-6 shadow-2xl">
               <div className="inline-flex items-center gap-2 bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 px-4 py-1.5 rounded-full text-xs font-mono font-bold uppercase tracking-widest">
@@ -183,7 +152,6 @@ export default function PadelTournamentView() {
             </div>
           )}
 
-          {/* Group Brackets */}
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
             {requiredGroups.map((groupName) => {
               const groupData = tournamentData?.groups?.[groupName];
@@ -245,7 +213,6 @@ export default function PadelTournamentView() {
                     </table>
                   )}
 
-                  {/* Match cards with time */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                     {matchesRaw.length === 0 ? (
                       <p className="text-zinc-700 text-xs text-center py-4 col-span-2">No matches scheduled yet</p>
@@ -263,7 +230,6 @@ export default function PadelTournamentView() {
                              <span className="text-amber-500 animate-pulse">PENDING</span>}
                           </div>
 
-                          {/* Time badge on public view */}
                           {mData.scheduledTime && (
                             <TimeBadge iso={mData.scheduledTime} duration={mData.durationMins} winner={mData.winner} />
                           )}
@@ -287,10 +253,50 @@ export default function PadelTournamentView() {
             })}
           </div>
 
-          {/* Knockout Tree */}
+          {/* Quarterfinals */}
+          <div className="bg-zinc-900/40 border border-zinc-800 p-6 sm:p-8 rounded-3xl space-y-6 shadow-2xl">
+            <h2 className="text-2xl font-bold text-cyan-400 text-center flex items-center justify-center gap-2 tracking-tight">
+              <GitFork className="h-6 w-6 rotate-180" /> Quarterfinals
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-6xl mx-auto">
+              {[
+                { label: 'QUARTERFINAL 1', data: qf1 },
+                { label: 'QUARTERFINAL 2', data: qf2 },
+                { label: 'QUARTERFINAL 3', data: qf3 },
+                { label: 'QUARTERFINAL 4', data: qf4 },
+              ].map((q) => {
+                const status = matchStatus(q.data.scheduledTime, q.data.durationMins);
+                return (
+                  <div key={q.label} className={`bg-zinc-950 border p-4 rounded-2xl space-y-3 shadow-md ${
+                    status === 'live' ? 'border-red-500/40' : 'border-zinc-800'
+                  }`}>
+                    <div className="flex justify-between font-mono text-[9px] text-zinc-500 border-b border-zinc-900 pb-1">
+                      <span>{q.label}</span>
+                      {q.data.winner ? <span className="text-emerald-400 font-bold">FINAL</span> :
+                       status === 'live' ? <span className="text-red-500 font-bold animate-pulse">LIVE 🔴</span> :
+                       <span className="text-amber-500/50">PENDING</span>}
+                    </div>
+                    {q.data.scheduledTime && <TimeBadge iso={q.data.scheduledTime} duration={q.data.durationMins} winner={q.data.winner} />}
+                    <div className="space-y-2 text-xs">
+                      <div className="flex justify-between items-center">
+                        <span className={q.data.winner && q.data.winner === q.data.team1 ? 'text-cyan-400 font-bold' : 'text-zinc-300'}>{q.data.team1 || 'TBD'}</span>
+                        {q.data.winner && <span className="bg-zinc-900 text-zinc-400 font-mono px-1.5 py-0.5 rounded text-[10px]">{q.data.score1}</span>}
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className={q.data.winner && q.data.winner === q.data.team2 ? 'text-cyan-400 font-bold' : 'text-zinc-300'}>{q.data.team2 || 'TBD'}</span>
+                        {q.data.winner && <span className="bg-zinc-900 text-zinc-400 font-mono px-1.5 py-0.5 rounded text-[10px]">{q.data.score2}</span>}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Semifinals + Final Bracket */}
           <div className="bg-zinc-900/40 border border-zinc-800 p-6 sm:p-8 rounded-3xl space-y-8 shadow-2xl">
             <h2 className="text-2xl font-bold text-amber-400 text-center flex items-center justify-center gap-2 tracking-tight">
-              <GitFork className="h-6 w-6 rotate-180" /> Knockout Stage
+              <GitFork className="h-6 w-6 rotate-180" /> Semifinals & Final
             </h2>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-center max-w-5xl mx-auto pt-4">
@@ -299,8 +305,8 @@ export default function PadelTournamentView() {
                 <div className="text-center font-bold text-[10px] tracking-widest text-zinc-500 uppercase mb-2">Semifinals</div>
 
                 {[
-                  { label: 'SEMIFINAL 1', data: semi1, ga: groupWinners['Group A'], gc: groupWinners['Group D'], tagA: 'A1', tagC: 'D1', ready: isSemi1Ready },
-                  { label: 'SEMIFINAL 2', data: semi2, ga: groupWinners['Group B'], gc: groupWinners['Group C'], tagA: 'B1', tagC: 'C1', ready: isSemi2Ready },
+                  { label: 'SEMIFINAL 1', data: semi1, ga: qf1.winner || 'Winner QF1', gc: qf2.winner || 'Winner QF2', tagA: 'QF1', tagC: 'QF2', ready: isSemi1Ready },
+                  { label: 'SEMIFINAL 2', data: semi2, ga: qf3.winner || 'Winner QF3', gc: qf4.winner || 'Winner QF4', tagA: 'QF3', tagC: 'QF4', ready: isSemi2Ready },
                 ].map((s) => (
                   <div key={s.label} className={`bg-zinc-950 border p-4 rounded-2xl space-y-3 shadow-md ${
                     matchStatus(s.data.scheduledTime, s.data.durationMins) === 'live' ? 'border-red-500/40' : 'border-zinc-800'
