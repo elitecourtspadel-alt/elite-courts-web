@@ -270,8 +270,8 @@ export default function PadelTournamentAdmin() {
   });
 
   // Semi/Final matchups are derived from the *saved* winner of the previous round
-  const semi1Teams = [data.knockouts?.qf1?.winner, data.knockouts?.qf2?.winner].filter(Boolean) as string[];
-  const semi2Teams = [data.knockouts?.qf3?.winner, data.knockouts?.qf4?.winner].filter(Boolean) as string[];
+  const semi1Teams = [data.knockouts?.qf1?.winner, data.knockouts?.qf4?.winner].filter(Boolean) as string[];
+  const semi2Teams = [data.knockouts?.qf2?.winner, data.knockouts?.qf3?.winner].filter(Boolean) as string[];
   const finalTeams = [data.knockouts?.semi1?.winner, data.knockouts?.semi2?.winner].filter(Boolean) as string[];
 
   const TABS = [...GROUPS, 'Knockouts', 'Config'];
