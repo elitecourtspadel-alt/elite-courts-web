@@ -98,8 +98,8 @@ export default function PadelTournamentView() {
   const winnerImageUrl = tournamentData?.config?.championPhotoUrl || DEFAULT_WINNER_IMAGE;
   const ceremonyImageUrl = tournamentData?.config?.closingPhotoUrl || DEFAULT_CEREMONY_IMAGE;
 
-  const isSemi1Ready = !!(qf1.winner && qf3.winner);
-  const isSemi2Ready = !!(qf2.winner && qf4.winner);
+  const isSemi1Ready = !!(qf1.winner && qf2.winner);
+  const isSemi2Ready = !!(qf3.winner && qf4.winner);
 
   return (
     <div className="p-4 sm:p-10 text-white bg-zinc-950 min-h-screen space-y-10">
@@ -305,8 +305,8 @@ export default function PadelTournamentView() {
                 <div className="text-center font-bold text-[10px] tracking-widest text-zinc-500 uppercase mb-2">Semifinals</div>
 
                 {[
-                  { label: 'SEMIFINAL 1', data: semi1, ga: qf1.winner || 'Winner QF1', gc: qf3.winner || 'Winner QF3', tagA: 'QF1', tagC: 'QF3', ready: isSemi1Ready },
-                  { label: 'SEMIFINAL 2', data: semi2, ga: qf2.winner || 'Winner QF2', gc: qf4.winner || 'Winner QF4', tagA: 'QF2', tagC: 'QF4', ready: isSemi2Ready },
+                  { label: 'SEMIFINAL 1', data: semi1, ga: qf1.winner || 'Winner QF1', gc: qf2.winner || 'Winner QF2', tagA: 'QF1', tagC: 'QF2', ready: isSemi1Ready },
+                  { label: 'SEMIFINAL 2', data: semi2, ga: qf3.winner || 'Winner QF3', gc: qf4.winner || 'Winner QF4', tagA: 'QF3', tagC: 'QF4', ready: isSemi2Ready },
                 ].map((s) => (
                   <div key={s.label} className={`bg-zinc-950 border p-4 rounded-2xl space-y-3 shadow-md ${
                     matchStatus(s.data.scheduledTime, s.data.durationMins) === 'live' ? 'border-red-500/40' : 'border-zinc-800'
