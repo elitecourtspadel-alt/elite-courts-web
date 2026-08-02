@@ -1,6 +1,6 @@
 'use client';
 import Link from "next/link";
-import { Trophy, Clock, ArrowRight, CalendarDays } from "lucide-react";
+import { Trophy, Clock, ArrowRight, CalendarDays, Users } from "lucide-react";
 
 const tournaments = [
   {
@@ -14,8 +14,10 @@ const tournaments = [
     description: "Elite Courts' inaugural pickleball tournament featuring group stage brackets and knockout rounds.",
     teams: 16,
     groups: 4,
+    players: null,
+    format: "Group Stage + Knockout",
   },
-    {
+  {
     id: "padel-1",
     name: "Padel Tournament",
     edition: "Season 1",
@@ -26,18 +28,36 @@ const tournaments = [
     description: "Elite Courts' first Padel Tournament featuring group stage brackets and knockout rounds.",
     teams: 16,
     groups: 4,
-},
+    players: null,
+    format: "Group Stage + Knockout",
+  },
   {
     id: "pickleball-2",
     name: "Pickleball Tournament",
     edition: "Season 2",
-    date: "Coming Soon",
+    date: "08-08-2026",
     status: "soon" as const,
     sport: "Pickleball",
     href: null,
     description: "The second edition of Elite Courts Pickleball Tournament. Registration details coming soon.",
     teams: null,
     groups: null,
+    players: null,
+    format: "Group Stage + Knockout",
+  },
+  {
+    id: "padel-americano-1",
+    name: "Padel Americano Tournament",
+    edition: "Season 1",
+    date: "09-08-2026",
+    status: "upcoming" as const,
+    sport: "Padel",
+    href: "/americano-padel",
+    description: "Individual round-robin format — every player rotates partners across doubles matches, with games played to 16 points.",
+    teams: null,
+    groups: null,
+    players: null,
+    format: "Americano Round Robin",
   },
 ];
 
@@ -80,11 +100,13 @@ export default function TournamentsPage() {
         {tournaments.map((t) => {
           const colors = sportColors[t.sport] ?? sportColors.Pickleball;
           const isCompleted = t.status === "completed";
+          const isUpcoming = t.status === "upcoming";
+          const isClickable = (isCompleted || isUpcoming) && !!t.href;
 
           return (
             <div
               key={t.id}
-              className={`group relative bg-[color:var(--surface)] border border-[color:var(--border)] rounded-2xl p-6 sm:p-8 transition-all duration-200 ${colors.glow} ${isCompleted ? 'hover:-translate-y-0.5' : 'opacity-80'}`}
+              className={`group relative bg-[color:var(--surface)] border border-[color:var(--border)] rounded-2xl p-6 sm:p-8 transition-all duration-200 ${colors.glow} ${isClickable ? 'hover:-translate-y-0.5' : 'opacity-80'}`}
             >
               {/* Top row */}
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
@@ -98,6 +120,11 @@ export default function TournamentsPage() {
                     {isCompleted ? (
                       <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-amber-400">
                         ✓ Completed
+                      </span>
+                    ) : isUpcoming ? (
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-cyan-400">
+                        <Clock className="h-3 w-3" />
+                        Upcoming
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1.5 rounded-full border border-zinc-400/20 bg-zinc-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-[color:var(--muted)]">
@@ -122,30 +149,39 @@ export default function TournamentsPage() {
                     {t.description}
                   </p>
 
-                  {/* Meta — date + teams */}
+                  {/* Meta — date + teams/groups or format */}
                   <div className="flex items-center gap-4 flex-wrap">
                     <div className="flex items-center gap-1.5 text-xs text-[color:var(--muted)]">
                       <CalendarDays className="h-3.5 w-3.5" />
                       <span className="font-semibold">{t.date}</span>
                     </div>
-                    {t.teams && (
+                    {t.teams && t.groups ? (
                       <div className="flex items-center gap-1.5 text-xs text-[color:var(--muted)]">
                         <span className="font-semibold">{t.teams} Teams</span>
                         <span className="text-[color:var(--border)]">·</span>
                         <span className="font-semibold">{t.groups} Groups</span>
                       </div>
-                    )}
+                    ) : t.format ? (
+                      <div className="flex items-center gap-1.5 text-xs text-[color:var(--muted)]">
+                        <Users className="h-3.5 w-3.5" />
+                        <span className="font-semibold">{t.format}</span>
+                      </div>
+                    ) : null}
                   </div>
                 </div>
 
                 {/* CTA */}
                 <div className="shrink-0">
-                  {isCompleted && t.href ? (
+                  {isClickable && t.href ? (
                     <Link
                       href={t.href}
-                      className={`inline-flex items-center gap-2 rounded-xl px-6 py-3 text-xs font-black uppercase tracking-wider text-black bg-emerald-500 hover:bg-emerald-400 transition-all hover:scale-105 shadow-[0_8px_24px_-8px_rgba(16,185,129,0.5)]`}
+                      className={`inline-flex items-center gap-2 rounded-xl px-6 py-3 text-xs font-black uppercase tracking-wider text-black transition-all hover:scale-105 ${
+                        isCompleted
+                          ? 'bg-emerald-500 hover:bg-emerald-400 shadow-[0_8px_24px_-8px_rgba(16,185,129,0.5)]'
+                          : 'bg-cyan-500 hover:bg-cyan-400 shadow-[0_8px_24px_-8px_rgba(6,182,212,0.5)]'
+                      }`}
                     >
-                      View Bracket
+                      {isCompleted ? 'View Bracket' : 'View Leaderboard'}
                       <ArrowRight className="h-3.5 w-3.5" />
                     </Link>
                   ) : (
