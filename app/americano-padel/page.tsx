@@ -90,13 +90,12 @@ interface PlayerStats {
   played: number;
   wins: number;
   pointsFor: number;
-  pointsAgainst: number;
 }
 
 function computeLeaderboard(players: Record<string, string> | undefined, rounds: Record<string, AmericanoRound> | undefined): PlayerStats[] {
   const stats: Record<string, PlayerStats> = {};
   Object.entries(players || {}).forEach(([id, name]) => {
-    stats[id] = { id, name, played: 0, wins: 0, pointsFor: 0, pointsAgainst: 0 };
+    stats[id] = { id, name, played: 0, wins: 0, pointsFor: 0 };
   });
   Object.values(rounds || {}).forEach((round) => {
     Object.values(round.matches || {}).forEach((m) => {
@@ -104,19 +103,18 @@ function computeLeaderboard(players: Record<string, string> | undefined, rounds:
       const s1 = Number(m.score1); const s2 = Number(m.score2);
       (m.team1 || []).forEach((pid) => {
         if (!stats[pid]) return;
-        stats[pid].played += 1; stats[pid].pointsFor += s1; stats[pid].pointsAgainst += s2;
+        stats[pid].played += 1; stats[pid].pointsFor += s1;
         if (s1 > s2) stats[pid].wins += 1;
       });
       (m.team2 || []).forEach((pid) => {
         if (!stats[pid]) return;
-        stats[pid].played += 1; stats[pid].pointsFor += s2; stats[pid].pointsAgainst += s1;
+        stats[pid].played += 1; stats[pid].pointsFor += s2;
         if (s2 > s1) stats[pid].wins += 1;
       });
     });
   });
   return Object.values(stats).sort((a, b) =>
     b.pointsFor - a.pointsFor ||
-    (b.pointsFor - b.pointsAgainst) - (a.pointsFor - a.pointsAgainst) ||
     b.wins - a.wins
   );
 }
@@ -223,7 +221,6 @@ export default function PadelAmericanoView() {
                     <th className="py-2 text-left pl-2">Player</th>
                     <th className="py-2 text-center w-16">Played</th>
                     <th className="py-2 text-center w-14 text-emerald-500">Wins</th>
-                    <th className="py-2 text-center w-14 text-teal-400">Diff</th>
                     <th className="py-2 text-right pr-2 w-16 text-amber-400">Pts</th>
                   </tr>
                 </thead>
@@ -236,9 +233,6 @@ export default function PadelAmericanoView() {
                       </td>
                       <td className="py-3 text-center text-zinc-400 font-mono">{row.played}</td>
                       <td className="py-3 text-center text-emerald-400 font-mono">{row.wins}</td>
-                      <td className={`py-3 text-center font-mono font-medium ${(row.pointsFor - row.pointsAgainst) > 0 ? 'text-teal-400' : (row.pointsFor - row.pointsAgainst) < 0 ? 'text-red-400' : 'text-zinc-500'}`}>
-                        {row.pointsFor - row.pointsAgainst > 0 ? `+${row.pointsFor - row.pointsAgainst}` : row.pointsFor - row.pointsAgainst}
-                      </td>
                       <td className="py-3 text-right pr-2 text-amber-400 font-mono font-bold">{row.pointsFor}</td>
                     </tr>
                   ))}
