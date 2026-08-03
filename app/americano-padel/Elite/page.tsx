@@ -89,13 +89,12 @@ interface PlayerStats {
   played: number;
   wins: number;
   pointsFor: number;
-  pointsAgainst: number;
 }
 
 function computeLeaderboard(players: Record<string, string> | undefined, rounds: Record<string, AmericanoRound> | undefined): PlayerStats[] {
   const stats: Record<string, PlayerStats> = {};
   Object.entries(players || {}).forEach(([id, name]) => {
-    stats[id] = { id, name, played: 0, wins: 0, pointsFor: 0, pointsAgainst: 0 };
+    stats[id] = { id, name, played: 0, wins: 0, pointsFor: 0 };
   });
   Object.values(rounds || {}).forEach((round) => {
     Object.values(round.matches || {}).forEach((m) => {
@@ -103,22 +102,22 @@ function computeLeaderboard(players: Record<string, string> | undefined, rounds:
       const s1 = Number(m.score1); const s2 = Number(m.score2);
       (m.team1 || []).forEach((pid) => {
         if (!stats[pid]) return;
-        stats[pid].played += 1; stats[pid].pointsFor += s1; stats[pid].pointsAgainst += s2;
+        stats[pid].played += 1; stats[pid].pointsFor += s1;
         if (s1 > s2) stats[pid].wins += 1;
       });
       (m.team2 || []).forEach((pid) => {
         if (!stats[pid]) return;
-        stats[pid].played += 1; stats[pid].pointsFor += s2; stats[pid].pointsAgainst += s1;
+        stats[pid].played += 1; stats[pid].pointsFor += s2;
         if (s2 > s1) stats[pid].wins += 1;
       });
     });
   });
   return Object.values(stats).sort((a, b) =>
     b.pointsFor - a.pointsFor ||
-    (b.pointsFor - b.pointsAgainst) - (a.pointsFor - a.pointsAgainst) ||
     b.wins - a.wins
   );
 }
+
 
 // ── Best-effort round-robin doubles scheduler ──────────────────────────────
 // Not a guaranteed-perfect combinatorial design (that requires specific finite-field
@@ -227,7 +226,7 @@ export default function PadelAmericanoAdmin() {
   const [addMatchDuration, setAddMatchDuration] = useState('20');
   const [showAddMatch, setShowAddMatch] = useState(false);
 
-  const [maxPoints, setMaxPoints] = useState('16');
+  const [maxPoints, setMaxPoints] = useState('');
   const [streamLink, setStreamLink] = useState('');
   const [championPhoto, setChampionPhoto] = useState('');
   const [closingPhoto, setClosingPhoto] = useState('');
@@ -239,7 +238,7 @@ export default function PadelAmericanoAdmin() {
     const unsub = onValue(tourneyRef, (snap) => {
       const val = snap.val() || {};
       setData(val);
-      setMaxPoints(String(val.config?.maxPoints || 16));
+      setMaxPoints(val.config?.maxPoints ? String(val.config.maxPoints) : '');
       setStreamLink(val.config?.streamLink || '');
       setChampionPhoto(val.config?.championPhotoUrl || '');
       setClosingPhoto(val.config?.closingPhotoUrl || '');
@@ -332,6 +331,13 @@ export default function PadelAmericanoAdmin() {
   };
 
   const handleSaveScore = async (roundKey: string, courtKey: string, m: AmericanoMatch) => {
+    const total = (Number(editScore1) || 0) + (Number(editScore2) || 0);
+    const cap = Number(maxPoints);
+    const hasCap = maxPoints !== '' && cap > 0;
+    if (hasCap && total > cap) {
+      alert(`Combined score can't exceed ${cap} points (currently ${total}).`);
+      return;
+    }
     await set(ref(db, `${TOURNEY_PATH}/rounds/${roundKey}/matches/${courtKey}`), {
       ...m, score1: editScore1, score2: editScore2,
     });
@@ -339,9 +345,18 @@ export default function PadelAmericanoAdmin() {
     showSaved('Score saved');
   };
 
+  const handleSaveMaxPoints = async (value: string) => {
+    setMaxPoints(value);
+    await set(ref(db, `${TOURNEY_PATH}/config`), {
+      maxPoints: Number(value) || null,
+      streamLink, championPhotoUrl: championPhoto, closingPhotoUrl: closingPhoto,
+    });
+    showSaved('Points target saved');
+  };
+
   const handleSaveConfig = async () => {
     await set(ref(db, `${TOURNEY_PATH}/config`), {
-      maxPoints: Number(maxPoints) || 16,
+      maxPoints: Number(maxPoints) || null,
       streamLink, championPhotoUrl: championPhoto, closingPhotoUrl: closingPhoto,
     });
     showSaved('Config saved');
@@ -443,6 +458,25 @@ export default function PadelAmericanoAdmin() {
         {activeTab === 'Schedule' && (
           <div className="space-y-6">
 
+            <div className={`bg-zinc-900 border rounded-2xl p-6 space-y-3 ${maxPoints === '' ? 'border-amber-500/40' : 'border-zinc-800'}`}>
+              <h3 className="text-sm font-black uppercase tracking-wider text-amber-400">Points Per Game</h3>
+              <p className="text-[10px] text-zinc-500">
+                How many combined points will each match go to? Set it once here — it applies to every match in this
+                tournament, and no score can be saved above it.
+              </p>
+              <div className="flex gap-2 items-center">
+                <input type="number" min="1" value={maxPoints}
+                  onChange={e => setMaxPoints(e.target.value)}
+                  onBlur={e => handleSaveMaxPoints(e.target.value)}
+                  placeholder="e.g. 16, 21, 24..."
+                  className="w-40 bg-zinc-950 border border-zinc-800 focus:border-amber-500 rounded-xl px-3 py-2.5 text-sm outline-none text-white font-mono font-bold" />
+                <span className="text-xs text-zinc-500">points per match</span>
+              </div>
+              {maxPoints === '' && (
+                <p className="text-[10px] text-amber-500">Not set yet — scores won't be capped until you enter a number.</p>
+              )}
+            </div>
+
             <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4">
               <h3 className="text-sm font-black uppercase tracking-wider text-cyan-400">Generate Schedule</h3>
               <p className="text-[10px] text-zinc-500">
@@ -511,6 +545,8 @@ export default function PadelAmericanoAdmin() {
                         const isEditing = editingMatch === editKey;
                         const status = matchStatus(m.scheduledTime, m.durationMins);
                         const total = (Number(editScore1) || 0) + (Number(editScore2) || 0);
+                        const cap = Number(maxPoints);
+                        const hasCap = maxPoints !== '' && cap > 0;
                         return (
                           <div key={courtKey} className={`bg-zinc-950 border rounded-xl p-4 space-y-3 ${
                             status === 'live' ? 'border-red-500/40' : 'border-zinc-800'
@@ -540,24 +576,42 @@ export default function PadelAmericanoAdmin() {
 
                             {isEditing && (
                               <div className="border-t border-zinc-800 pt-3 space-y-2">
+                                {!hasCap && (
+                                  <p className="text-[10px] text-amber-500 bg-amber-500/5 border border-amber-500/20 rounded-lg px-3 py-2">
+                                    No points target set yet — set "Points Per Game" above to cap scores.
+                                  </p>
+                                )}
                                 <div className="grid grid-cols-2 gap-2">
                                   <div>
                                     <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">{players[m.team1[0]] || '?'} &amp; {players[m.team1[1]] || '?'}</label>
-                                    <input type="text" value={editScore1} onChange={e => setEditScore1(e.target.value)}
+                                    <input type="number" min="0" max={hasCap ? maxPoints : undefined} value={editScore1}
+                                      onChange={e => {
+                                        const v = e.target.value;
+                                        const capped = v === '' ? '' : hasCap ? String(Math.max(0, Math.min(cap, Number(v)))) : String(Math.max(0, Number(v)));
+                                        setEditScore1(capped);
+                                      }}
                                       className="w-full bg-zinc-900 border border-zinc-700 focus:border-cyan-500 rounded-lg px-3 py-1.5 text-xs outline-none text-white font-mono" />
                                   </div>
                                   <div>
                                     <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">{players[m.team2[0]] || '?'} &amp; {players[m.team2[1]] || '?'}</label>
-                                    <input type="text" value={editScore2} onChange={e => setEditScore2(e.target.value)}
+                                    <input type="number" min="0" max={hasCap ? maxPoints : undefined} value={editScore2}
+                                      onChange={e => {
+                                        const v = e.target.value;
+                                        const capped = v === '' ? '' : hasCap ? String(Math.max(0, Math.min(cap, Number(v)))) : String(Math.max(0, Number(v)));
+                                        setEditScore2(capped);
+                                      }}
                                       className="w-full bg-zinc-900 border border-zinc-700 focus:border-cyan-500 rounded-lg px-3 py-1.5 text-xs outline-none text-white font-mono" />
                                   </div>
                                 </div>
-                                <p className={`text-[10px] font-mono ${total === Number(maxPoints) ? 'text-emerald-400' : 'text-amber-500'}`}>
-                                  Total: {total} / {maxPoints} points
-                                </p>
+                                {hasCap && (
+                                  <p className={`text-[10px] font-mono ${total > cap ? 'text-red-400' : total === cap ? 'text-emerald-400' : 'text-amber-500'}`}>
+                                    Total: {total} / {maxPoints} points{total > cap ? ' — over the limit' : ''}
+                                  </p>
+                                )}
                                 <div className="flex gap-2 pt-1">
                                   <button onClick={() => handleSaveScore(selectedRound, courtKey, m)}
-                                    className="flex-1 bg-cyan-500 hover:bg-cyan-400 text-black py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all">
+                                    disabled={hasCap && total > cap}
+                                    className="flex-1 bg-cyan-500 hover:bg-cyan-400 disabled:opacity-30 disabled:cursor-not-allowed text-black py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all">
                                     Save Score
                                   </button>
                                   <button onClick={() => setEditingMatch(null)}
@@ -646,7 +700,6 @@ export default function PadelAmericanoAdmin() {
                     <th className="py-2 text-left">Player</th>
                     <th className="py-2 text-center">Played</th>
                     <th className="py-2 text-center text-emerald-500">Wins</th>
-                    <th className="py-2 text-center text-teal-400">Diff</th>
                     <th className="py-2 text-right pr-2 text-amber-400">Pts</th>
                   </tr>
                 </thead>
@@ -662,9 +715,6 @@ export default function PadelAmericanoAdmin() {
                       </td>
                       <td className="py-2.5 text-center text-zinc-400 font-mono">{p.played}</td>
                       <td className="py-2.5 text-center text-emerald-400 font-mono">{p.wins}</td>
-                      <td className={`py-2.5 text-center font-mono font-medium ${(p.pointsFor - p.pointsAgainst) > 0 ? 'text-teal-400' : (p.pointsFor - p.pointsAgainst) < 0 ? 'text-red-400' : 'text-zinc-500'}`}>
-                        {p.pointsFor - p.pointsAgainst > 0 ? `+${p.pointsFor - p.pointsAgainst}` : p.pointsFor - p.pointsAgainst}
-                      </td>
                       <td className="py-2.5 text-right pr-2 text-amber-400 font-mono font-bold">{p.pointsFor}</td>
                     </tr>
                   ))}
@@ -678,12 +728,7 @@ export default function PadelAmericanoAdmin() {
         {activeTab === 'Config' && (
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-5">
             <h3 className="text-sm font-black uppercase tracking-wider text-zinc-400">Tournament Configuration</h3>
-            <div>
-              <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">Points Per Game</label>
-              <input type="number" min="1" value={maxPoints} onChange={e => setMaxPoints(e.target.value)}
-                className="w-full bg-zinc-950 border border-zinc-800 focus:border-cyan-500 rounded-xl px-4 py-2.5 text-xs outline-none text-white font-mono" />
-              <p className="text-[10px] text-zinc-600 mt-1">Used as a live hint when entering scores (e.g. 9–7 for a 16-point game).</p>
-            </div>
+            <p className="text-[10px] text-zinc-600 -mt-2">Looking for "Points Per Game"? That now lives on the Schedule tab.</p>
             <div>
               <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">YouTube / Stream Link</label>
               <input type="text" value={streamLink} onChange={e => setStreamLink(e.target.value)}
