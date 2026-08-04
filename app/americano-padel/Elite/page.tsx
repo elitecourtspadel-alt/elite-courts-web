@@ -223,7 +223,6 @@ export default function PadelAmericanoAdmin() {
   const [editScore1, setEditScore1] = useState('');
   const [editScore2, setEditScore2] = useState('');
 
-  const [genNumRounds, setGenNumRounds] = useState('7');
   const [genStartTime, setGenStartTime] = useState('09:00');
   const [genRoundDuration, setGenRoundDuration] = useState('20');
 
@@ -293,10 +292,14 @@ export default function PadelAmericanoAdmin() {
 
   const handleGenerateSchedule = async () => {
     if (playerIds.length < 4) { alert('Add at least 4 players first.'); return; }
+    if (playerIds.length % 4 !== 0) {
+      alert(`Player count must be a multiple of 4 to guarantee everyone partners with everyone else exactly once. You currently have ${playerIds.length} players.`);
+      return;
+    }
     if (roundKeys.length > 0 && !confirm('This replaces the entire schedule and any recorded scores. Continue?')) return;
 
-    const n = Number(genNumRounds) || playerIds.length - 1;
-    const generated = generateAmericanoSchedule(playerIds, Math.max(1, n));
+    const n = playerIds.length - 1; // exactly enough rounds for every player to partner with every other once
+    const generated = generateAmericanoSchedule(playerIds, n);
 
     const roundsPayload: Record<string, AmericanoRound> = {};
     generated.forEach((round, idx) => {
@@ -544,15 +547,17 @@ export default function PadelAmericanoAdmin() {
             <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4">
               <h3 className="text-sm font-black uppercase tracking-wider text-cyan-400">Generate Schedule</h3>
               <p className="text-[10px] text-zinc-500">
-                Best-effort round robin — it tries hard to give every player a different partner each round, but with odd
-                player counts or few rounds it can't always guarantee zero repeats.
+                With a player count that's a multiple of 4, the generator uses exactly <strong>{Math.max(playerIds.length - 1, 0)} rounds</strong> —
+                mathematically just enough for every player to partner with every other player exactly once. It optimizes hard
+                for that outcome, though as a randomized search it isn't a guaranteed-perfect solver — check the schedule
+                after generating and use "Add Match Manually" to fix any repeat it missed.
               </p>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                  <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Number of Rounds</label>
-                  <input type="number" min="1" value={genNumRounds} onChange={e => setGenNumRounds(e.target.value)}
-                    className="w-full bg-zinc-950 border border-zinc-800 focus:border-cyan-500 rounded-xl px-3 py-2 text-xs outline-none text-white font-mono" />
-                </div>
+              {playerIds.length > 0 && playerIds.length % 4 !== 0 && (
+                <p className="text-[10px] text-amber-500 bg-amber-500/5 border border-amber-500/20 rounded-lg px-3 py-2">
+                  You currently have {playerIds.length} players — add or remove {4 - (playerIds.length % 4)} to reach a multiple of 4 before generating.
+                </p>
+              )}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Start Time</label>
                   <input type="time" value={genStartTime} onChange={e => setGenStartTime(e.target.value)}
@@ -564,6 +569,12 @@ export default function PadelAmericanoAdmin() {
                     className="w-full bg-zinc-950 border border-zinc-800 focus:border-cyan-500 rounded-xl px-3 py-2 text-xs outline-none text-white font-mono" />
                 </div>
               </div>
+              {playerIds.length >= 4 && playerIds.length % 4 === 0 && (
+                <p className="text-[10px] text-zinc-500">
+                  ≈ {Math.max(playerIds.length - 1, 0) * (Number(genRoundDuration) || 0)} minutes total, ending around{' '}
+                  {addMinutesToTime(genStartTime, Math.max(playerIds.length - 1, 0) * (Number(genRoundDuration) || 0))}.
+                </p>
+              )}
               <button onClick={handleGenerateSchedule}
                 className="w-full bg-cyan-500 hover:bg-cyan-400 text-black py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all">
                 {roundKeys.length > 0 ? 'Regenerate Schedule' : 'Generate Schedule'}
