@@ -84,18 +84,24 @@ interface AmericanoRound {
   sitOut?: string[];
 }
 
+interface PlayerInfo {
+  name: string;
+  photoUrl?: string;
+}
+
 interface PlayerStats {
   id: string;
   name: string;
+  photoUrl?: string;
   played: number;
   wins: number;
   pointsFor: number;
 }
 
-function computeLeaderboard(players: Record<string, string> | undefined, rounds: Record<string, AmericanoRound> | undefined): PlayerStats[] {
+function computeLeaderboard(players: Record<string, PlayerInfo> | undefined, rounds: Record<string, AmericanoRound> | undefined): PlayerStats[] {
   const stats: Record<string, PlayerStats> = {};
-  Object.entries(players || {}).forEach(([id, name]) => {
-    stats[id] = { id, name, played: 0, wins: 0, pointsFor: 0 };
+  Object.entries(players || {}).forEach(([id, info]) => {
+    stats[id] = { id, name: info.name, photoUrl: info.photoUrl, played: 0, wins: 0, pointsFor: 0 };
   });
   Object.values(rounds || {}).forEach((round) => {
     Object.values(round.matches || {}).forEach((m) => {
@@ -137,11 +143,11 @@ export default function PadelAmericanoView() {
     return () => { unsubscribe(); clearInterval(interval); };
   }, []);
 
-  const players: Record<string, string> = tournamentData?.players || {};
+  const players: Record<string, PlayerInfo> = tournamentData?.players || {};
+  const pName = (id: string) => players[id]?.name || '?';
   const rounds: Record<string, AmericanoRound> = tournamentData?.rounds || {};
   const roundKeys = Object.keys(rounds).sort((a, b) => roundNum(a) - roundNum(b));
   const streamLink = tournamentData?.config?.streamLink || "";
-  const winnerImageUrl = tournamentData?.config?.championPhotoUrl || DEFAULT_WINNER_IMAGE;
   const ceremonyImageUrl = tournamentData?.config?.closingPhotoUrl || DEFAULT_CEREMONY_IMAGE;
 
   const leaderboard = computeLeaderboard(players, rounds);
@@ -151,6 +157,7 @@ export default function PadelAmericanoView() {
   const completedMatches = allMatches.filter((m) => m.score1 !== '' && m.score1 != null && m.score2 !== '' && m.score2 != null).length;
   const isComplete = totalMatches > 0 && completedMatches === totalMatches;
   const champion = isComplete && leaderboard.length > 0 ? leaderboard[0] : null;
+  const winnerImageUrl = tournamentData?.config?.championPhotoUrl || champion?.photoUrl || DEFAULT_WINNER_IMAGE;
 
   return (
     <div className="p-4 sm:p-10 text-white bg-zinc-950 min-h-screen space-y-10">
@@ -227,8 +234,15 @@ export default function PadelAmericanoView() {
                 <tbody className="divide-y divide-zinc-800/50">
                   {leaderboard.map((row, idx) => (
                     <tr key={row.id} className={`hover:bg-zinc-800/30 ${idx === 0 && row.played > 0 ? 'bg-cyan-500/5' : ''}`}>
-                      <td className="py-3 font-medium text-zinc-200 pl-2 flex items-center gap-2">
+                      <td className="py-3 font-medium text-zinc-200 pl-2 flex items-center gap-2.5">
                         <span className="font-mono text-zinc-600 font-bold w-4">{idx + 1}</span>
+                        {row.photoUrl ? (
+                          <img src={row.photoUrl} alt={row.name} className="w-7 h-7 rounded-full object-cover border border-zinc-700 shrink-0" />
+                        ) : (
+                          <div className="w-7 h-7 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-[10px] font-bold text-zinc-500 shrink-0">
+                            {row.name.slice(0, 1).toUpperCase()}
+                          </div>
+                        )}
                         {row.name}
                       </td>
                       <td className="py-3 text-center text-zinc-400 font-mono">{row.played}</td>
@@ -256,7 +270,7 @@ export default function PadelAmericanoView() {
                       <h3 className="text-lg font-bold text-cyan-400 tracking-tight">Round {roundNum(rk)}</h3>
                       {sitOut.length > 0 && (
                         <span className="text-[10px] text-amber-500/80 font-mono">
-                          Sitting out: {sitOut.map((id) => players[id] || 'Unknown').join(', ')}
+                          Sitting out: {sitOut.map((id) => pName(id)).join(', ')}
                         </span>
                       )}
                     </div>
@@ -280,13 +294,13 @@ export default function PadelAmericanoView() {
                             <div className="space-y-1 text-xs">
                               <div className="flex justify-between items-center">
                                 <span className={hasScore && Number(m.score1) > Number(m.score2) ? 'text-cyan-400 font-bold' : 'text-zinc-300'}>
-                                  {(players[m.team1[0]] || '?')} &amp; {(players[m.team1[1]] || '?')}
+                                  {pName(m.team1[0])} &amp; {pName(m.team1[1])}
                                 </span>
                                 {hasScore && <span className="font-mono text-zinc-400 font-bold bg-zinc-900 px-1.5 py-0.5 rounded text-[10px]">{m.score1}</span>}
                               </div>
                               <div className="flex justify-between items-center">
                                 <span className={hasScore && Number(m.score2) > Number(m.score1) ? 'text-cyan-400 font-bold' : 'text-zinc-300'}>
-                                  {(players[m.team2[0]] || '?')} &amp; {(players[m.team2[1]] || '?')}
+                                  {pName(m.team2[0])} &amp; {pName(m.team2[1])}
                                 </span>
                                 {hasScore && <span className="font-mono text-zinc-400 font-bold bg-zinc-900 px-1.5 py-0.5 rounded text-[10px]">{m.score2}</span>}
                               </div>
