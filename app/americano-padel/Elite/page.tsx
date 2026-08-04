@@ -37,8 +37,13 @@ interface AmericanoRound {
   sitOut?: string[];
 }
 
+interface PlayerInfo {
+  name: string;
+  photoUrl?: string;
+}
+
 interface TournamentData {
-  players?: Record<string, string>;
+  players?: Record<string, PlayerInfo>;
   rounds?: Record<string, AmericanoRound>;
   config?: {
     maxPoints?: number;
@@ -86,15 +91,16 @@ function addMinutesToTime(time: string, mins: number): string {
 interface PlayerStats {
   id: string;
   name: string;
+  photoUrl?: string;
   played: number;
   wins: number;
   pointsFor: number;
 }
 
-function computeLeaderboard(players: Record<string, string> | undefined, rounds: Record<string, AmericanoRound> | undefined): PlayerStats[] {
+function computeLeaderboard(players: Record<string, PlayerInfo> | undefined, rounds: Record<string, AmericanoRound> | undefined): PlayerStats[] {
   const stats: Record<string, PlayerStats> = {};
-  Object.entries(players || {}).forEach(([id, name]) => {
-    stats[id] = { id, name, played: 0, wins: 0, pointsFor: 0 };
+  Object.entries(players || {}).forEach(([id, info]) => {
+    stats[id] = { id, name: info.name, photoUrl: info.photoUrl, played: 0, wins: 0, pointsFor: 0 };
   });
   Object.values(rounds || {}).forEach((round) => {
     Object.values(round.matches || {}).forEach((m) => {
@@ -208,6 +214,9 @@ export default function PadelAmericanoAdmin() {
   const [saved, setSaved] = useState<string | null>(null);
 
   const [newPlayerName, setNewPlayerName] = useState('');
+  const [newPlayerPhoto, setNewPlayerPhoto] = useState('');
+  const [editingPlayerPhoto, setEditingPlayerPhoto] = useState<string | null>(null);
+  const [editPlayerPhotoUrl, setEditPlayerPhotoUrl] = useState('');
 
   const [selectedRound, setSelectedRound] = useState<string>('round1');
   const [editingMatch, setEditingMatch] = useState<string | null>(null);
@@ -252,13 +261,29 @@ export default function PadelAmericanoAdmin() {
 
   const players = data.players || {};
   const playerIds = Object.keys(players);
+  const pName = (id: string) => players[id]?.name || '?';
   const rounds = data.rounds || {};
   const roundKeys = Object.keys(rounds).sort((a, b) => roundNum(a) - roundNum(b));
 
   const handleAddPlayer = async () => {
     if (!newPlayerName.trim()) return;
-    await push(ref(db, `${TOURNEY_PATH}/players`), newPlayerName.trim());
+    await push(ref(db, `${TOURNEY_PATH}/players`), { name: newPlayerName.trim(), photoUrl: newPlayerPhoto.trim() || '' });
     setNewPlayerName('');
+    setNewPlayerPhoto('');
+  };
+
+  const openPhotoEditor = (playerId: string) => {
+    setEditPlayerPhotoUrl(players[playerId]?.photoUrl || '');
+    setEditingPlayerPhoto(playerId);
+  };
+
+  const handleSavePlayerPhoto = async (playerId: string) => {
+    await set(ref(db, `${TOURNEY_PATH}/players/${playerId}`), {
+      name: players[playerId]?.name || '',
+      photoUrl: editPlayerPhotoUrl.trim(),
+    });
+    setEditingPlayerPhoto(null);
+    showSaved('Photo saved');
   };
 
   const handleDeletePlayer = async (playerId: string) => {
@@ -429,14 +454,19 @@ export default function PadelAmericanoAdmin() {
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-5">
             <h3 className="text-sm font-black uppercase tracking-wider text-cyan-400">Players ({playerIds.length})</h3>
             <p className="text-[10px] text-zinc-500">Americano needs groups of 4 — a multiple of 4 players means nobody sits out each round.</p>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <input type="text" value={newPlayerName}
                 onChange={e => setNewPlayerName(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleAddPlayer()}
                 placeholder="Player name"
                 className="flex-1 bg-zinc-950 border border-zinc-800 focus:border-cyan-500 rounded-xl px-4 py-2.5 text-xs outline-none transition-all text-white placeholder:text-zinc-600" />
+              <input type="text" value={newPlayerPhoto}
+                onChange={e => setNewPlayerPhoto(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleAddPlayer()}
+                placeholder="Photo URL (optional)"
+                className="flex-1 bg-zinc-950 border border-zinc-800 focus:border-cyan-500 rounded-xl px-4 py-2.5 text-xs outline-none transition-all text-white placeholder:text-zinc-600 font-mono" />
               <button onClick={handleAddPlayer}
-                className="bg-cyan-500 hover:bg-cyan-400 text-black px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all">
+                className="bg-cyan-500 hover:bg-cyan-400 text-black px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all shrink-0">
                 Add
               </button>
             </div>
@@ -444,10 +474,44 @@ export default function PadelAmericanoAdmin() {
               {playerIds.length === 0 ? (
                 <p className="text-zinc-600 text-xs text-center py-6 border border-dashed border-zinc-800 rounded-xl sm:col-span-2">No players yet</p>
               ) : playerIds.map((id) => (
-                <div key={id} className="flex items-center justify-between bg-zinc-950 border border-zinc-800 px-4 py-2.5 rounded-xl">
-                  <span className="text-xs font-semibold text-zinc-200">{players[id]}</span>
-                  <button onClick={() => handleDeletePlayer(id)}
-                    className="text-zinc-600 hover:text-red-400 text-xs font-bold transition-colors">✕</button>
+                <div key={id} className="bg-zinc-950 border border-zinc-800 px-4 py-2.5 rounded-xl space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      {players[id]?.photoUrl ? (
+                        <img src={players[id].photoUrl} alt={players[id].name}
+                          className="w-8 h-8 rounded-full object-cover border border-zinc-700 shrink-0" />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-[10px] font-bold text-zinc-500 shrink-0">
+                          {(players[id]?.name || '?').slice(0, 1).toUpperCase()}
+                        </div>
+                      )}
+                      <span className="text-xs font-semibold text-zinc-200">{players[id]?.name}</span>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button onClick={() => openPhotoEditor(id)}
+                        className="text-zinc-600 hover:text-cyan-400 text-[10px] font-bold uppercase transition-colors">
+                        {players[id]?.photoUrl ? 'Edit Photo' : '+ Photo'}
+                      </button>
+                      <button onClick={() => handleDeletePlayer(id)}
+                        className="text-zinc-600 hover:text-red-400 text-xs font-bold transition-colors">✕</button>
+                    </div>
+                  </div>
+                  {editingPlayerPhoto === id && (
+                    <div className="flex gap-2 pt-1 border-t border-zinc-800">
+                      <input type="text" value={editPlayerPhotoUrl}
+                        onChange={e => setEditPlayerPhotoUrl(e.target.value)}
+                        placeholder="https://..."
+                        className="flex-1 bg-zinc-900 border border-zinc-700 focus:border-cyan-500 rounded-lg px-3 py-1.5 text-[10px] outline-none text-white font-mono mt-2" />
+                      <button onClick={() => handleSavePlayerPhoto(id)}
+                        className="mt-2 px-3 bg-cyan-500 hover:bg-cyan-400 text-black rounded-lg text-[10px] font-black uppercase transition-all">
+                        Save
+                      </button>
+                      <button onClick={() => setEditingPlayerPhoto(null)}
+                        className="mt-2 px-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 rounded-lg text-[10px] font-black uppercase transition-all">
+                        Cancel
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -535,7 +599,7 @@ export default function PadelAmericanoAdmin() {
 
                     {(rounds[selectedRound].sitOut || []).length > 0 && (
                       <p className="text-[10px] text-amber-500/80 bg-amber-500/5 border border-amber-500/20 rounded-lg px-3 py-2">
-                        Sitting out: {(rounds[selectedRound].sitOut || []).map(id => players[id] || 'Unknown').join(', ')}
+                        Sitting out: {(rounds[selectedRound].sitOut || []).map(id => pName(id)).join(', ')}
                       </p>
                     )}
 
@@ -560,11 +624,11 @@ export default function PadelAmericanoAdmin() {
                             <div className="flex items-center justify-between gap-3">
                               <div className="text-xs space-y-1.5 flex-1">
                                 <div className="flex items-center justify-between">
-                                  <span className="text-zinc-300">{(players[m.team1[0]] || '?')} &amp; {(players[m.team1[1]] || '?')}</span>
+                                  <span className="text-zinc-300">{pName(m.team1[0])} &amp; {pName(m.team1[1])}</span>
                                   {m.score1 !== '' && <span className="font-mono text-zinc-400 bg-zinc-900 px-1.5 py-0.5 rounded text-[10px]">{m.score1}</span>}
                                 </div>
                                 <div className="flex items-center justify-between">
-                                  <span className="text-zinc-300">{(players[m.team2[0]] || '?')} &amp; {(players[m.team2[1]] || '?')}</span>
+                                  <span className="text-zinc-300">{pName(m.team2[0])} &amp; {pName(m.team2[1])}</span>
                                   {m.score2 !== '' && <span className="font-mono text-zinc-400 bg-zinc-900 px-1.5 py-0.5 rounded text-[10px]">{m.score2}</span>}
                                 </div>
                               </div>
@@ -583,7 +647,7 @@ export default function PadelAmericanoAdmin() {
                                 )}
                                 <div className="grid grid-cols-2 gap-2">
                                   <div>
-                                    <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">{players[m.team1[0]] || '?'} &amp; {players[m.team1[1]] || '?'}</label>
+                                    <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">{pName(m.team1[0])} &amp; {pName(m.team1[1])}</label>
                                     <input type="number" min="0" max={hasCap ? maxPoints : undefined} value={editScore1}
                                       onChange={e => {
                                         const v = e.target.value;
@@ -593,7 +657,7 @@ export default function PadelAmericanoAdmin() {
                                       className="w-full bg-zinc-900 border border-zinc-700 focus:border-cyan-500 rounded-lg px-3 py-1.5 text-xs outline-none text-white font-mono" />
                                   </div>
                                   <div>
-                                    <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">{players[m.team2[0]] || '?'} &amp; {players[m.team2[1]] || '?'}</label>
+                                    <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">{pName(m.team2[0])} &amp; {pName(m.team2[1])}</label>
                                     <input type="number" min="0" max={hasCap ? maxPoints : undefined} value={editScore2}
                                       onChange={e => {
                                         const v = e.target.value;
@@ -637,22 +701,22 @@ export default function PadelAmericanoAdmin() {
                           <select value={addMatchTeam1a} onChange={e => setAddMatchTeam1a(e.target.value)}
                             className="w-full bg-zinc-950 border border-zinc-800 focus:border-cyan-500 rounded-xl px-3 py-2 text-xs text-white outline-none">
                             <option value="">Team 1 — Player 1</option>
-                            {playerIds.map(id => <option key={id} value={id}>{players[id]}</option>)}
+                            {playerIds.map(id => <option key={id} value={id}>{pName(id)}</option>)}
                           </select>
                           <select value={addMatchTeam1b} onChange={e => setAddMatchTeam1b(e.target.value)}
                             className="w-full bg-zinc-950 border border-zinc-800 focus:border-cyan-500 rounded-xl px-3 py-2 text-xs text-white outline-none">
                             <option value="">Team 1 — Player 2</option>
-                            {playerIds.map(id => <option key={id} value={id}>{players[id]}</option>)}
+                            {playerIds.map(id => <option key={id} value={id}>{pName(id)}</option>)}
                           </select>
                           <select value={addMatchTeam2a} onChange={e => setAddMatchTeam2a(e.target.value)}
                             className="w-full bg-zinc-950 border border-zinc-800 focus:border-cyan-500 rounded-xl px-3 py-2 text-xs text-white outline-none">
                             <option value="">Team 2 — Player 1</option>
-                            {playerIds.map(id => <option key={id} value={id}>{players[id]}</option>)}
+                            {playerIds.map(id => <option key={id} value={id}>{pName(id)}</option>)}
                           </select>
                           <select value={addMatchTeam2b} onChange={e => setAddMatchTeam2b(e.target.value)}
                             className="w-full bg-zinc-950 border border-zinc-800 focus:border-cyan-500 rounded-xl px-3 py-2 text-xs text-white outline-none">
                             <option value="">Team 2 — Player 2</option>
-                            {playerIds.map(id => <option key={id} value={id}>{players[id]}</option>)}
+                            {playerIds.map(id => <option key={id} value={id}>{pName(id)}</option>)}
                           </select>
                         </div>
                         <div className="grid grid-cols-2 gap-2">
