@@ -36,49 +36,20 @@ export default function PickleballSeason2View() {
     return () => unsubscribe();
   }, []);
 
-  const groupWinners: Record<string, string> = {
-    'Group A': 'Winner Group A', 'Group B': 'Winner Group B',
-    'Group C': 'Winner Group C', 'Group D': 'Winner Group D'
-  };
-
-  if (tournamentData?.groups) {
-    requiredGroups.forEach((groupName) => {
-      const groupData = tournamentData.groups[groupName];
-      const teamsRaw = groupData?.teams ? (Object.values(groupData.teams) as string[]) : [];
-      const matchesRaw = groupData?.matches ? Object.entries(groupData.matches) : [];
-      const allMatchesFinished = matchesRaw.length > 0 && matchesRaw.every((match: any) => {
-        const mData = match[1];
-        return mData && mData.winner && mData.winner.trim() !== "";
-      });
-      if (allMatchesFinished) {
-        const standingsMap: Record<string, { name: string; pts: number; diff: number }> = {};
-        teamsRaw.forEach((tName) => { standingsMap[tName] = { name: tName, pts: 0, diff: 0 }; });
-        matchesRaw.forEach((match: any) => {
-          const mData = match[1];
-          const t1 = mData.team1; const t2 = mData.team2; const win = mData.winner;
-          const s1 = Number(mData.score1 || 0); const s2 = Number(mData.score2 || 0);
-          if (standingsMap[t1] && standingsMap[t2] && win) {
-            standingsMap[t1].diff += (s1 - s2); standingsMap[t2].diff += (s2 - s1);
-            if (win === t1) standingsMap[t1].pts += 3;
-            else if (win === t2) standingsMap[t2].pts += 3;
-          }
-        });
-        const sorted = Object.values(standingsMap).sort((a, b) => b.pts - a.pts || b.diff - a.diff);
-        if (sorted.length > 0) groupWinners[groupName] = sorted[0].name;
-      }
-    });
-  }
-
-  const semi1 = tournamentData?.knockouts?.semi1 || { winner: "", score1: "", score2: "" };
-  const semi2 = tournamentData?.knockouts?.semi2 || { winner: "", score1: "", score2: "" };
-  const finalMatch = tournamentData?.knockouts?.final || { winner: "", score1: "", score2: "" };
+  const qf1 = tournamentData?.knockouts?.qf1 || {};
+  const qf2 = tournamentData?.knockouts?.qf2 || {};
+  const qf3 = tournamentData?.knockouts?.qf3 || {};
+  const qf4 = tournamentData?.knockouts?.qf4 || {};
+  const semi1 = tournamentData?.knockouts?.semi1 || {};
+  const semi2 = tournamentData?.knockouts?.semi2 || {};
+  const finalMatch = tournamentData?.knockouts?.final || {};
   const streamLink = tournamentData?.config?.streamLink || "";
   const winnerImageUrl = tournamentData?.config?.championPhotoUrl || DEFAULT_WINNER_IMAGE;
   const ceremonyImageUrl = tournamentData?.config?.closingPhotoUrl || DEFAULT_CEREMONY_IMAGE;
   const heroBackgroundUrl = tournamentData?.config?.heroBackgroundUrl || DEFAULT_HERO_BACKGROUND;
 
-  const isSemi1Ready = groupWinners['Group A'] !== 'Winner Group A' && groupWinners['Group C'] !== 'Winner Group C';
-  const isSemi2Ready = groupWinners['Group B'] !== 'Winner Group B' && groupWinners['Group D'] !== 'Winner Group D';
+  const isSemi1Ready = !!(qf1.winner && qf2.winner);
+  const isSemi2Ready = !!(qf3.winner && qf4.winner);
 
   return (
     <div className="bg-slate-950 min-h-screen text-white">
@@ -238,9 +209,42 @@ export default function PickleballSeason2View() {
               })}
             </div>
 
+            {/* Quarterfinals */}
+            <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-6 sm:p-8 rounded-3xl space-y-6 shadow-2xl">
+              <h2 className="text-2xl font-bold text-fuchsia-300 text-center flex items-center justify-center gap-2 tracking-tight">
+                <GitFork className="h-6 w-6 rotate-180" /> Quarterfinals
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-6xl mx-auto">
+                {[
+                  { label: 'QUARTERFINAL 1', data: qf1 },
+                  { label: 'QUARTERFINAL 2', data: qf2 },
+                  { label: 'QUARTERFINAL 3', data: qf3 },
+                  { label: 'QUARTERFINAL 4', data: qf4 },
+                ].map((q) => (
+                  <div key={q.label} className="bg-slate-950/60 border border-white/10 p-4 rounded-2xl space-y-3 shadow-md">
+                    <div className="flex justify-between font-mono text-[9px] text-slate-500 border-b border-white/5 pb-1">
+                      <span>{q.label}</span>
+                      {q.data.winner ? <span className="text-emerald-400 font-bold">FINAL</span> : <span className="text-amber-400/50">PENDING</span>}
+                    </div>
+                    <div className="space-y-2 text-xs">
+                      <div className="flex justify-between items-center">
+                        <span className={q.data.winner && q.data.winner === q.data.team1 ? 'text-fuchsia-300 font-bold' : 'text-slate-300'}>{q.data.team1 || 'TBD'}</span>
+                        {q.data.winner && <span className="bg-white/5 text-slate-400 font-mono px-1.5 py-0.5 rounded text-[10px]">{q.data.score1}</span>}
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className={q.data.winner && q.data.winner === q.data.team2 ? 'text-fuchsia-300 font-bold' : 'text-slate-300'}>{q.data.team2 || 'TBD'}</span>
+                        {q.data.winner && <span className="bg-white/5 text-slate-400 font-mono px-1.5 py-0.5 rounded text-[10px]">{q.data.score2}</span>}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Semifinals + Final Bracket */}
             <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-6 sm:p-8 rounded-3xl space-y-8 shadow-2xl">
               <h2 className="text-2xl font-bold text-amber-300 text-center flex items-center justify-center gap-2 tracking-tight">
-                <GitFork className="h-6 w-6 rotate-180" /> Knockout Stage
+                <GitFork className="h-6 w-6 rotate-180" /> Semifinals &amp; Final
               </h2>
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-center max-w-5xl mx-auto pt-4">
@@ -248,51 +252,35 @@ export default function PickleballSeason2View() {
                 <div className="space-y-8 lg:col-span-1">
                   <div className="text-center font-bold text-[10px] tracking-widest text-slate-500 uppercase mb-2">Semifinals</div>
 
-                  <div className="bg-slate-950/60 border border-white/10 p-4 rounded-2xl space-y-3 shadow-md">
-                    <div className="flex justify-between font-mono text-[9px] text-slate-500 border-b border-white/5 pb-1">
-                      <span>SEMIFINAL 1</span>
-                      {semi1.winner ? <span className="text-emerald-400 font-bold">FINAL</span> : isSemi1Ready ? <span className="text-rose-400 font-bold animate-pulse">LIVE 🔴</span> : <span className="text-amber-400/50">PENDING</span>}
-                    </div>
-                    <div className="space-y-2 text-xs">
-                      <div className="flex justify-between items-center">
-                        <span className={semi1.winner === groupWinners['Group A'] ? 'text-fuchsia-300 font-bold' : 'text-slate-300'}>{groupWinners['Group A']}</span>
-                        <div className="flex items-center gap-1.5 font-mono">
-                          {semi1.winner && <span className="bg-white/5 text-slate-400 px-1 rounded text-[10px]">{semi1.score1}</span>}
-                          <span className="text-[10px] text-slate-600">(A1)</span>
-                        </div>
+                  {[
+                    { label: 'SEMIFINAL 1', data: semi1, ga: qf1.winner || 'Winner QF1', gc: qf2.winner || 'Winner QF2', tagA: 'QF1', tagC: 'QF2', ready: isSemi1Ready },
+                    { label: 'SEMIFINAL 2', data: semi2, ga: qf3.winner || 'Winner QF3', gc: qf4.winner || 'Winner QF4', tagA: 'QF3', tagC: 'QF4', ready: isSemi2Ready },
+                  ].map((s) => (
+                    <div key={s.label} className="bg-slate-950/60 border border-white/10 p-4 rounded-2xl space-y-3 shadow-md">
+                      <div className="flex justify-between font-mono text-[9px] text-slate-500 border-b border-white/5 pb-1">
+                        <span>{s.label}</span>
+                        {s.data.winner ? <span className="text-emerald-400 font-bold">FINAL</span> :
+                         s.ready ? <span className="text-rose-400 font-bold animate-pulse">LIVE 🔴</span> :
+                         <span className="text-amber-400/50">PENDING</span>}
                       </div>
-                      <div className="flex justify-between items-center">
-                        <span className={semi1.winner === groupWinners['Group C'] ? 'text-fuchsia-300 font-bold' : 'text-slate-300'}>{groupWinners['Group C']}</span>
-                        <div className="flex items-center gap-1.5 font-mono">
-                          {semi1.winner && <span className="bg-white/5 text-slate-400 px-1 rounded text-[10px]">{semi1.score2}</span>}
-                          <span className="text-[10px] text-slate-600">(C1)</span>
+                      <div className="space-y-2 text-xs">
+                        <div className="flex justify-between items-center">
+                          <span className={s.data.winner === s.ga ? 'text-fuchsia-300 font-bold' : 'text-slate-300'}>{s.ga}</span>
+                          <div className="flex items-center gap-1.5 font-mono">
+                            {s.data.winner && <span className="bg-white/5 text-slate-400 px-1 rounded text-[10px]">{s.data.score1}</span>}
+                            <span className="text-[10px] text-slate-600">({s.tagA})</span>
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-slate-950/60 border border-white/10 p-4 rounded-2xl space-y-3 shadow-md">
-                    <div className="flex justify-between font-mono text-[9px] text-slate-500 border-b border-white/5 pb-1">
-                      <span>SEMIFINAL 2</span>
-                      {semi2.winner ? <span className="text-emerald-400 font-bold">FINAL</span> : isSemi2Ready ? <span className="text-rose-400 font-bold animate-pulse">LIVE 🔴</span> : <span className="text-amber-400/50">PENDING</span>}
-                    </div>
-                    <div className="space-y-2 text-xs">
-                      <div className="flex justify-between items-center">
-                        <span className={semi2.winner === groupWinners['Group B'] ? 'text-fuchsia-300 font-bold' : 'text-slate-300'}>{groupWinners['Group B']}</span>
-                        <div className="flex items-center gap-1.5 font-mono">
-                          {semi2.winner && <span className="bg-white/5 text-slate-400 px-1 rounded text-[10px]">{semi2.score1}</span>}
-                          <span className="text-[10px] text-slate-600">(B1)</span>
-                        </div>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className={semi2.winner === groupWinners['Group D'] ? 'text-fuchsia-300 font-bold' : 'text-slate-300'}>{groupWinners['Group D']}</span>
-                        <div className="flex items-center gap-1.5 font-mono">
-                          {semi2.winner && <span className="bg-white/5 text-slate-400 px-1 rounded text-[10px]">{semi2.score2}</span>}
-                          <span className="text-[10px] text-slate-600">(D1)</span>
+                        <div className="flex justify-between items-center">
+                          <span className={s.data.winner === s.gc ? 'text-fuchsia-300 font-bold' : 'text-slate-300'}>{s.gc}</span>
+                          <div className="flex items-center gap-1.5 font-mono">
+                            {s.data.winner && <span className="bg-white/5 text-slate-400 px-1 rounded text-[10px]">{s.data.score2}</span>}
+                            <span className="text-[10px] text-slate-600">({s.tagC})</span>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
+                  ))}
                 </div>
 
                 <div className="lg:col-span-1 flex flex-col justify-center space-y-3">
@@ -300,7 +288,9 @@ export default function PickleballSeason2View() {
                   <div className="bg-gradient-to-b from-amber-500/10 via-white/5 to-fuchsia-400/10 border-2 border-amber-400/30 p-5 rounded-2xl space-y-4 shadow-xl">
                     <div className="flex justify-between font-mono text-[9px] text-amber-300 font-bold border-b border-white/10 pb-1">
                       <span>CHAMPIONSHIP MATCH</span>
-                      {finalMatch.winner ? <span className="text-emerald-400">FINAL</span> : (semi1.winner && semi2.winner) ? <span className="text-rose-400 animate-pulse">LIVE 🔴</span> : <span className="text-amber-400/50 font-normal">PENDING</span>}
+                      {finalMatch.winner ? <span className="text-emerald-400">FINAL</span> :
+                       (semi1.winner && semi2.winner) ? <span className="text-rose-400 animate-pulse">LIVE 🔴</span> :
+                       <span className="text-amber-400/50 font-normal">PENDING</span>}
                     </div>
                     <div className="space-y-2.5 text-sm">
                       <div className="flex justify-between items-center">
