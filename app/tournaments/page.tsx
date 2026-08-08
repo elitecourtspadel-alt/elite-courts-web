@@ -38,7 +38,7 @@ const tournaments = [
     date: "08-08-2026",
     status: "upcoming" as const,
     sport: "Pickleball",
-    href: "/pickleball-tournament-2",
+    href: "/pickleball_season_2",
     description: "The second edition of Elite Courts Pickleball Tournament, featuring group stage brackets and knockout rounds.",
     teams: null,
     groups: null,
