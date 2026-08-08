@@ -20,6 +20,55 @@ const firebaseConfig = {
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
 
+// The whole tournament happens on a single day - keep this in sync with the
+// same constant in the admin file. Times are stored as plain "HH:MM" and combined
+// with this date only for internal live/upcoming/past calculations; it's never shown.
+const TOURNAMENT_DATE = '2026-08-08';
+
+function toDateTime(time: string) {
+  if (!time) return '';
+  return `${TOURNAMENT_DATE}T${time}`;
+}
+
+function formatTime(time: string) {
+  if (!time) return '';
+  const d = new Date(toDateTime(time));
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+}
+
+function endTime(time: string, mins: number) {
+  if (!time || !mins) return '';
+  const d = new Date(new Date(toDateTime(time)).getTime() + mins * 60000);
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+}
+
+function matchStatus(time?: string, durationMins?: number) {
+  if (!time) return 'unscheduled';
+  const start = new Date(toDateTime(time)).getTime();
+  const end = start + (durationMins || 10) * 60000;
+  const now = Date.now();
+  if (now < start) return 'upcoming';
+  if (now >= start && now <= end) return 'live';
+  return 'past';
+}
+
+function TimeBadge({ iso, duration }: { iso?: string; duration?: number }) {
+  if (!iso) return null;
+  const status = matchStatus(iso, duration);
+  return (
+    <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono font-bold border ${
+      status === 'live' ? 'bg-rose-400/10 border-rose-400/30 text-rose-300' :
+      status === 'past' ? 'bg-white/5 border-white/10 text-slate-500' :
+      'bg-fuchsia-400/10 border-fuchsia-400/30 text-fuchsia-300'
+    }`}>
+      {status === 'live' && <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse inline-block" />}
+      <span>{formatTime(iso)}</span>
+      {duration ? <><span>→</span><span>{endTime(iso, duration)}</span></> : null}
+      {status === 'live' && <span className="ml-1">LIVE</span>}
+    </div>
+  );
+}
+
 export default function PickleballSeason2View() {
   const [tournamentData, setTournamentData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -184,12 +233,18 @@ export default function PickleballSeason2View() {
                         <p className="text-slate-700 text-xs text-center py-4 col-span-2">No matches scheduled yet</p>
                       ) : matchesRaw.map((match: any) => {
                         const matchId = match[0]; const mData = match[1];
+                        const status = matchStatus(mData.scheduledTime, mData.durationMins);
                         return (
-                          <div key={matchId} className="bg-slate-950/60 border border-white/10 p-3 rounded-xl flex flex-col justify-between space-y-2">
+                          <div key={matchId} className={`bg-slate-950/60 border p-3 rounded-xl flex flex-col justify-between space-y-2 ${
+                            status === 'live' ? 'border-rose-400/40' : 'border-white/10'
+                          }`}>
                             <div className="flex items-center justify-between text-[10px] text-slate-500 font-mono border-b border-white/5 pb-1">
-                              <span>{matchId.toUpperCase()}</span>
-                              {mData.winner ? <span className="text-emerald-400 font-bold">FINAL</span> : <span className="text-amber-400 animate-pulse">PENDING</span>}
+                              <span>MATCH</span>
+                              {mData.winner ? <span className="text-emerald-400 font-bold">FINAL</span> :
+                               status === 'live' ? <span className="text-rose-400 font-bold animate-pulse">LIVE 🔴</span> :
+                               <span className="text-amber-400 animate-pulse">PENDING</span>}
                             </div>
+                            {mData.scheduledTime && <TimeBadge iso={mData.scheduledTime} duration={mData.durationMins} />}
                             <div className="space-y-1 text-xs">
                               <div className="flex justify-between items-center">
                                 <span className={mData.winner === mData.team1 ? 'text-fuchsia-300 font-bold' : 'text-slate-300'}>{mData.team1}</span>
