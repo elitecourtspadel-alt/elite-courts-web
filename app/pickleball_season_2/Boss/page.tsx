@@ -19,6 +19,11 @@ const db = getDatabase(app);
 const GROUPS = ['Group A', 'Group B', 'Group C', 'Group D'];
 const TOURNEY_PATH = 'tournaments/pickleball_season_2';
 
+// The whole tournament happens on a single day - update this once to that date.
+// Times are stored as plain "HH:MM" and combined with this date only for internal
+// live/upcoming/past calculations. It is never shown to admins or viewers.
+const TOURNAMENT_DATE = '2026-08-08';
+
 interface Match {
   id: string;
   team1: string;
@@ -26,6 +31,8 @@ interface Match {
   score1: string;
   score2: string;
   winner: string;
+  scheduledTime?: string;
+  durationMins?: number;
 }
 
 interface GroupData {
@@ -60,6 +67,33 @@ interface TournamentData {
   };
 }
 
+function toDateTime(time: string) {
+  if (!time) return '';
+  return `${TOURNAMENT_DATE}T${time}`;
+}
+
+function formatTime(time: string) {
+  if (!time) return '';
+  const d = new Date(toDateTime(time));
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+}
+
+function endTime(time: string, mins: number) {
+  if (!time || !mins) return '';
+  const d = new Date(new Date(toDateTime(time)).getTime() + mins * 60000);
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+}
+
+function matchStatus(time?: string, durationMins?: number) {
+  if (!time) return 'unscheduled';
+  const start = new Date(toDateTime(time)).getTime();
+  const end = start + (durationMins || 10) * 60000;
+  const now = Date.now();
+  if (now < start) return 'upcoming';
+  if (now >= start && now <= end) return 'live';
+  return 'past';
+}
+
 type KOStage = 'qf1' | 'qf2' | 'qf3' | 'qf4' | 'semi1' | 'semi2' | 'final';
 
 interface KOFormState {
@@ -82,6 +116,8 @@ export default function PickleballSeason2Admin() {
   const [newTeamName, setNewTeamName] = useState('');
   const [matchTeam1, setMatchTeam1] = useState('');
   const [matchTeam2, setMatchTeam2] = useState('');
+  const [matchTime, setMatchTime] = useState('');
+  const [matchDuration, setMatchDuration] = useState('10');
 
   const [editingMatch, setEditingMatch] = useState<string | null>(null);
   const [resultScore1, setResultScore1] = useState('');
@@ -145,8 +181,10 @@ export default function PickleballSeason2Admin() {
     await push(ref(db, `${TOURNEY_PATH}/groups/${group}/matches`), {
       team1: matchTeam1.trim(), team2: matchTeam2.trim(),
       score1: '', score2: '', winner: '',
+      scheduledTime: matchTime || '',
+      durationMins: Number(matchDuration) || 10,
     });
-    setMatchTeam1(''); setMatchTeam2('');
+    setMatchTeam1(''); setMatchTeam2(''); setMatchTime('');
   };
 
   const handleDeleteMatch = async (group: string, matchKey: string) => {
@@ -159,6 +197,8 @@ export default function PickleballSeason2Admin() {
     await set(ref(db, `${TOURNEY_PATH}/groups/${group}/matches/${matchKey}`), {
       team1: m?.team1 || '', team2: m?.team2 || '',
       score1: resultScore1, score2: resultScore2, winner: resultWinner,
+      scheduledTime: m?.scheduledTime || '',
+      durationMins: m?.durationMins || 10,
     });
     setEditingMatch(null);
     showSaved('Result saved');
@@ -352,6 +392,23 @@ export default function PickleballSeason2Admin() {
                       <option value="">Select Team 2</option>
                       {teams.map(([k, n]) => <option key={k} value={n}>{n}</option>)}
                     </select>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[9px] text-slate-500 uppercase font-bold block mb-1">Match Time</label>
+                        <input type="time" value={matchTime} onChange={e => setMatchTime(e.target.value)}
+                          className="w-full bg-slate-950/60 border border-white/10 focus:border-fuchsia-400 rounded-xl px-3 py-2 text-xs outline-none text-white font-mono" />
+                      </div>
+                      <div>
+                        <label className="text-[9px] text-slate-500 uppercase font-bold block mb-1">Duration (mins)</label>
+                        <select value={matchDuration} onChange={e => setMatchDuration(e.target.value)}
+                          className="w-full bg-slate-950/60 border border-white/10 focus:border-fuchsia-400 rounded-xl px-3 py-2 text-xs text-white outline-none">
+                          <option value="10">10 min</option>
+                          <option value="15">15 min</option>
+                          <option value="20">20 min</option>
+                          <option value="30">30 min</option>
+                        </select>
+                      </div>
+                    </div>
                     <button onClick={() => handleAddMatch(group)}
                       className="w-full bg-white/10 hover:bg-white/15 border border-white/10 text-white px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all">
                       + Add Match
@@ -364,8 +421,22 @@ export default function PickleballSeason2Admin() {
                     ) : matches.map(([matchKey, m]: any) => {
                       const editKey = `${group}__${matchKey}`;
                       const isEditing = editingMatch === editKey;
+                      const status = matchStatus(m.scheduledTime, m.durationMins);
                       return (
-                        <div key={matchKey} className="bg-slate-950/60 border border-white/10 rounded-2xl p-4 space-y-3">
+                        <div key={matchKey} className={`bg-slate-950/60 border rounded-2xl p-4 space-y-3 ${
+                          status === 'live' ? 'border-rose-400/40' : 'border-white/10'
+                        }`}>
+                          {m.scheduledTime && (
+                            <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-mono font-bold border ${
+                              status === 'live' ? 'bg-rose-400/10 border-rose-400/30 text-rose-300' :
+                              status === 'past' ? 'bg-white/5 border-white/10 text-slate-500' :
+                              'bg-fuchsia-400/10 border-fuchsia-400/30 text-fuchsia-300'
+                            }`}>
+                              {status === 'live' && <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse inline-block" />}
+                              <span>{formatTime(m.scheduledTime)}</span>
+                              {m.durationMins ? <><span>→</span><span>{endTime(m.scheduledTime, m.durationMins)}</span></> : null}
+                            </div>
+                          )}
                           <div className="flex items-center justify-between">
                             <div className="text-xs space-y-1">
                               <p className={m.winner === m.team1 ? 'text-fuchsia-300 font-bold' : 'text-slate-300'}>{m.team1}</p>
