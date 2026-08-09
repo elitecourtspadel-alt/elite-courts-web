@@ -201,7 +201,128 @@ function generateAmericanoSchedule(playerIds: string[], numRounds: number): Gene
     rounds.push({ matches: chosen, sitOut });
   }
 
-  return rounds;
+  // ── Global refinement pass ────────────────────────────────────────────
+  // The round-by-round greedy loop above only looks BACKWARD at rounds
+  // already committed — it has no way to know that a choice in round 3
+  // will trap round 13 into a forced repeat. That's the actual source of
+  // "double pairing" bugs: not a data bug, a local-optimum problem.
+  // Simulated annealing here can swap players ACROSS rounds (not just
+  // within one), so it can undo an earlier round's choice to fix a later
+  // one — something the greedy loop structurally cannot do.
+  return refineSchedule(rounds, playerIds);
+}
+
+function cloneRounds(rounds: GeneratedRound[]): GeneratedRound[] {
+  return rounds.map((r) => ({
+    matches: r.matches.map((m) => ({ team1: [...m.team1] as [string, string], team2: [...m.team2] as [string, string] })),
+    sitOut: [...r.sitOut],
+  }));
+}
+
+function computeGlobalCost(rounds: GeneratedRound[], playerIds: string[]): number {
+  const partnerCount: Record<string, Record<string, number>> = {};
+  const opponentCount: Record<string, Record<string, number>> = {};
+  playerIds.forEach((a) => {
+    partnerCount[a] = {}; opponentCount[a] = {};
+    playerIds.forEach((b) => { partnerCount[a][b] = 0; opponentCount[a][b] = 0; });
+  });
+  rounds.forEach((round) => {
+    round.matches.forEach((m) => {
+      const [a, b] = m.team1; const [c, d] = m.team2;
+      partnerCount[a][b] += 1; partnerCount[b][a] += 1;
+      partnerCount[c][d] += 1; partnerCount[d][c] += 1;
+      [a, b].forEach((x) => [c, d].forEach((y) => { opponentCount[x][y] += 1; opponentCount[y][x] += 1; }));
+    });
+  });
+  let cost = 0;
+  for (let i = 0; i < playerIds.length; i++) {
+    for (let j = i + 1; j < playerIds.length; j++) {
+      const a = playerIds[i]; const b = playerIds[j];
+      cost += Math.max(0, partnerCount[a][b] - 1) * 1000; // repeated partnership: heavy penalty
+      cost += Math.max(0, opponentCount[a][b] - 2) * 1;    // repeated opponent: light penalty
+    }
+  }
+  return cost;
+}
+
+// Simulated annealing over the WHOLE schedule: repeatedly picks two random
+// players in two random matches (which may be in different rounds) and
+// swaps them, keeping the swap if it lowers total duplicate-partnership
+// cost (or occasionally even if it doesn't, to escape local optima).
+// Unlike the round-by-round loop, this can revisit and fix earlier rounds.
+function refineSchedule(rounds: GeneratedRound[], playerIds: string[], iterations = 8000): GeneratedRound[] {
+  let best = cloneRounds(rounds);
+  let bestCost = computeGlobalCost(best, playerIds);
+  if (bestCost === 0) return best;
+
+  let current = cloneRounds(best);
+  let currentCost = bestCost;
+
+  for (let iter = 0; iter < iterations && bestCost > 0; iter++) {
+    const rIdx = Math.floor(Math.random() * current.length);
+    const round = current[rIdx];
+    if (round.matches.length < 2) continue;
+    const m1Idx = Math.floor(Math.random() * round.matches.length);
+    let m2Idx = Math.floor(Math.random() * round.matches.length);
+    if (m1Idx === m2Idx) continue;
+
+    const m1 = round.matches[m1Idx];
+    const m2 = round.matches[m2Idx];
+    const side1 = Math.random() < 0.5 ? 'team1' : 'team2';
+    const slot1 = Math.random() < 0.5 ? 0 : 1;
+    const side2 = Math.random() < 0.5 ? 'team1' : 'team2';
+    const slot2 = Math.random() < 0.5 ? 0 : 1;
+
+    const player1 = (m1 as any)[side1][slot1];
+    const player2 = (m2 as any)[side2][slot2];
+    if (player1 === player2) continue;
+
+    (m1 as any)[side1][slot1] = player2;
+    (m2 as any)[side2][slot2] = player1;
+
+    const newCost = computeGlobalCost(current, playerIds);
+    const temperature = Math.max(1, 200 - iter / 40);
+    const accept = newCost <= currentCost || Math.random() < Math.exp((currentCost - newCost) / temperature);
+
+    if (accept) {
+      currentCost = newCost;
+      if (newCost < bestCost) {
+        bestCost = newCost;
+        best = cloneRounds(current);
+      }
+    } else {
+      (m1 as any)[side1][slot1] = player1;
+      (m2 as any)[side2][slot2] = player2;
+    }
+  }
+
+  return best;
+}
+
+// Scans an ALREADY-SAVED schedule (from Firebase) for repeated
+// partnerships, so admins can audit an existing tournament without
+// regenerating it. Returns one entry per duplicate pair found.
+interface DuplicateFinding { playerA: string; playerB: string; rounds: string[]; }
+function findDuplicatePartnerships(rounds: Record<string, AmericanoRound> | undefined): DuplicateFinding[] {
+  const seen: Record<string, string[]> = {};
+  Object.entries(rounds || {}).forEach(([roundKey, round]) => {
+    Object.values(round.matches || {}).forEach((m) => {
+      [m.team1, m.team2].forEach(([a, b]) => {
+        if (!a || !b) return;
+        const key = [a, b].sort().join('::');
+        if (!seen[key]) seen[key] = [];
+        seen[key].push(roundKey);
+      });
+    });
+  });
+  const findings: DuplicateFinding[] = [];
+  Object.entries(seen).forEach(([key, roundKeys]) => {
+    if (roundKeys.length > 1) {
+      const [a, b] = key.split('::');
+      findings.push({ playerA: a, playerB: b, rounds: roundKeys });
+    }
+  });
+  return findings;
 }
 
 const roundNum = (key: string) => Number(key.replace(/[^0-9]/g, '')) || 0;
@@ -551,6 +672,28 @@ export default function PadelAmericanoAdmin() {
                 <p className="text-[10px] text-amber-500">Not set yet — scores won't be capped until you enter a number.</p>
               )}
             </div>
+
+            {(() => {
+              const findings = findDuplicatePartnerships(rounds);
+              if (findings.length === 0) return null;
+              return (
+                <div className="bg-red-950/20 border border-red-500/30 rounded-2xl p-5 space-y-3">
+                  <h3 className="text-sm font-black uppercase tracking-wider text-red-400">
+                    ⚠ Schedule Health Check — {findings.length} repeated partnership{findings.length > 1 ? 's' : ''} found
+                  </h3>
+                  <div className="space-y-1.5">
+                    {findings.map((f, i) => (
+                      <p key={i} className="text-xs text-red-300 font-mono">
+                        {pName(f.playerA)} &amp; {pName(f.playerB)} — partnered in {f.rounds.map(r => `Round ${roundNum(r)}`).join(' and ')}
+                      </p>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-zinc-500">
+                    Fix by deleting one of the matches above and re-adding it manually with a swapped player, or regenerate the whole schedule.
+                  </p>
+                </div>
+              );
+            })()}
 
             <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4">
               <h3 className="text-sm font-black uppercase tracking-wider text-cyan-400">Generate Schedule</h3>
