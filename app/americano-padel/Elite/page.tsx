@@ -23,10 +23,6 @@ const TOURNEY_PATH = 'tournaments/americano_1';
 // live/upcoming/past calculations. It is never shown to admins or viewers.
 const TOURNAMENT_DATE = '2026-07-26';
 
-type GroupKey = 'A' | 'B';
-const GROUP_KEYS: GroupKey[] = ['A', 'B'];
-const GROUP_LABELS: Record<GroupKey, string> = { A: 'Group A', B: 'Group B' };
-
 interface AmericanoMatch {
   team1: [string, string];
   team2: [string, string];
@@ -44,12 +40,11 @@ interface AmericanoRound {
 interface PlayerInfo {
   name: string;
   photoUrl?: string;
-  group: GroupKey;
 }
 
 interface TournamentData {
   players?: Record<string, PlayerInfo>;
-  rounds?: Partial<Record<GroupKey, Record<string, AmericanoRound>>>;
+  rounds?: Record<string, AmericanoRound>;
   config?: {
     maxPoints?: number;
     streamLink?: string;
@@ -102,10 +97,9 @@ interface PlayerStats {
   pointsFor: number;
 }
 
-function computeLeaderboard(players: Record<string, PlayerInfo> | undefined, rounds: Record<string, AmericanoRound> | undefined, group: GroupKey): PlayerStats[] {
+function computeLeaderboard(players: Record<string, PlayerInfo> | undefined, rounds: Record<string, AmericanoRound> | undefined): PlayerStats[] {
   const stats: Record<string, PlayerStats> = {};
   Object.entries(players || {}).forEach(([id, info]) => {
-    if (info.group !== group) return;
     stats[id] = { id, name: info.name, photoUrl: info.photoUrl, played: 0, wins: 0, pointsFor: 0 };
   });
   Object.values(rounds || {}).forEach((round) => {
@@ -220,12 +214,10 @@ export default function PadelAmericanoAdmin() {
 
   const [newPlayerName, setNewPlayerName] = useState('');
   const [newPlayerPhoto, setNewPlayerPhoto] = useState('');
-  const [newPlayerGroup, setNewPlayerGroup] = useState<GroupKey>('A');
   const [editingPlayerPhoto, setEditingPlayerPhoto] = useState<string | null>(null);
   const [editPlayerPhotoUrl, setEditPlayerPhotoUrl] = useState('');
 
-  const [scheduleGroup, setScheduleGroup] = useState<GroupKey>('A');
-  const [selectedRound, setSelectedRound] = useState<Partial<Record<GroupKey, string>>>({});
+  const [selectedRound, setSelectedRound] = useState<string>('');
   const [editingMatch, setEditingMatch] = useState<string | null>(null);
   const [editScore1, setEditScore1] = useState('');
   const [editScore2, setEditScore2] = useState('');
@@ -258,12 +250,9 @@ export default function PadelAmericanoAdmin() {
       setChampionPhoto(val.config?.championPhotoUrl || '');
       setClosingPhoto(val.config?.closingPhotoUrl || '');
       setSelectedRound((prev) => {
-        const next = { ...prev };
-        GROUP_KEYS.forEach((g) => {
-          const roundKeys = Object.keys(val.rounds?.[g] || {}).sort((a, b) => roundNum(a) - roundNum(b));
-          if (roundKeys.length && !roundKeys.includes(next[g] || '')) next[g] = roundKeys[0];
-        });
-        return next;
+        const roundKeys = Object.keys(val.rounds || {}).sort((a, b) => roundNum(a) - roundNum(b));
+        if (roundKeys.length && !roundKeys.includes(prev)) return roundKeys[0];
+        return prev;
       });
       setLoading(false);
     });
@@ -274,15 +263,15 @@ export default function PadelAmericanoAdmin() {
   const players = data.players || {};
   const allPlayerIds = Object.keys(players);
   const pName = (id: string) => players[id]?.name || '?';
-  const playerIdsByGroup = (g: GroupKey) => allPlayerIds.filter((id) => players[id]?.group === g);
 
-  const roundsFor = (g: GroupKey) => data.rounds?.[g] || {};
-  const roundKeysFor = (g: GroupKey) => Object.keys(roundsFor(g)).sort((a, b) => roundNum(a) - roundNum(b));
+  const rounds = data.rounds || {};
+  const roundKeys = Object.keys(rounds).sort((a, b) => roundNum(a) - roundNum(b));
+  const activeRound = selectedRound || (roundKeys[0] || '');
 
   const handleAddPlayer = async () => {
     if (!newPlayerName.trim()) return;
     await push(ref(db, `${TOURNEY_PATH}/players`), {
-      name: newPlayerName.trim(), photoUrl: newPlayerPhoto.trim() || '', group: newPlayerGroup,
+      name: newPlayerName.trim(), photoUrl: newPlayerPhoto.trim() || '',
     });
     setNewPlayerName('');
     setNewPlayerPhoto('');
@@ -297,19 +286,9 @@ export default function PadelAmericanoAdmin() {
     await set(ref(db, `${TOURNEY_PATH}/players/${playerId}`), {
       name: players[playerId]?.name || '',
       photoUrl: editPlayerPhotoUrl.trim(),
-      group: players[playerId]?.group || 'A',
     });
     setEditingPlayerPhoto(null);
     showSaved('Photo saved');
-  };
-
-  const handleMovePlayerGroup = async (playerId: string, group: GroupKey) => {
-    await set(ref(db, `${TOURNEY_PATH}/players/${playerId}`), {
-      name: players[playerId]?.name || '',
-      photoUrl: players[playerId]?.photoUrl || '',
-      group,
-    });
-    showSaved(`Moved to ${GROUP_LABELS[group]}`);
   };
 
   const handleDeletePlayer = async (playerId: string) => {
@@ -317,17 +296,16 @@ export default function PadelAmericanoAdmin() {
     await remove(ref(db, `${TOURNEY_PATH}/players/${playerId}`));
   };
 
-  const handleGenerateSchedule = async (g: GroupKey) => {
-    const groupPlayerIds = playerIdsByGroup(g);
-    if (groupPlayerIds.length < 4) { alert(`Add at least 4 players to ${GROUP_LABELS[g]} first.`); return; }
-    if (groupPlayerIds.length % 4 !== 0) {
-      alert(`${GROUP_LABELS[g]} player count must be a multiple of 4 to guarantee everyone partners with everyone else exactly once. It currently has ${groupPlayerIds.length} players.`);
+  const handleGenerateSchedule = async () => {
+    if (allPlayerIds.length < 4) { alert(`Add at least 4 players first.`); return; }
+    if (allPlayerIds.length % 4 !== 0) {
+      alert(`Player count must be a multiple of 4 to guarantee everyone partners with everyone else exactly once. It currently has ${allPlayerIds.length} players.`);
       return;
     }
-    if (roundKeysFor(g).length > 0 && !confirm(`This replaces ${GROUP_LABELS[g]}'s entire schedule and any recorded scores. Continue?`)) return;
+    if (roundKeys.length > 0 && !confirm(`This replaces the entire schedule and any recorded scores. Continue?`)) return;
 
-    const n = groupPlayerIds.length - 1;
-    const generated = generateAmericanoSchedule(groupPlayerIds, n);
+    const n = allPlayerIds.length - 1;
+    const generated = generateAmericanoSchedule(allPlayerIds, n);
 
     const roundsPayload: Record<string, AmericanoRound> = {};
     generated.forEach((round, idx) => {
@@ -344,30 +322,29 @@ export default function PadelAmericanoAdmin() {
       roundsPayload[`round${idx + 1}`] = { matches, sitOut: round.sitOut };
     });
 
-    await set(ref(db, `${TOURNEY_PATH}/rounds/${g}`), roundsPayload);
-    setSelectedRound((prev) => ({ ...prev, [g]: 'round1' }));
-    showSaved(`${GROUP_LABELS[g]} schedule generated`);
+    await set(ref(db, `${TOURNEY_PATH}/rounds`), roundsPayload);
+    setSelectedRound('round1');
+    showSaved(`Schedule generated`);
   };
 
-  const handleAddRound = async (g: GroupKey) => {
-    const keys = roundKeysFor(g);
-    const nextNum = keys.length ? Math.max(...keys.map(roundNum)) + 1 : 1;
+  const handleAddRound = async () => {
+    const nextNum = roundKeys.length ? Math.max(...roundKeys.map(roundNum)) + 1 : 1;
     const key = `round${nextNum}`;
-    await set(ref(db, `${TOURNEY_PATH}/rounds/${g}/${key}`), { matches: {}, sitOut: [] });
-    setSelectedRound((prev) => ({ ...prev, [g]: key }));
-    showSaved(`Round ${nextNum} added to ${GROUP_LABELS[g]}`);
+    await set(ref(db, `${TOURNEY_PATH}/rounds/${key}`), { matches: {}, sitOut: [] });
+    setSelectedRound(key);
+    showSaved(`Round ${nextNum} added`);
   };
 
-  const handleDeleteRound = async (g: GroupKey, roundKey: string) => {
-    if (!confirm(`Delete ${roundKey} from ${GROUP_LABELS[g]}? This cannot be undone.`)) return;
-    await remove(ref(db, `${TOURNEY_PATH}/rounds/${g}/${roundKey}`));
+  const handleDeleteRound = async (roundKey: string) => {
+    if (!confirm(`Delete ${roundKey}? This cannot be undone.`)) return;
+    await remove(ref(db, `${TOURNEY_PATH}/rounds/${roundKey}`));
   };
 
-  const handleAddMatch = async (g: GroupKey, roundKey: string) => {
+  const handleAddMatch = async (roundKey: string) => {
     const team1: [string, string] | null = addMatchTeam1a && addMatchTeam1b ? [addMatchTeam1a, addMatchTeam1b] : null;
     const team2: [string, string] | null = addMatchTeam2a && addMatchTeam2b ? [addMatchTeam2a, addMatchTeam2b] : null;
     if (!team1 || !team2) { alert('Pick two players for each team.'); return; }
-    await push(ref(db, `${TOURNEY_PATH}/rounds/${g}/${roundKey}/matches`), {
+    await push(ref(db, `${TOURNEY_PATH}/rounds/${roundKey}/matches`), {
       team1, team2, score1: '', score2: '',
       scheduledTime: addMatchTime || '',
       durationMins: Number(addMatchDuration) || 20,
@@ -377,17 +354,17 @@ export default function PadelAmericanoAdmin() {
     showSaved('Match added');
   };
 
-  const handleDeleteMatch = async (g: GroupKey, roundKey: string, courtKey: string) => {
+  const handleDeleteMatch = async (roundKey: string, courtKey: string) => {
     if (!confirm('Delete this match?')) return;
-    await remove(ref(db, `${TOURNEY_PATH}/rounds/${g}/${roundKey}/matches/${courtKey}`));
+    await remove(ref(db, `${TOURNEY_PATH}/rounds/${roundKey}/matches/${courtKey}`));
   };
 
-  const openScoreEditor = (g: GroupKey, roundKey: string, courtKey: string, m: AmericanoMatch) => {
+  const openScoreEditor = (roundKey: string, courtKey: string, m: AmericanoMatch) => {
     setEditScore1(m.score1 || ''); setEditScore2(m.score2 || '');
-    setEditingMatch(`${g}__${roundKey}__${courtKey}`);
+    setEditingMatch(`${roundKey}__${courtKey}`);
   };
 
-  const handleSaveScore = async (g: GroupKey, roundKey: string, courtKey: string, m: AmericanoMatch) => {
+  const handleSaveScore = async (roundKey: string, courtKey: string, m: AmericanoMatch) => {
     const total = (Number(editScore1) || 0) + (Number(editScore2) || 0);
     const cap = Number(maxPoints);
     const hasCap = maxPoints !== '' && cap > 0;
@@ -395,7 +372,7 @@ export default function PadelAmericanoAdmin() {
       alert(`Combined score can't exceed ${cap} points (currently ${total}).`);
       return;
     }
-    await set(ref(db, `${TOURNEY_PATH}/rounds/${g}/${roundKey}/matches/${courtKey}`), {
+    await set(ref(db, `${TOURNEY_PATH}/rounds/${roundKey}/matches/${courtKey}`), {
       ...m, score1: editScore1, score2: editScore2,
     });
     setEditingMatch(null);
@@ -455,7 +432,7 @@ export default function PadelAmericanoAdmin() {
               <span className="text-[10px] text-zinc-600 font-mono">Americano</span>
             </div>
             <h1 className="text-2xl font-black uppercase tracking-tight text-white">Americano Admin</h1>
-            <p className="text-zinc-500 text-xs mt-1">Elite Courts Padel — Americano Format — 2 Groups</p>
+            <p className="text-zinc-500 text-xs mt-1">Elite Courts Padel — Americano Format</p>
           </div>
           {saved && (
             <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold px-4 py-2 rounded-xl animate-pulse">
@@ -484,7 +461,6 @@ export default function PadelAmericanoAdmin() {
           <div className="space-y-6">
             <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-5">
               <h3 className="text-sm font-black uppercase tracking-wider text-cyan-400">Add Player</h3>
-              <p className="text-[10px] text-zinc-500">Each group runs its own independent Americano — assign the player to a group now (you can move them later).</p>
               <div className="flex flex-col sm:flex-row gap-2">
                 <input type="text" value={newPlayerName}
                   onChange={e => setNewPlayerName(e.target.value)}
@@ -496,10 +472,6 @@ export default function PadelAmericanoAdmin() {
                   onKeyDown={e => e.key === 'Enter' && handleAddPlayer()}
                   placeholder="Photo URL (optional)"
                   className="flex-1 bg-zinc-950 border border-zinc-800 focus:border-cyan-500 rounded-xl px-4 py-2.5 text-xs outline-none transition-all text-white placeholder:text-zinc-600 font-mono" />
-                <select value={newPlayerGroup} onChange={e => setNewPlayerGroup(e.target.value as GroupKey)}
-                  className="bg-zinc-950 border border-zinc-800 focus:border-cyan-500 rounded-xl px-3 py-2.5 text-xs text-white outline-none shrink-0">
-                  {GROUP_KEYS.map(g => <option key={g} value={g}>{GROUP_LABELS[g]}</option>)}
-                </select>
                 <button onClick={handleAddPlayer}
                   className="bg-cyan-500 hover:bg-cyan-400 text-black px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all shrink-0">
                   Add
@@ -507,64 +479,53 @@ export default function PadelAmericanoAdmin() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {GROUP_KEYS.map((g) => {
-                const ids = playerIdsByGroup(g);
-                return (
-                  <div key={g} className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4">
-                    <h3 className="text-sm font-black uppercase tracking-wider text-cyan-400">{GROUP_LABELS[g]} ({ids.length})</h3>
-                    <div className="space-y-2">
-                      {ids.length === 0 ? (
-                        <p className="text-zinc-600 text-xs text-center py-6 border border-dashed border-zinc-800 rounded-xl">No players yet</p>
-                      ) : ids.map((id) => (
-                        <div key={id} className="bg-zinc-950 border border-zinc-800 px-4 py-2.5 rounded-xl space-y-2">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2.5">
-                              {players[id]?.photoUrl ? (
-                                <img src={players[id].photoUrl} alt={players[id].name}
-                                  className="w-8 h-8 rounded-full object-cover border border-zinc-700 shrink-0" />
-                              ) : (
-                                <div className="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-[10px] font-bold text-zinc-500 shrink-0">
-                                  {(players[id]?.name || '?').slice(0, 1).toUpperCase()}
-                                </div>
-                              )}
-                              <span className="text-xs font-semibold text-zinc-200">{players[id]?.name}</span>
-                            </div>
-                            <div className="flex items-center gap-2 shrink-0">
-                              <button onClick={() => handleMovePlayerGroup(id, g === 'A' ? 'B' : 'A')}
-                                className="text-zinc-600 hover:text-cyan-400 text-[10px] font-bold uppercase transition-colors">
-                                Move to {GROUP_LABELS[g === 'A' ? 'B' : 'A']}
-                              </button>
-                              <button onClick={() => openPhotoEditor(id)}
-                                className="text-zinc-600 hover:text-cyan-400 text-[10px] font-bold uppercase transition-colors">
-                                {players[id]?.photoUrl ? 'Edit Photo' : '+ Photo'}
-                              </button>
-                              <button onClick={() => handleDeletePlayer(id)}
-                                className="text-zinc-600 hover:text-red-400 text-xs font-bold transition-colors">✕</button>
-                            </div>
+            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4">
+              <h3 className="text-sm font-black uppercase tracking-wider text-cyan-400">Players ({allPlayerIds.length})</h3>
+              <div className="space-y-2">
+                {allPlayerIds.length === 0 ? (
+                  <p className="text-zinc-600 text-xs text-center py-6 border border-dashed border-zinc-800 rounded-xl">No players yet</p>
+                ) : allPlayerIds.map((id) => (
+                  <div key={id} className="bg-zinc-950 border border-zinc-800 px-4 py-2.5 rounded-xl space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        {players[id]?.photoUrl ? (
+                          <img src={players[id].photoUrl} alt={players[id].name}
+                            className="w-8 h-8 rounded-full object-cover border border-zinc-700 shrink-0" />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-[10px] font-bold text-zinc-500 shrink-0">
+                            {(players[id]?.name || '?').slice(0, 1).toUpperCase()}
                           </div>
-                          {editingPlayerPhoto === id && (
-                            <div className="flex gap-2 pt-1 border-t border-zinc-800">
-                              <input type="text" value={editPlayerPhotoUrl}
-                                onChange={e => setEditPlayerPhotoUrl(e.target.value)}
-                                placeholder="https://..."
-                                className="flex-1 bg-zinc-900 border border-zinc-700 focus:border-cyan-500 rounded-lg px-3 py-1.5 text-[10px] outline-none text-white font-mono mt-2" />
-                              <button onClick={() => handleSavePlayerPhoto(id)}
-                                className="mt-2 px-3 bg-cyan-500 hover:bg-cyan-400 text-black rounded-lg text-[10px] font-black uppercase transition-all">
-                                Save
-                              </button>
-                              <button onClick={() => setEditingPlayerPhoto(null)}
-                                className="mt-2 px-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 rounded-lg text-[10px] font-black uppercase transition-all">
-                                Cancel
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      ))}
+                        )}
+                        <span className="text-xs font-semibold text-zinc-200">{players[id]?.name}</span>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button onClick={() => openPhotoEditor(id)}
+                          className="text-zinc-600 hover:text-cyan-400 text-[10px] font-bold uppercase transition-colors">
+                          {players[id]?.photoUrl ? 'Edit Photo' : '+ Photo'}
+                        </button>
+                        <button onClick={() => handleDeletePlayer(id)}
+                          className="text-zinc-600 hover:text-red-400 text-xs font-bold transition-colors">✕</button>
+                      </div>
                     </div>
+                    {editingPlayerPhoto === id && (
+                      <div className="flex gap-2 pt-1 border-t border-zinc-800">
+                        <input type="text" value={editPlayerPhotoUrl}
+                          onChange={e => setEditPlayerPhotoUrl(e.target.value)}
+                          placeholder="https://..."
+                          className="flex-1 bg-zinc-900 border border-zinc-700 focus:border-cyan-500 rounded-lg px-3 py-1.5 text-[10px] outline-none text-white font-mono mt-2" />
+                        <button onClick={() => handleSavePlayerPhoto(id)}
+                          className="mt-2 px-3 bg-cyan-500 hover:bg-cyan-400 text-black rounded-lg text-[10px] font-black uppercase transition-all">
+                          Save
+                        </button>
+                        <button onClick={() => setEditingPlayerPhoto(null)}
+                          className="mt-2 px-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 rounded-lg text-[10px] font-black uppercase transition-all">
+                          Cancel
+                        </button>
+                      </div>
+                    )}
                   </div>
-                );
-              })}
+                ))}
+              </div>
             </div>
           </div>
         )}
@@ -573,21 +534,10 @@ export default function PadelAmericanoAdmin() {
         {activeTab === 'Schedule' && (
           <div className="space-y-6">
 
-            <div className="flex gap-1.5 bg-zinc-900 p-1.5 rounded-xl border border-zinc-800 w-fit">
-              {GROUP_KEYS.map((g) => (
-                <button key={g} onClick={() => setScheduleGroup(g)}
-                  className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${
-                    scheduleGroup === g ? 'bg-cyan-500 text-black' : 'text-zinc-400 hover:text-white'
-                  }`}>
-                  {GROUP_LABELS[g]}
-                </button>
-              ))}
-            </div>
-
             <div className={`bg-zinc-900 border rounded-2xl p-6 space-y-3 ${maxPoints === '' ? 'border-amber-500/40' : 'border-zinc-800'}`}>
               <h3 className="text-sm font-black uppercase tracking-wider text-amber-400">Points Per Game</h3>
               <p className="text-[10px] text-zinc-500">
-                Shared across both groups. How many combined points will each match go to?
+                How many combined points will each match go to?
               </p>
               <div className="flex gap-2 items-center">
                 <input type="number" min="1" value={maxPoints}
@@ -602,277 +552,261 @@ export default function PadelAmericanoAdmin() {
               )}
             </div>
 
-            {(() => {
-              const g = scheduleGroup;
-              const groupPlayerIds = playerIdsByGroup(g);
-              const roundKeys = roundKeysFor(g);
-              const rounds = roundsFor(g);
-              const activeRound = selectedRound[g] || (roundKeys[0] || '');
+            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4">
+              <h3 className="text-sm font-black uppercase tracking-wider text-cyan-400">Generate Schedule</h3>
+              <p className="text-[10px] text-zinc-500">
+                With a player count that's a multiple of 4, the generator uses exactly <strong>{Math.max(allPlayerIds.length - 1, 0)} rounds</strong> —
+                mathematically just enough for every player to partner with every other player exactly once.
+                It optimizes hard for that outcome, though as a randomized search it isn't a guaranteed-perfect solver — check the
+                schedule after generating and use "Add Match Manually" to fix any repeat it missed.
+              </p>
+              {allPlayerIds.length > 0 && allPlayerIds.length % 4 !== 0 && (
+                <p className="text-[10px] text-amber-500 bg-amber-500/5 border border-amber-500/20 rounded-lg px-3 py-2">
+                  Currently {allPlayerIds.length} players — add or remove {4 - (allPlayerIds.length % 4)} to reach a multiple of 4 before generating.
+                </p>
+              )}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Start Time</label>
+                  <input type="time" value={genStartTime} onChange={e => setGenStartTime(e.target.value)}
+                    className="w-full bg-zinc-950 border border-zinc-800 focus:border-cyan-500 rounded-xl px-3 py-2 text-xs outline-none text-white font-mono" />
+                </div>
+                <div>
+                  <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Round Duration (mins)</label>
+                  <input type="number" min="1" value={genRoundDuration} onChange={e => setGenRoundDuration(e.target.value)}
+                    className="w-full bg-zinc-950 border border-zinc-800 focus:border-cyan-500 rounded-xl px-3 py-2 text-xs outline-none text-white font-mono" />
+                </div>
+              </div>
+              {allPlayerIds.length >= 4 && allPlayerIds.length % 4 === 0 && (
+                <p className="text-[10px] text-zinc-500">
+                  ≈ {Math.max(allPlayerIds.length - 1, 0) * (Number(genRoundDuration) || 0)} minutes total, ending around{' '}
+                  {addMinutesToTime(genStartTime, Math.max(allPlayerIds.length - 1, 0) * (Number(genRoundDuration) || 0))}.
+                </p>
+              )}
+              <button onClick={handleGenerateSchedule}
+                className="w-full bg-cyan-500 hover:bg-cyan-400 text-black py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all">
+                {roundKeys.length > 0 ? `Regenerate Schedule` : `Generate Schedule`}
+              </button>
+            </div>
 
-              return (
-                <>
-                  <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4">
-                    <h3 className="text-sm font-black uppercase tracking-wider text-cyan-400">Generate Schedule — {GROUP_LABELS[g]}</h3>
-                    <p className="text-[10px] text-zinc-500">
-                      With a player count that's a multiple of 4, the generator uses exactly <strong>{Math.max(groupPlayerIds.length - 1, 0)} rounds</strong> —
-                      mathematically just enough for every player in this group to partner with every other player in this group exactly once.
-                      It optimizes hard for that outcome, though as a randomized search it isn't a guaranteed-perfect solver — check the
-                      schedule after generating and use "Add Match Manually" to fix any repeat it missed.
-                    </p>
-                    {groupPlayerIds.length > 0 && groupPlayerIds.length % 4 !== 0 && (
-                      <p className="text-[10px] text-amber-500 bg-amber-500/5 border border-amber-500/20 rounded-lg px-3 py-2">
-                        {GROUP_LABELS[g]} currently has {groupPlayerIds.length} players — add or remove {4 - (groupPlayerIds.length % 4)} to reach a multiple of 4 before generating.
-                      </p>
-                    )}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Start Time</label>
-                        <input type="time" value={genStartTime} onChange={e => setGenStartTime(e.target.value)}
-                          className="w-full bg-zinc-950 border border-zinc-800 focus:border-cyan-500 rounded-xl px-3 py-2 text-xs outline-none text-white font-mono" />
-                      </div>
-                      <div>
-                        <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Round Duration (mins)</label>
-                        <input type="number" min="1" value={genRoundDuration} onChange={e => setGenRoundDuration(e.target.value)}
-                          className="w-full bg-zinc-950 border border-zinc-800 focus:border-cyan-500 rounded-xl px-3 py-2 text-xs outline-none text-white font-mono" />
-                      </div>
-                    </div>
-                    {groupPlayerIds.length >= 4 && groupPlayerIds.length % 4 === 0 && (
-                      <p className="text-[10px] text-zinc-500">
-                        ≈ {Math.max(groupPlayerIds.length - 1, 0) * (Number(genRoundDuration) || 0)} minutes total, ending around{' '}
-                        {addMinutesToTime(genStartTime, Math.max(groupPlayerIds.length - 1, 0) * (Number(genRoundDuration) || 0))}.
-                      </p>
-                    )}
-                    <button onClick={() => handleGenerateSchedule(g)}
-                      className="w-full bg-cyan-500 hover:bg-cyan-400 text-black py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all">
-                      {roundKeys.length > 0 ? `Regenerate ${GROUP_LABELS[g]} Schedule` : `Generate ${GROUP_LABELS[g]} Schedule`}
+            {roundKeys.length > 0 && (
+              <div className="space-y-4">
+                <div className="flex flex-wrap items-center gap-1.5 bg-zinc-900 p-1.5 rounded-xl border border-zinc-800">
+                  {roundKeys.map((rk) => (
+                    <button key={rk} onClick={() => setSelectedRound(rk)}
+                      className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
+                        activeRound === rk ? 'bg-cyan-500 text-black' : 'text-zinc-400 hover:text-white'
+                      }`}>
+                      Round {roundNum(rk)}
                     </button>
-                  </div>
+                  ))}
+                  <button onClick={handleAddRound}
+                    className="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider text-zinc-400 hover:text-white border border-dashed border-zinc-700">
+                    + Round
+                  </button>
+                </div>
 
-                  {roundKeys.length > 0 && (
-                    <div className="space-y-4">
-                      <div className="flex flex-wrap items-center gap-1.5 bg-zinc-900 p-1.5 rounded-xl border border-zinc-800">
-                        {roundKeys.map((rk) => (
-                          <button key={rk} onClick={() => setSelectedRound((prev) => ({ ...prev, [g]: rk }))}
-                            className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
-                              activeRound === rk ? 'bg-cyan-500 text-black' : 'text-zinc-400 hover:text-white'
-                            }`}>
-                            Round {roundNum(rk)}
-                          </button>
-                        ))}
-                        <button onClick={() => handleAddRound(g)}
-                          className="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider text-zinc-400 hover:text-white border border-dashed border-zinc-700">
-                          + Round
-                        </button>
-                      </div>
-
-                      {rounds[activeRound] && (
-                        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4">
-                          <div className="flex items-center justify-between">
-                            <h4 className="text-xs font-black uppercase tracking-wider text-zinc-300">{GROUP_LABELS[g]} — Round {roundNum(activeRound)}</h4>
-                            <button onClick={() => handleDeleteRound(g, activeRound)}
-                              className="text-[10px] text-zinc-600 hover:text-red-400 font-bold uppercase transition-colors">
-                              Delete Round
-                            </button>
-                          </div>
-
-                          {(rounds[activeRound].sitOut || []).length > 0 && (
-                            <p className="text-[10px] text-amber-500/80 bg-amber-500/5 border border-amber-500/20 rounded-lg px-3 py-2">
-                              Sitting out: {(rounds[activeRound].sitOut || []).map(id => pName(id)).join(', ')}
-                            </p>
-                          )}
-
-                          <div className="space-y-3">
-                            {Object.entries(rounds[activeRound].matches || {}).map(([courtKey, m]) => {
-                              const editKey = `${g}__${activeRound}__${courtKey}`;
-                              const isEditing = editingMatch === editKey;
-                              const status = matchStatus(m.scheduledTime, m.durationMins);
-                              const total = (Number(editScore1) || 0) + (Number(editScore2) || 0);
-                              const cap = Number(maxPoints);
-                              const hasCap = maxPoints !== '' && cap > 0;
-                              return (
-                                <div key={courtKey} className={`bg-zinc-950 border rounded-xl p-4 space-y-3 ${
-                                  status === 'live' ? 'border-red-500/40' : 'border-zinc-800'
-                                }`}>
-                                  <div className="flex items-center justify-between">
-                                    <span className="text-[10px] font-mono font-bold text-zinc-500 uppercase tracking-wider">{courtKey}</span>
-                                    <button onClick={() => handleDeleteMatch(g, activeRound, courtKey)}
-                                      className="text-zinc-600 hover:text-red-400 text-xs font-bold transition-colors">✕</button>
-                                  </div>
-                                  {m.scheduledTime && <TimeBadge iso={m.scheduledTime} duration={m.durationMins} />}
-                                  <div className="flex items-center justify-between gap-3">
-                                    <div className="text-xs space-y-1.5 flex-1">
-                                      <div className="flex items-center justify-between">
-                                        <span className="text-zinc-300">{pName(m.team1[0])} &amp; {pName(m.team1[1])}</span>
-                                        {m.score1 !== '' && <span className="font-mono text-zinc-400 bg-zinc-900 px-1.5 py-0.5 rounded text-[10px]">{m.score1}</span>}
-                                      </div>
-                                      <div className="flex items-center justify-between">
-                                        <span className="text-zinc-300">{pName(m.team2[0])} &amp; {pName(m.team2[1])}</span>
-                                        {m.score2 !== '' && <span className="font-mono text-zinc-400 bg-zinc-900 px-1.5 py-0.5 rounded text-[10px]">{m.score2}</span>}
-                                      </div>
-                                    </div>
-                                    <button onClick={() => openScoreEditor(g, activeRound, courtKey, m)}
-                                      className="px-2.5 py-1 bg-zinc-900 border border-zinc-700 rounded-lg text-[10px] font-black uppercase hover:text-cyan-400 transition-colors shrink-0">
-                                      {m.score1 !== '' ? 'Edit' : 'Score'}
-                                    </button>
-                                  </div>
-
-                                  {isEditing && (
-                                    <div className="border-t border-zinc-800 pt-3 space-y-2">
-                                      {!hasCap && (
-                                        <p className="text-[10px] text-amber-500 bg-amber-500/5 border border-amber-500/20 rounded-lg px-3 py-2">
-                                          No points target set yet — set "Points Per Game" above to cap scores.
-                                        </p>
-                                      )}
-                                      <div className="grid grid-cols-2 gap-2">
-                                        <div>
-                                          <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">{pName(m.team1[0])} &amp; {pName(m.team1[1])}</label>
-                                          <input type="number" min="0" max={hasCap ? maxPoints : undefined} value={editScore1}
-                                            onChange={e => {
-                                              const v = e.target.value;
-                                              const capped = v === '' ? '' : hasCap ? String(Math.max(0, Math.min(cap, Number(v)))) : String(Math.max(0, Number(v)));
-                                              setEditScore1(capped);
-                                            }}
-                                            className="w-full bg-zinc-900 border border-zinc-700 focus:border-cyan-500 rounded-lg px-3 py-1.5 text-xs outline-none text-white font-mono" />
-                                        </div>
-                                        <div>
-                                          <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">{pName(m.team2[0])} &amp; {pName(m.team2[1])}</label>
-                                          <input type="number" min="0" max={hasCap ? maxPoints : undefined} value={editScore2}
-                                            onChange={e => {
-                                              const v = e.target.value;
-                                              const capped = v === '' ? '' : hasCap ? String(Math.max(0, Math.min(cap, Number(v)))) : String(Math.max(0, Number(v)));
-                                              setEditScore2(capped);
-                                            }}
-                                            className="w-full bg-zinc-900 border border-zinc-700 focus:border-cyan-500 rounded-lg px-3 py-1.5 text-xs outline-none text-white font-mono" />
-                                        </div>
-                                      </div>
-                                      {hasCap && (
-                                        <p className={`text-[10px] font-mono ${total > cap ? 'text-red-400' : total === cap ? 'text-emerald-400' : 'text-amber-500'}`}>
-                                          Total: {total} / {maxPoints} points{total > cap ? ' — over the limit' : ''}
-                                        </p>
-                                      )}
-                                      <div className="flex gap-2 pt-1">
-                                        <button onClick={() => handleSaveScore(g, activeRound, courtKey, m)}
-                                          disabled={hasCap && total > cap}
-                                          className="flex-1 bg-cyan-500 hover:bg-cyan-400 disabled:opacity-30 disabled:cursor-not-allowed text-black py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all">
-                                          Save Score
-                                        </button>
-                                        <button onClick={() => setEditingMatch(null)}
-                                          className="px-4 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 py-2 rounded-lg text-xs font-black uppercase transition-all">
-                                          Cancel
-                                        </button>
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-
-                          {!showAddMatch ? (
-                            <button onClick={() => setShowAddMatch(true)}
-                              className="w-full bg-zinc-800 hover:bg-zinc-700 text-white px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all">
-                              + Add Match Manually
-                            </button>
-                          ) : (
-                            <div className="border-t border-zinc-800 pt-4 space-y-2">
-                              <div className="grid grid-cols-2 gap-2">
-                                <select value={addMatchTeam1a} onChange={e => setAddMatchTeam1a(e.target.value)}
-                                  className="w-full bg-zinc-950 border border-zinc-800 focus:border-cyan-500 rounded-xl px-3 py-2 text-xs text-white outline-none">
-                                  <option value="">Team 1 — Player 1</option>
-                                  {groupPlayerIds.map(id => <option key={id} value={id}>{pName(id)}</option>)}
-                                </select>
-                                <select value={addMatchTeam1b} onChange={e => setAddMatchTeam1b(e.target.value)}
-                                  className="w-full bg-zinc-950 border border-zinc-800 focus:border-cyan-500 rounded-xl px-3 py-2 text-xs text-white outline-none">
-                                  <option value="">Team 1 — Player 2</option>
-                                  {groupPlayerIds.map(id => <option key={id} value={id}>{pName(id)}</option>)}
-                                </select>
-                                <select value={addMatchTeam2a} onChange={e => setAddMatchTeam2a(e.target.value)}
-                                  className="w-full bg-zinc-950 border border-zinc-800 focus:border-cyan-500 rounded-xl px-3 py-2 text-xs text-white outline-none">
-                                  <option value="">Team 2 — Player 1</option>
-                                  {groupPlayerIds.map(id => <option key={id} value={id}>{pName(id)}</option>)}
-                                </select>
-                                <select value={addMatchTeam2b} onChange={e => setAddMatchTeam2b(e.target.value)}
-                                  className="w-full bg-zinc-950 border border-zinc-800 focus:border-cyan-500 rounded-xl px-3 py-2 text-xs text-white outline-none">
-                                  <option value="">Team 2 — Player 2</option>
-                                  {groupPlayerIds.map(id => <option key={id} value={id}>{pName(id)}</option>)}
-                                </select>
-                              </div>
-                              <div className="grid grid-cols-2 gap-2">
-                                <div>
-                                  <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Match Time</label>
-                                  <input type="time" value={addMatchTime} onChange={e => setAddMatchTime(e.target.value)}
-                                    className="w-full bg-zinc-950 border border-zinc-800 focus:border-cyan-500 rounded-xl px-3 py-2 text-xs outline-none text-white font-mono" />
-                                </div>
-                                <div>
-                                  <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Duration (mins)</label>
-                                  <input type="number" min="1" value={addMatchDuration} onChange={e => setAddMatchDuration(e.target.value)}
-                                    className="w-full bg-zinc-950 border border-zinc-800 focus:border-cyan-500 rounded-xl px-3 py-2 text-xs outline-none text-white font-mono" />
-                                </div>
-                              </div>
-                              <div className="flex gap-2">
-                                <button onClick={() => handleAddMatch(g, activeRound)}
-                                  className="flex-1 bg-cyan-500 hover:bg-cyan-400 text-black py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all">
-                                  Add Match
-                                </button>
-                                <button onClick={() => setShowAddMatch(false)}
-                                  className="px-4 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 py-2 rounded-lg text-xs font-black uppercase transition-all">
-                                  Cancel
-                                </button>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      )}
+                {rounds[activeRound] && (
+                  <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-xs font-black uppercase tracking-wider text-zinc-300">Round {roundNum(activeRound)}</h4>
+                      <button onClick={() => handleDeleteRound(activeRound)}
+                        className="text-[10px] text-zinc-600 hover:text-red-400 font-bold uppercase transition-colors">
+                        Delete Round
+                      </button>
                     </div>
-                  )}
-                </>
-              );
-            })()}
+
+                    {(rounds[activeRound].sitOut || []).length > 0 && (
+                      <p className="text-[10px] text-amber-500/80 bg-amber-500/5 border border-amber-500/20 rounded-lg px-3 py-2">
+                        Sitting out: {(rounds[activeRound].sitOut || []).map(id => pName(id)).join(', ')}
+                      </p>
+                    )}
+
+                    <div className="space-y-3">
+                      {Object.entries(rounds[activeRound].matches || {}).map(([courtKey, m]) => {
+                        const editKey = `${activeRound}__${courtKey}`;
+                        const isEditing = editingMatch === editKey;
+                        const status = matchStatus(m.scheduledTime, m.durationMins);
+                        const total = (Number(editScore1) || 0) + (Number(editScore2) || 0);
+                        const cap = Number(maxPoints);
+                        const hasCap = maxPoints !== '' && cap > 0;
+                        return (
+                          <div key={courtKey} className={`bg-zinc-950 border rounded-xl p-4 space-y-3 ${
+                            status === 'live' ? 'border-red-500/40' : 'border-zinc-800'
+                          }`}>
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-mono font-bold text-zinc-500 uppercase tracking-wider">{courtKey}</span>
+                              <button onClick={() => handleDeleteMatch(activeRound, courtKey)}
+                                className="text-zinc-600 hover:text-red-400 text-xs font-bold transition-colors">✕</button>
+                            </div>
+                            {m.scheduledTime && <TimeBadge iso={m.scheduledTime} duration={m.durationMins} />}
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="text-xs space-y-1.5 flex-1">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-zinc-300">{pName(m.team1[0])} &amp; {pName(m.team1[1])}</span>
+                                  {m.score1 !== '' && <span className="font-mono text-zinc-400 bg-zinc-900 px-1.5 py-0.5 rounded text-[10px]">{m.score1}</span>}
+                                </div>
+                                <div className="flex items-center justify-between">
+                                  <span className="text-zinc-300">{pName(m.team2[0])} &amp; {pName(m.team2[1])}</span>
+                                  {m.score2 !== '' && <span className="font-mono text-zinc-400 bg-zinc-900 px-1.5 py-0.5 rounded text-[10px]">{m.score2}</span>}
+                                </div>
+                              </div>
+                              <button onClick={() => openScoreEditor(activeRound, courtKey, m)}
+                                className="px-2.5 py-1 bg-zinc-900 border border-zinc-700 rounded-lg text-[10px] font-black uppercase hover:text-cyan-400 transition-colors shrink-0">
+                                {m.score1 !== '' ? 'Edit' : 'Score'}
+                              </button>
+                            </div>
+
+                            {isEditing && (
+                              <div className="border-t border-zinc-800 pt-3 space-y-2">
+                                {!hasCap && (
+                                  <p className="text-[10px] text-amber-500 bg-amber-500/5 border border-amber-500/20 rounded-lg px-3 py-2">
+                                    No points target set yet — set "Points Per Game" above to cap scores.
+                                  </p>
+                                )}
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div>
+                                    <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">{pName(m.team1[0])} &amp; {pName(m.team1[1])}</label>
+                                    <input type="number" min="0" max={hasCap ? maxPoints : undefined} value={editScore1}
+                                      onChange={e => {
+                                        const v = e.target.value;
+                                        const capped = v === '' ? '' : hasCap ? String(Math.max(0, Math.min(cap, Number(v)))) : String(Math.max(0, Number(v)));
+                                        setEditScore1(capped);
+                                      }}
+                                      className="w-full bg-zinc-900 border border-zinc-700 focus:border-cyan-500 rounded-lg px-3 py-1.5 text-xs outline-none text-white font-mono" />
+                                  </div>
+                                  <div>
+                                    <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">{pName(m.team2[0])} &amp; {pName(m.team2[1])}</label>
+                                    <input type="number" min="0" max={hasCap ? maxPoints : undefined} value={editScore2}
+                                      onChange={e => {
+                                        const v = e.target.value;
+                                        const capped = v === '' ? '' : hasCap ? String(Math.max(0, Math.min(cap, Number(v)))) : String(Math.max(0, Number(v)));
+                                        setEditScore2(capped);
+                                      }}
+                                      className="w-full bg-zinc-900 border border-zinc-700 focus:border-cyan-500 rounded-lg px-3 py-1.5 text-xs outline-none text-white font-mono" />
+                                  </div>
+                                </div>
+                                {hasCap && (
+                                  <p className={`text-[10px] font-mono ${total > cap ? 'text-red-400' : total === cap ? 'text-emerald-400' : 'text-amber-500'}`}>
+                                    Total: {total} / {maxPoints} points{total > cap ? ' — over the limit' : ''}
+                                  </p>
+                                )}
+                                <div className="flex gap-2 pt-1">
+                                  <button onClick={() => handleSaveScore(activeRound, courtKey, m)}
+                                    disabled={hasCap && total > cap}
+                                    className="flex-1 bg-cyan-500 hover:bg-cyan-400 disabled:opacity-30 disabled:cursor-not-allowed text-black py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all">
+                                    Save Score
+                                  </button>
+                                  <button onClick={() => setEditingMatch(null)}
+                                    className="px-4 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 py-2 rounded-lg text-xs font-black uppercase transition-all">
+                                    Cancel
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {!showAddMatch ? (
+                      <button onClick={() => setShowAddMatch(true)}
+                        className="w-full bg-zinc-800 hover:bg-zinc-700 text-white px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all">
+                        + Add Match Manually
+                      </button>
+                    ) : (
+                      <div className="border-t border-zinc-800 pt-4 space-y-2">
+                        <div className="grid grid-cols-2 gap-2">
+                          <select value={addMatchTeam1a} onChange={e => setAddMatchTeam1a(e.target.value)}
+                            className="w-full bg-zinc-950 border border-zinc-800 focus:border-cyan-500 rounded-xl px-3 py-2 text-xs text-white outline-none">
+                            <option value="">Team 1 — Player 1</option>
+                            {allPlayerIds.map(id => <option key={id} value={id}>{pName(id)}</option>)}
+                          </select>
+                          <select value={addMatchTeam1b} onChange={e => setAddMatchTeam1b(e.target.value)}
+                            className="w-full bg-zinc-950 border border-zinc-800 focus:border-cyan-500 rounded-xl px-3 py-2 text-xs text-white outline-none">
+                            <option value="">Team 1 — Player 2</option>
+                            {allPlayerIds.map(id => <option key={id} value={id}>{pName(id)}</option>)}
+                          </select>
+                          <select value={addMatchTeam2a} onChange={e => setAddMatchTeam2a(e.target.value)}
+                            className="w-full bg-zinc-950 border border-zinc-800 focus:border-cyan-500 rounded-xl px-3 py-2 text-xs text-white outline-none">
+                            <option value="">Team 2 — Player 1</option>
+                            {allPlayerIds.map(id => <option key={id} value={id}>{pName(id)}</option>)}
+                          </select>
+                          <select value={addMatchTeam2b} onChange={e => setAddMatchTeam2b(e.target.value)}
+                            className="w-full bg-zinc-950 border border-zinc-800 focus:border-cyan-500 rounded-xl px-3 py-2 text-xs text-white outline-none">
+                            <option value="">Team 2 — Player 2</option>
+                            {allPlayerIds.map(id => <option key={id} value={id}>{pName(id)}</option>)}
+                          </select>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Match Time</label>
+                            <input type="time" value={addMatchTime} onChange={e => setAddMatchTime(e.target.value)}
+                              className="w-full bg-zinc-950 border border-zinc-800 focus:border-cyan-500 rounded-xl px-3 py-2 text-xs outline-none text-white font-mono" />
+                          </div>
+                          <div>
+                            <label className="text-[9px] text-zinc-500 uppercase font-bold block mb-1">Duration (mins)</label>
+                            <input type="number" min="1" value={addMatchDuration} onChange={e => setAddMatchDuration(e.target.value)}
+                              className="w-full bg-zinc-950 border border-zinc-800 focus:border-cyan-500 rounded-xl px-3 py-2 text-xs outline-none text-white font-mono" />
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button onClick={() => handleAddMatch(activeRound)}
+                            className="flex-1 bg-cyan-500 hover:bg-cyan-400 text-black py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all">
+                            Add Match
+                          </button>
+                          <button onClick={() => setShowAddMatch(false)}
+                            className="px-4 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 py-2 rounded-lg text-xs font-black uppercase transition-all">
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
         {/* ── LEADERBOARD TAB ── */}
         {activeTab === 'Leaderboard' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {GROUP_KEYS.map((g) => {
-              const leaderboard = computeLeaderboard(players, roundsFor(g), g);
-              return (
-                <div key={g} className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
-                  <h3 className="text-xs font-black uppercase tracking-wider text-amber-400 mb-4">{GROUP_LABELS[g]} Leaderboard</h3>
-                  {leaderboard.length === 0 ? (
-                    <p className="text-zinc-600 text-xs text-center py-6 border border-dashed border-zinc-800 rounded-xl">No players yet</p>
-                  ) : (
-                    <table className="w-full text-xs">
-                      <thead>
-                        <tr className="border-b border-zinc-800 text-zinc-500 font-bold uppercase text-[10px]">
-                          <th className="py-2 text-left pl-2">#</th>
-                          <th className="py-2 text-left">Player</th>
-                          <th className="py-2 text-center">Played</th>
-                          <th className="py-2 text-center text-emerald-500">Wins</th>
-                          <th className="py-2 text-right pr-2 text-amber-400">Pts</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-zinc-800/50">
-                        {leaderboard.map((p, idx) => (
-                          <tr key={p.id} className={idx === 0 && p.played > 0 ? 'bg-cyan-500/5' : ''}>
-                            <td className="py-2.5 pl-2 font-mono text-zinc-600 font-bold">{idx + 1}</td>
-                            <td className="py-2.5 font-semibold text-zinc-200">
-                              <div className="flex items-center gap-2">
-                                {idx === 0 && p.played > 0 && <span className="text-[9px] bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 px-1.5 py-0.5 rounded-full font-black uppercase">Leader</span>}
-                                {p.name}
-                              </div>
-                            </td>
-                            <td className="py-2.5 text-center text-zinc-400 font-mono">{p.played}</td>
-                            <td className="py-2.5 text-center text-emerald-400 font-mono">{p.wins}</td>
-                            <td className="py-2.5 text-right pr-2 text-amber-400 font-mono font-bold">{p.pointsFor}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  )}
-                </div>
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 max-w-2xl mx-auto">
+            <h3 className="text-xs font-black uppercase tracking-wider text-amber-400 mb-4">Leaderboard</h3>
+            {(() => {
+              const leaderboard = computeLeaderboard(players, rounds);
+              return leaderboard.length === 0 ? (
+                <p className="text-zinc-600 text-xs text-center py-6 border border-dashed border-zinc-800 rounded-xl">No players yet</p>
+              ) : (
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-zinc-800 text-zinc-500 font-bold uppercase text-[10px]">
+                      <th className="py-2 text-left pl-2">#</th>
+                      <th className="py-2 text-left">Player</th>
+                      <th className="py-2 text-center">Played</th>
+                      <th className="py-2 text-center text-emerald-500">Wins</th>
+                      <th className="py-2 text-right pr-2 text-amber-400">Pts</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-800/50">
+                    {leaderboard.map((p, idx) => (
+                      <tr key={p.id} className={idx === 0 && p.played > 0 ? 'bg-cyan-500/5' : ''}>
+                        <td className="py-2.5 pl-2 font-mono text-zinc-600 font-bold">{idx + 1}</td>
+                        <td className="py-2.5 font-semibold text-zinc-200">
+                          <div className="flex items-center gap-2">
+                            {idx === 0 && p.played > 0 && <span className="text-[9px] bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 px-1.5 py-0.5 rounded-full font-black uppercase">Leader</span>}
+                            {p.name}
+                          </div>
+                        </td>
+                        <td className="py-2.5 text-center text-zinc-400 font-mono">{p.played}</td>
+                        <td className="py-2.5 text-center text-emerald-400 font-mono">{p.wins}</td>
+                        <td className="py-2.5 text-right pr-2 text-amber-400 font-mono font-bold">{p.pointsFor}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               );
-            })}
+            })()}
           </div>
         )}
 
